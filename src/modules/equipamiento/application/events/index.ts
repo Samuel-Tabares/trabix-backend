@@ -59,5 +59,4 @@ export class EquipamientoDevueltoEvent implements IEvent {
     ) {}
 }
 
-// No hay handlers activos por ahora
 export const EquipamientoEventHandlers = [];

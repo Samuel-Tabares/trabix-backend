@@ -12,7 +12,10 @@ import {
   USUARIO_REPOSITORY,
 } from '../../../usuarios/domain/usuario.repository.interface';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
-import { EnviarNotificacionCommand } from '../../../notificaciones/application/commands';
+import {
+  EnviarNotificacionCommand,
+  EnviarNotificacionARolCommand,
+} from '../../../notificaciones/application/commands';
 
 // ========== RegistrarEntradaFondoCommand ==========
 
@@ -58,15 +61,16 @@ export class RegistrarEntradaFondoHandler
 
 /**
  * Command para registrar una salida del fondo (premio/bono a vendedor)
- * 
+ *
  * Validaciones:
  * 1. El vendedor beneficiario existe y está activo
  * 2. El monto es mayor a 0
  * 3. El fondo tiene saldo suficiente
- * 
+ *
  * Acciones:
  * 1. Registrar el movimiento de salida
- * 2. Notificar al vendedor beneficiario
+ * 2. Notificar al vendedor beneficiario (PREMIO_RECIBIDO)
+ * 3. Notificar a todos los demás vendedores (FONDO_EGRESO)
  */
 export class RegistrarSalidaFondoCommand implements ICommand {
   constructor(
@@ -137,7 +141,9 @@ export class RegistrarSalidaFondoHandler
       `Salida registrada: $${monto.toFixed(2)} - ${concepto} - Beneficiario: ${vendedorBeneficiarioId} - Admin: ${adminId}`,
     );
 
-    // 4. Notificar al vendedor beneficiario
+    const beneficiarioNombre = `${vendedor.nombre} ${vendedor.apellidos}`;
+
+    // 4. Notificar al vendedor beneficiario (PREMIO_RECIBIDO)
     try {
       await this.commandBus.execute(
         new EnviarNotificacionCommand(
@@ -150,11 +156,33 @@ export class RegistrarSalidaFondoHandler
           },
         ),
       );
-      this.logger.log(`Notificación enviada al beneficiario: ${vendedorBeneficiarioId}`);
+      this.logger.log(`Notificación PREMIO_RECIBIDO enviada al beneficiario: ${vendedorBeneficiarioId}`);
     } catch (error) {
       // No fallar si la notificación falla
       this.logger.warn(
         `Error enviando notificación al beneficiario ${vendedorBeneficiarioId}: ${error}`,
+      );
+    }
+
+    // 5. Notificar a TODOS los demás vendedores (FONDO_EGRESO)
+    try {
+      await this.commandBus.execute(
+        new EnviarNotificacionARolCommand(
+          'VENDEDOR',
+          'FONDO_EGRESO',
+          {
+            monto: monto.toNumber(),
+            concepto: concepto,
+            beneficiarioNombre,
+            fecha: movimiento.fechaTransaccion,
+          },
+          vendedorBeneficiarioId, // Excluir al beneficiario (ya recibió PREMIO_RECIBIDO)
+        ),
+      );
+      this.logger.log(`Notificación FONDO_EGRESO enviada a vendedores activos`);
+    } catch (error) {
+      this.logger.warn(
+        `Error enviando notificación FONDO_EGRESO a vendedores: ${error}`,
       );
     }
 

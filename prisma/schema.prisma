@@ -107,6 +107,11 @@ enum TipoNotificacion {
   TANDA_LIBERADA
   MANUAL
   PREMIO_RECIBIDO
+  LOTE_ACTIVADO
+  LOTE_FINALIZADO
+  EQUIPAMIENTO_SOLICITADO
+  EQUIPAMIENTO_ENTREGADO
+  FONDO_EGRESO
 }
 
 enum CanalNotificacion {
@@ -127,70 +132,70 @@ enum EstadoPedidoStock {
 // ===========================================
 
 model Usuario {
-  id                      String         @id @default(uuid())
-  cedula                  Int            @unique
-  nombre                  String
-  apellidos               String
-  email                   String         @unique
-  telefono                String         @unique
-  passwordHash            String
-  requiereCambioPassword  Boolean        @default(true)
-  rol                     Rol            @default(VENDEDOR)
-  estado                  EstadoUsuario  @default(ACTIVO)
-  modeloNegocio           ModeloNegocio  @default(MODELO_60_40)
-  
-  reclutadorId            String?
-  reclutador              Usuario?       @relation("Reclutamiento", fields: [reclutadorId], references: [id])
-  reclutados              Usuario[]      @relation("Reclutamiento")
-  
-  lotes                   Lote[]
-  ventas                  Venta[]
-  ventasMayor             VentaMayor[]
-  equipamiento            Equipamiento?
-  notificaciones          Notificacion[]
+  id                     String        @id @default(uuid())
+  cedula                 Int           @unique
+  nombre                 String
+  apellidos              String
+  email                  String        @unique
+  telefono               String        @unique
+  passwordHash           String
+  requiereCambioPassword Boolean       @default(true)
+  rol                    Rol           @default(VENDEDOR)
+  estado                 EstadoUsuario @default(ACTIVO)
+  modeloNegocio          ModeloNegocio @default(MODELO_60_40)
+
+  reclutadorId String?
+  reclutador   Usuario?  @relation("Reclutamiento", fields: [reclutadorId], references: [id])
+  reclutados   Usuario[] @relation("Reclutamiento")
+
+  lotes                    Lote[]
+  ventas                   Venta[]
+  ventasMayor              VentaMayor[]
+  equipamiento             Equipamiento?
+  notificaciones           Notificacion[]
   historialConfiguraciones HistorialConfiguracion[]
-  
-  refreshTokenHash        String?
-  intentosFallidos        Int            @default(0)
-  bloqueadoHasta          DateTime?
-  
-  fechaCreacion           DateTime       @default(now())
-  ultimoLogin             DateTime?
-  fechaCambioEstado       DateTime?
-  
-  eliminado               Boolean        @default(false)
-  fechaEliminacion        DateTime?
+
+  refreshTokenHash String?
+  intentosFallidos Int       @default(0)
+  bloqueadoHasta   DateTime?
+
+  fechaCreacion     DateTime  @default(now())
+  ultimoLogin       DateTime?
+  fechaCambioEstado DateTime?
+
+  eliminado        Boolean   @default(false)
+  fechaEliminacion DateTime?
 
   @@map("usuarios")
 }
 
 model Lote {
-  id                  String        @id @default(uuid())
-  vendedorId          String
-  vendedor            Usuario       @relation(fields: [vendedorId], references: [id])
-  
-  version             Int           @default(0)
-  cantidadTrabix      Int
-  modeloNegocio       ModeloNegocio
-  estado              EstadoLote    @default(CREADO)
-  
-  inversionTotal      Decimal       @db.Decimal(12, 2)
-  inversionAdmin      Decimal       @db.Decimal(12, 2)
-  inversionVendedor   Decimal       @db.Decimal(12, 2)
-  dineroRecaudado     Decimal       @default(0) @db.Decimal(12, 2)
-  dineroTransferido   Decimal       @default(0) @db.Decimal(12, 2)
-  
-  esLoteForzado       Boolean       @default(false)
-  ventaMayorOrigenId  String?
-  ventaMayorOrigen    VentaMayor?   @relation(fields: [ventaMayorOrigenId], references: [id])
-  
-  tandas              Tanda[]
-  ventas              Venta[]
-  miniCuadre          MiniCuadre?
-  
-  fechaCreacion       DateTime      @default(now())
-  fechaActivacion     DateTime?
-  fechaFinalizacion   DateTime?
+  id         String  @id @default(uuid())
+  vendedorId String
+  vendedor   Usuario @relation(fields: [vendedorId], references: [id])
+
+  version        Int           @default(0)
+  cantidadTrabix Int
+  modeloNegocio  ModeloNegocio
+  estado         EstadoLote    @default(CREADO)
+
+  inversionTotal    Decimal @db.Decimal(12, 2)
+  inversionAdmin    Decimal @db.Decimal(12, 2)
+  inversionVendedor Decimal @db.Decimal(12, 2)
+  dineroRecaudado   Decimal @default(0) @db.Decimal(12, 2)
+  dineroTransferido Decimal @default(0) @db.Decimal(12, 2)
+
+  esLoteForzado      Boolean     @default(false)
+  ventaMayorOrigenId String?
+  ventaMayorOrigen   VentaMayor? @relation(fields: [ventaMayorOrigenId], references: [id])
+
+  tandas     Tanda[]
+  ventas     Venta[]
+  miniCuadre MiniCuadre?
+
+  fechaCreacion     DateTime  @default(now())
+  fechaActivacion   DateTime?
+  fechaFinalizacion DateTime?
 
   @@index([vendedorId, estado])
   @@index([estado, fechaCreacion])
@@ -198,27 +203,27 @@ model Lote {
 }
 
 model Tanda {
-  id                        String       @id @default(uuid())
-  loteId                    String
-  lote                      Lote         @relation(fields: [loteId], references: [id])
-  
-  version                   Int          @default(0)
-  numero                    Int
-  estado                    EstadoTanda  @default(INACTIVA)
-  
-  stockInicial              Int
-  stockActual               Int
-  stockConsumidoPorMayor    Int          @default(0)
-  
-  liberadaPorCuadreMayorId  String?
-  
-  cuadre                    Cuadre?
-  ventas                    Venta[]
-  
-  fechaLiberacion           DateTime?
-  fechaEnTransito           DateTime?
-  fechaEnCasa               DateTime?
-  fechaFinalizada           DateTime?
+  id     String @id @default(uuid())
+  loteId String
+  lote   Lote   @relation(fields: [loteId], references: [id])
+
+  version Int         @default(0)
+  numero  Int
+  estado  EstadoTanda @default(INACTIVA)
+
+  stockInicial           Int
+  stockActual            Int
+  stockConsumidoPorMayor Int @default(0)
+
+  liberadaPorCuadreMayorId String?
+
+  cuadre Cuadre?
+  ventas Venta[]
+
+  fechaLiberacion DateTime?
+  fechaEnTransito DateTime?
+  fechaEnCasa     DateTime?
+  fechaFinalizada DateTime?
 
   @@index([loteId, estado])
   @@index([estado])
@@ -226,23 +231,23 @@ model Tanda {
 }
 
 model Venta {
-  id              String       @id @default(uuid())
-  vendedorId      String
-  vendedor        Usuario      @relation(fields: [vendedorId], references: [id])
-  
-  loteId          String
-  lote            Lote         @relation(fields: [loteId], references: [id])
-  
-  tandaId         String
-  tanda           Tanda        @relation(fields: [tandaId], references: [id])
-  
-  estado          EstadoVenta  @default(PENDIENTE)
-  detalles        DetalleVenta[]
-  
-  montoTotal      Decimal      @db.Decimal(12, 2)
-  cantidadTrabix  Int
-  
-  fechaRegistro   DateTime     @default(now())
+  id         String  @id @default(uuid())
+  vendedorId String
+  vendedor   Usuario @relation(fields: [vendedorId], references: [id])
+
+  loteId String
+  lote   Lote   @relation(fields: [loteId], references: [id])
+
+  tandaId String
+  tanda   Tanda  @relation(fields: [tandaId], references: [id])
+
+  estado   EstadoVenta    @default(PENDIENTE)
+  detalles DetalleVenta[]
+
+  montoTotal     Decimal @db.Decimal(12, 2)
+  cantidadTrabix Int
+
+  fechaRegistro   DateTime  @default(now())
   fechaValidacion DateTime?
 
   @@index([vendedorId, estado])
@@ -252,10 +257,10 @@ model Venta {
 }
 
 model DetalleVenta {
-  id             String    @id @default(uuid())
-  ventaId        String
-  venta          Venta     @relation(fields: [ventaId], references: [id])
-  
+  id      String @id @default(uuid())
+  ventaId String
+  venta   Venta  @relation(fields: [ventaId], references: [id])
+
   tipo           TipoVenta
   cantidad       Int
   precioUnitario Decimal   @db.Decimal(12, 2)
@@ -265,37 +270,37 @@ model DetalleVenta {
 }
 
 model VentaMayor {
-  id               String              @id @default(uuid())
-  vendedorId       String
-  vendedor         Usuario             @relation(fields: [vendedorId], references: [id])
-  
+  id         String  @id @default(uuid())
+  vendedorId String
+  vendedor   Usuario @relation(fields: [vendedorId], references: [id])
+
   cantidadUnidades Int
-  precioUnidad     Decimal             @db.Decimal(12, 2)
-  ingresoBruto     Decimal             @db.Decimal(12, 2)
-  conLicor         Boolean             @default(true)
-  
-  modalidad        ModalidadVentaMayor
-  estado           EstadoVentaMayor    @default(PENDIENTE)
-  
-  fuentesStock     FuenteStockMayor[]
+  precioUnidad     Decimal @db.Decimal(12, 2)
+  ingresoBruto     Decimal @db.Decimal(12, 2)
+  conLicor         Boolean @default(true)
+
+  modalidad ModalidadVentaMayor
+  estado    EstadoVentaMayor    @default(PENDIENTE)
+
+  fuentesStock      FuenteStockMayor[]
   lotesInvolucrados LoteVentaMayor[]
-  loteForzado      Lote[]
-  cuadreMayor      CuadreMayor?
-  
-  fechaRegistro    DateTime            @default(now())
-  fechaCompletada  DateTime?
+  loteForzado       Lote[]
+  cuadreMayor       CuadreMayor?
+
+  fechaRegistro   DateTime  @default(now())
+  fechaCompletada DateTime?
 
   @@map("ventas_mayor")
 }
 
 model FuenteStockMayor {
-  id               String     @id @default(uuid())
-  ventaMayorId     String
-  ventaMayor       VentaMayor @relation(fields: [ventaMayorId], references: [id])
-  
-  tandaId          String
+  id           String     @id @default(uuid())
+  ventaMayorId String
+  ventaMayor   VentaMayor @relation(fields: [ventaMayorId], references: [id])
+
+  tandaId           String
   cantidadConsumida Int
-  tipoStock        String     // RESERVADO | EN_CASA | LOTE_FORZADO
+  tipoStock         String // RESERVADO | EN_CASA | LOTE_FORZADO
 
   @@map("fuentes_stock_mayor")
 }
@@ -304,84 +309,84 @@ model LoteVentaMayor {
   id           String     @id @default(uuid())
   ventaMayorId String
   ventaMayor   VentaMayor @relation(fields: [ventaMayorId], references: [id])
-  
-  loteId       String
+
+  loteId String
 
   @@map("lotes_venta_mayor")
 }
 
 model Cuadre {
-  id                     String         @id @default(uuid())
-  tandaId                String         @unique
-  tanda                  Tanda          @relation(fields: [tandaId], references: [id])
-  
-  version                Int            @default(0)
-  estado                 EstadoCuadre   @default(INACTIVO)
-  concepto               ConceptoCuadre
-  
-  montoEsperado          Decimal        @db.Decimal(12, 2)
-  montoRecibido          Decimal        @default(0) @db.Decimal(12, 2)
-  montoFaltante          Decimal        @default(0) @db.Decimal(12, 2)
-  montoCubiertoPorMayor  Decimal        @default(0) @db.Decimal(12, 2)
-  
+  id      String @id @default(uuid())
+  tandaId String @unique
+  tanda   Tanda  @relation(fields: [tandaId], references: [id])
+
+  version  Int            @default(0)
+  estado   EstadoCuadre   @default(INACTIVO)
+  concepto ConceptoCuadre
+
+  montoEsperado         Decimal @db.Decimal(12, 2)
+  montoRecibido         Decimal @default(0) @db.Decimal(12, 2)
+  montoFaltante         Decimal @default(0) @db.Decimal(12, 2)
+  montoCubiertoPorMayor Decimal @default(0) @db.Decimal(12, 2)
+
   cerradoPorCuadreMayorId String?
-  
-  fechaPendiente         DateTime?
-  fechaExitoso           DateTime?
+
+  fechaPendiente DateTime?
+  fechaExitoso   DateTime?
 
   @@index([estado])
   @@map("cuadres")
 }
 
 model CuadreMayor {
-  id                              String              @id @default(uuid())
-  ventaMayorId                    String              @unique
-  ventaMayor                      VentaMayor          @relation(fields: [ventaMayorId], references: [id])
-  
-  vendedorId                      String
-  modalidad                       ModalidadVentaMayor
-  estado                          EstadoCuadre        @default(PENDIENTE)
-  
-  cantidadUnidades                Int
-  precioUnidad                    Decimal             @db.Decimal(12, 2)
-  ingresoBruto                    Decimal             @db.Decimal(12, 2)
-  
-  deudasSaldadas                  Decimal             @default(0) @db.Decimal(12, 2)
-  inversionAdminLotesExistentes   Decimal             @db.Decimal(12, 2)
-  inversionAdminLoteForzado       Decimal             @default(0) @db.Decimal(12, 2)
-  inversionVendedorLotesExistentes Decimal            @db.Decimal(12, 2)
-  inversionVendedorLoteForzado    Decimal             @default(0) @db.Decimal(12, 2)
-  gananciasAdmin                  Decimal             @default(0) @db.Decimal(12, 2)
-  gananciasVendedor               Decimal             @default(0) @db.Decimal(12, 2)
-  
-  evaluacionFinanciera            Json
-  
-  montoTotalAdmin                 Decimal             @db.Decimal(12, 2)
-  montoTotalVendedor              Decimal             @db.Decimal(12, 2)
-  
-  lotesInvolucradosIds            String[]
-  tandasAfectadas                 Json
-  cuadresCerradosIds              String[]
-  loteForzadoId                   String?
-  
-  gananciasReclutadores           GananciaReclutador[]
-  
-  fechaRegistro                   DateTime            @default(now())
-  fechaExitoso                    DateTime?
+  id           String     @id @default(uuid())
+  ventaMayorId String     @unique
+  ventaMayor   VentaMayor @relation(fields: [ventaMayorId], references: [id])
+
+  vendedorId String
+  modalidad  ModalidadVentaMayor
+  estado     EstadoCuadre        @default(PENDIENTE)
+
+  cantidadUnidades Int
+  precioUnidad     Decimal @db.Decimal(12, 2)
+  ingresoBruto     Decimal @db.Decimal(12, 2)
+
+  deudasSaldadas                   Decimal @default(0) @db.Decimal(12, 2)
+  inversionAdminLotesExistentes    Decimal @db.Decimal(12, 2)
+  inversionAdminLoteForzado        Decimal @default(0) @db.Decimal(12, 2)
+  inversionVendedorLotesExistentes Decimal @db.Decimal(12, 2)
+  inversionVendedorLoteForzado     Decimal @default(0) @db.Decimal(12, 2)
+  gananciasAdmin                   Decimal @default(0) @db.Decimal(12, 2)
+  gananciasVendedor                Decimal @default(0) @db.Decimal(12, 2)
+
+  evaluacionFinanciera Json
+
+  montoTotalAdmin    Decimal @db.Decimal(12, 2)
+  montoTotalVendedor Decimal @db.Decimal(12, 2)
+
+  lotesInvolucradosIds String[]
+  tandasAfectadas      Json
+  cuadresCerradosIds   String[]
+  loteForzadoId        String?
+
+  gananciasReclutadores GananciaReclutador[]
+
+  fechaRegistro DateTime  @default(now())
+  fechaExitoso  DateTime?
 
   @@index([estado])
   @@map("cuadres_mayor")
 }
 
 model MiniCuadre {
-  id             String          @id @default(uuid())
-  loteId         String          @unique
-  lote           Lote            @relation(fields: [loteId], references: [id])
-  
-  tandaId        String
-  estado         EstadoMiniCuadre @default(INACTIVO)
-  montoFinal     Decimal         @default(0) @db.Decimal(12, 2)
-  
+  id     String @id @default(uuid())
+  loteId String @unique
+  lote   Lote   @relation(fields: [loteId], references: [id])
+
+  tandaId    String
+  estado     EstadoMiniCuadre @default(INACTIVO)
+  montoFinal Decimal          @default(0) @db.Decimal(12, 2)
+
   fechaPendiente DateTime?
   fechaExitoso   DateTime?
 
@@ -389,44 +394,44 @@ model MiniCuadre {
 }
 
 model Equipamiento {
-  id                     String             @id @default(uuid())
-  vendedorId             String             @unique
-  vendedor               Usuario            @relation(fields: [vendedorId], references: [id])
-  
-  estado                 EstadoEquipamiento @default(SOLICITADO)
-  tieneDeposito          Boolean            @default(false)
-  depositoPagado         Decimal?           @db.Decimal(12, 2)
-  mensualidadActual      Decimal            @db.Decimal(12, 2)
-  
+  id         String  @id @default(uuid())
+  vendedorId String  @unique
+  vendedor   Usuario @relation(fields: [vendedorId], references: [id])
+
+  estado            EstadoEquipamiento @default(SOLICITADO)
+  tieneDeposito     Boolean            @default(false)
+  depositoPagado    Decimal?           @db.Decimal(12, 2)
+  mensualidadActual Decimal            @db.Decimal(12, 2)
+
   ultimaMensualidadPagada DateTime?
-  deudaDano              Decimal            @default(0) @db.Decimal(12, 2)
-  deudaPerdida           Decimal            @default(0) @db.Decimal(12, 2)
-  
-  fechaSolicitud         DateTime           @default(now())
-  fechaEntrega           DateTime?
-  fechaDevolucion        DateTime?
-  
-  depositoDevuelto       Boolean            @default(false)
+  deudaDano               Decimal   @default(0) @db.Decimal(12, 2)
+  deudaPerdida            Decimal   @default(0) @db.Decimal(12, 2)
+
+  fechaSolicitud  DateTime  @default(now())
+  fechaEntrega    DateTime?
+  fechaDevolucion DateTime?
+
+  depositoDevuelto        Boolean   @default(false)
   fechaDevolucionDeposito DateTime?
 
   @@map("equipamientos")
 }
 
 model PedidoStock {
-  id                 String            @id @default(uuid())
-  cantidadTrabix     Int
-  estado             EstadoPedidoStock @default(BORRADOR)
-  
-  costoTotal         Decimal           @default(0) @db.Decimal(12, 2)
-  costoRealPorTrabix Decimal           @default(0) @db.Decimal(12, 2)
-  
-  detallesCosto      DetalleCostoPedido[]
-  
-  fechaCreacion      DateTime          @default(now())
-  fechaRecepcion     DateTime?
-  fechaCancelacion   DateTime?
-  motivoCancelacion  String?
-  notas              String?
+  id             String            @id @default(uuid())
+  cantidadTrabix Int
+  estado         EstadoPedidoStock @default(BORRADOR)
+
+  costoTotal         Decimal @default(0) @db.Decimal(12, 2)
+  costoRealPorTrabix Decimal @default(0) @db.Decimal(12, 2)
+
+  detallesCosto DetalleCostoPedido[]
+
+  fechaCreacion     DateTime  @default(now())
+  fechaRecepcion    DateTime?
+  fechaCancelacion  DateTime?
+  motivoCancelacion String?
+  notas             String?
 
   @@index([estado])
   @@index([fechaCreacion])
@@ -434,43 +439,43 @@ model PedidoStock {
 }
 
 model DetalleCostoPedido {
-  id            String      @id @default(uuid())
-  pedidoId      String
-  pedido        PedidoStock @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  
+  id       String      @id @default(uuid())
+  pedidoId String
+  pedido   PedidoStock @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
   concepto      String
-  esObligatorio Boolean     @default(false)
+  esObligatorio Boolean @default(false)
   cantidad      Int?
-  costoTotal    Decimal     @db.Decimal(12, 2)
-  
-  fechaRegistro DateTime    @default(now())
+  costoTotal    Decimal @db.Decimal(12, 2)
+
+  fechaRegistro DateTime @default(now())
 
   @@index([pedidoId])
   @@map("detalles_costo_pedido")
 }
 
 model TipoInsumo {
-  id            String   @id @default(uuid())
-  nombre        String   @unique
-  esObligatorio Boolean  @default(false)
-  activo        Boolean  @default(true)
-  
+  id            String  @id @default(uuid())
+  nombre        String  @unique
+  esObligatorio Boolean @default(false)
+  activo        Boolean @default(true)
+
   fechaCreacion DateTime @default(now())
 
   @@map("tipos_insumo")
 }
 
 model ConfiguracionSistema {
-  id                String   @id @default(uuid())
-  clave             String   @unique
-  valor             String
-  tipo              String   // DECIMAL | INT | PERCENT
-  descripcion       String
-  categoria         String   // PRECIOS | PORCENTAJES | EQUIPAMIENTO | TIEMPOS
-  modificable       Boolean  @default(true)
-  
+  id          String  @id @default(uuid())
+  clave       String  @unique
+  valor       String
+  tipo        String // DECIMAL | INT | PERCENT
+  descripcion String
+  categoria   String // PRECIOS | PORCENTAJES | EQUIPAMIENTO | TIEMPOS
+  modificable Boolean @default(true)
+
   ultimaModificacion DateTime @default(now())
-  modificadoPorId   String?
+  modificadoPorId    String?
 
   @@index([categoria])
   @@index([clave])
@@ -478,15 +483,15 @@ model ConfiguracionSistema {
 }
 
 model HistorialConfiguracion {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   clave           String
   valorAnterior   String
   valorNuevo      String
   modificadoPorId String
-  modificadoPor   Usuario  @relation(fields: [modificadoPorId], references: [id])
+  modificadoPor   Usuario @relation(fields: [modificadoPorId], references: [id])
   motivo          String?
-  
-  fechaCambio     DateTime @default(now())
+
+  fechaCambio DateTime @default(now())
 
   @@index([clave])
   @@index([fechaCambio])
@@ -494,47 +499,50 @@ model HistorialConfiguracion {
 }
 
 model StockAdmin {
-  id                  String   @id @default(uuid())
-  stockFisico         Int      @default(0)
-  ultimoPedidoId      String?
-  
+  id             String  @id @default(uuid())
+  stockFisico    Int     @default(0)
+  ultimoPedidoId String?
+
   ultimaActualizacion DateTime @default(now())
 
   @@map("stock_admin")
 }
 
 model TransaccionFondo {
-  id               String               @id @default(uuid())
-  tipo             TipoTransaccionFondo
-  monto            Decimal              @db.Decimal(12, 2)
-  motivo           String?
-  loteOrigenId     String?
-  
-  fechaTransaccion DateTime             @default(now())
+  id           String               @id @default(uuid())
+  tipo         TipoTransaccionFondo
+  monto        Decimal              @db.Decimal(12, 2)
+  motivo       String?
+  loteOrigenId String?
+
+  fechaTransaccion DateTime @default(now())
 
   @@map("transacciones_fondo")
 }
 
 model Notificacion {
-  id            String            @id @default(uuid())
-  usuarioId     String
-  usuario       Usuario           @relation(fields: [usuarioId], references: [id])
-  
-  tipo          TipoNotificacion
-  titulo        String
-  mensaje       String
-  datos         Json?
-  canal         CanalNotificacion @default(WEBSOCKET)
-  
-  leida         Boolean           @default(false)
-  fechaCreacion DateTime          @default(now())
+  id        String  @id @default(uuid())
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  tipo    TipoNotificacion
+  titulo  String
+  mensaje String
+  datos   Json?
+  canal   CanalNotificacion @default(WEBSOCKET)
+
+  leida         Boolean   @default(false)
+  fechaCreacion DateTime  @default(now())
   fechaLeida    DateTime?
 
+  @@index([usuarioId, leida])
+  @@index([fechaCreacion])
+  @@index([usuarioId, fechaCreacion])
   @@map("notificaciones")
 }
 
 model AuditLog {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   usuarioId       String?
   accion          String
   entidad         String
@@ -543,22 +551,22 @@ model AuditLog {
   datosNuevos     Json?
   ip              String?
   userAgent       String?
-  
-  fechaCreacion   DateTime @default(now())
+
+  fechaCreacion DateTime @default(now())
 
   @@map("audit_logs")
 }
 
 model GananciaReclutador {
-  id               String      @id @default(uuid())
-  cuadreMayorId    String
-  cuadreMayor      CuadreMayor @relation(fields: [cuadreMayorId], references: [id])
-  
-  reclutadorId     String
-  nivel            Int
-  monto            Decimal     @db.Decimal(12, 2)
-  
-  transferido      Boolean     @default(false)
+  id            String      @id @default(uuid())
+  cuadreMayorId String
+  cuadreMayor   CuadreMayor @relation(fields: [cuadreMayorId], references: [id])
+
+  reclutadorId String
+  nivel        Int
+  monto        Decimal @db.Decimal(12, 2)
+
+  transferido        Boolean   @default(false)
   fechaTransferencia DateTime?
 
   @@index([cuadreMayorId])
@@ -567,14 +575,14 @@ model GananciaReclutador {
 }
 
 model EventStore {
-  id            String   @id @default(uuid())
+  id            String @id @default(uuid())
   eventName     String
   aggregateType String
   aggregateId   String
   payload       Json
   metadata      Json?
-  
-  occurredOn    DateTime @default(now())
+
+  occurredOn DateTime @default(now())
 
   @@index([aggregateType, aggregateId])
   @@index([eventName, occurredOn])
@@ -582,10 +590,10 @@ model EventStore {
 }
 
 model Outbox {
-  id          String    @id @default(uuid())
-  eventType   String
-  payload     Json
-  
+  id        String @id @default(uuid())
+  eventType String
+  payload   Json
+
   createdAt   DateTime  @default(now())
   processedAt DateTime?
   error       String?
@@ -599,7 +607,7 @@ model TokenBlacklist {
   id        String   @id @default(uuid())
   tokenId   String   @unique
   expiresAt DateTime
-  
+
   createdAt DateTime @default(now())
 
   @@index([expiresAt])
@@ -607,32 +615,31 @@ model TokenBlacklist {
 }
 
 model IdempotencyKey {
-  id         String   @id @default(uuid())
-  key        String   @unique
+  id         String @id @default(uuid())
+  key        String @unique
   endpoint   String
   response   Json
   statusCode Int
-  
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 
   @@index([expiresAt])
   @@map("idempotency_keys")
 }
 
 model MovimientoFondo {
-  id               String   @id @default(uuid())
-  
-  tipo             String   // ENTRADA | SALIDA
-  monto            Decimal  @db.Decimal(12, 2)
-  concepto         String
-  loteId           String?  // Solo para entradas (referencia al lote)
+  id String @id @default(uuid())
+
+  tipo                   String // ENTRADA | SALIDA
+  monto                  Decimal @db.Decimal(12, 2)
+  concepto               String
+  loteId                 String? // Solo para entradas (referencia al lote)
   vendedorBeneficiarioId String?
-  
+
   fechaTransaccion DateTime @default(now())
 
   @@index([tipo, fechaTransaccion])
   @@index([vendedorBeneficiarioId])
   @@map("movimientos_fondo")
 }
-

@@ -8,48 +8,47 @@ import { EnviarNotificacionCommand } from '../../../notificaciones/application/c
  *
  * Acciones:
  * 1. Las acciones principales (finalizar tanda y lote) ya se ejecutaron en el command
- * 2. Enviar notificación al vendedor
+ * 2. Enviar notificación LOTE_FINALIZADO al vendedor
  */
 @EventsHandler(MiniCuadreExitosoEvent)
 export class MiniCuadreExitosoHandler
-    implements IEventHandler<MiniCuadreExitosoEvent>
+  implements IEventHandler<MiniCuadreExitosoEvent>
 {
-    private readonly logger = new Logger(MiniCuadreExitosoHandler.name);
+  private readonly logger = new Logger(MiniCuadreExitosoHandler.name);
 
-    constructor(private readonly commandBus: CommandBus) {}
+  constructor(private readonly commandBus: CommandBus) {}
 
-    async handle(event: MiniCuadreExitosoEvent): Promise<void> {
-        const montoFinalFormatted = event.getMontoFinalFormatted();
-        const montoFinalNumero = event.getMontoFinalAsNumber();
+  async handle(event: MiniCuadreExitosoEvent): Promise<void> {
+    const montoFinalFormatted = event.getMontoFinalFormatted();
+    const montoFinalNumero = event.getMontoFinalAsNumber();
 
-        this.logger.log(
-            `Procesando MiniCuadreExitosoEvent: ${event.miniCuadreId} - ` +
-            `Lote: ${event.loteId} - ` +
-            `Vendedor: ${event.vendedorId} - ` +
-            `Monto final: $${montoFinalFormatted}`,
-        );
+    this.logger.log(
+      `Procesando MiniCuadreExitosoEvent: ${event.miniCuadreId} - ` +
+      `Lote: ${event.loteId} - ` +
+      `Vendedor: ${event.vendedorId} - ` +
+      `Monto final: $${montoFinalFormatted}`,
+    );
 
-        try {
-            // Enviar notificación al vendedor - lote finalizado
-            await this.commandBus.execute(
-                new EnviarNotificacionCommand(event.vendedorId, 'MANUAL', {
-                    titulo: '🎊 ¡Lote Finalizado!',
-                    mensaje: `Tu lote ha sido completado exitosamente. Monto final: $${montoFinalFormatted}`,
-                    loteId: event.loteId,
-                    miniCuadreId: event.miniCuadreId,
-                    montoFinal: montoFinalNumero,
-                }),
-            );
+    try {
+      // Enviar notificación al vendedor - lote finalizado
+      // CAMBIO: Usar tipo LOTE_FINALIZADO en lugar de MANUAL
+      await this.commandBus.execute(
+        new EnviarNotificacionCommand(event.vendedorId, 'LOTE_FINALIZADO', {
+          loteId: event.loteId,
+          miniCuadreId: event.miniCuadreId,
+          montoFinal: montoFinalNumero,
+        }),
+      );
 
-            this.logger.log(
-                `MiniCuadreExitosoEvent procesado: ${event.miniCuadreId} - Lote ${event.loteId} FINALIZADO`,
-            );
-        } catch (error) {
-            this.logger.error(
-                `Error procesando MiniCuadreExitosoEvent: ${event.miniCuadreId}`,
-                error,
-            );
-            throw error;
-        }
+      this.logger.log(
+        `MiniCuadreExitosoEvent procesado: ${event.miniCuadreId} - Lote ${event.loteId} FINALIZADO`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error procesando MiniCuadreExitosoEvent: ${event.miniCuadreId}`,
+        error,
+      );
+      throw error;
     }
+  }
 }
