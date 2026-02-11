@@ -8,7 +8,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UseGuards,
     UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -19,9 +18,7 @@ import {
     ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 
@@ -79,7 +76,7 @@ export class VentasController {
      * Registra una nueva venta
      */
     @Post()
-    @UseGuards(AuthGuard('jwt'))
+    
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Registrar venta' })
     @ApiResponse({
@@ -106,7 +103,7 @@ export class VentasController {
      * Lista ventas con filtros y paginación
      */
     @Get()
-    @UseGuards(AuthGuard('jwt'))
+    
     @ApiOperation({ summary: 'Listar ventas' })
     @ApiResponse({
         status: 200,
@@ -131,7 +128,7 @@ export class VentasController {
      * Obtiene una venta por ID
      */
     @Get(':id')
-    @UseGuards(AuthGuard('jwt'))
+    
     @ApiOperation({ summary: 'Obtener venta' })
     @ApiParam({ name: 'id', description: 'ID de la venta' })
     @ApiResponse({
@@ -165,7 +162,6 @@ export class VentasController {
      * Aprueba una venta (admin)
      */
     @Post(':id/aprobar')
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Aprobar venta (admin)' })
@@ -192,7 +188,6 @@ export class VentasController {
      * Rechaza una venta (admin)
      */
     @Post(':id/rechazar')
-    @UseGuards(AuthGuard('jwt'), RolesGuard)
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Rechazar venta (admin)' })

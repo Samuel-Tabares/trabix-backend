@@ -6,7 +6,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -17,9 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Decimal } from 'decimal.js';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 
 // DTOs
@@ -55,7 +52,6 @@ import {
 @ApiTags('Fondo Recompensas')
 @ApiBearerAuth('access-token')
 @Controller('fondo-recompensas')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class FondoRecompensasController {
   constructor(
     private readonly commandBus: CommandBus,

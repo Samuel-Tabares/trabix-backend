@@ -1,16 +1,15 @@
 import {
-    Controller,
-    Get,
-    Post,
-    Param,
-    Body,
-    Query,
-    HttpCode,
-    HttpStatus,
-    ParseUUIDPipe,
-    UseGuards,
-    UnauthorizedException,
-    NotFoundException,
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  Query,
+  HttpCode,
+  HttpStatus,
+  ParseUUIDPipe,
+  UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -20,9 +19,7 @@ import {
     ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 
 // DTOs
@@ -66,7 +63,6 @@ import {
 @ApiTags('Equipamiento')
 @ApiBearerAuth('access-token')
 @Controller('equipamiento')
-@UseGuards(AuthGuard('jwt'))
 export class EquipamientoController {
     constructor(
         private readonly commandBus: CommandBus,
@@ -82,7 +78,6 @@ export class EquipamientoController {
      * Solicitar equipamiento (VENDEDOR)
      */
     @Post('solicitar')
-    @UseGuards(RolesGuard)
     @Roles('VENDEDOR')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
@@ -109,7 +104,7 @@ export class EquipamientoController {
      * Obtener mi equipamiento (VENDEDOR)
      */
     @Get('me')
-    @UseGuards(RolesGuard)
+ 
     @Roles('VENDEDOR')
     @ApiOperation({
         summary: 'Obtener mi equipamiento',
@@ -144,7 +139,7 @@ export class EquipamientoController {
      * Listar equipamiento (ADMIN)
      */
     @Get()
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @ApiOperation({
         summary: 'Listar equipamiento (admin)',
@@ -162,7 +157,7 @@ export class EquipamientoController {
      * Obtener detalle de equipamiento (ADMIN)
      */
     @Get(':id')
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @ApiOperation({
         summary: 'Obtener detalle de equipamiento (admin)',
@@ -182,7 +177,7 @@ export class EquipamientoController {
      * Activar equipamiento - marcar como entregado (ADMIN)
      */
     @Post(':id/activar')
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -207,7 +202,7 @@ export class EquipamientoController {
      * Reportar daño (ADMIN)
      */
     @Post(':id/reportar-dano')
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -243,7 +238,7 @@ export class EquipamientoController {
      * Reportar pérdida total (ADMIN)
      */
     @Post(':id/reportar-perdida')
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -278,7 +273,7 @@ export class EquipamientoController {
      * Devolver equipamiento (ADMIN)
      */
     @Post(':id/devolver')
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -309,7 +304,7 @@ export class EquipamientoController {
      * Registrar pago de mensualidad (ADMIN)
      */
     @Post(':id/pagar-mensualidad')
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -344,7 +339,7 @@ export class EquipamientoController {
      * Abonar a deuda por daño (ADMIN)
      */
     @Post(':id/pagar-deuda-dano')
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -380,7 +375,7 @@ export class EquipamientoController {
      * Abonar a deuda por pérdida (ADMIN)
      */
     @Post(':id/pagar-deuda-perdida')
-    @UseGuards(RolesGuard)
+ 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({

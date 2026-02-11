@@ -10,7 +10,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UseGuards,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -20,9 +19,7 @@ import {
     ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 
 // DTOs
 import {
@@ -68,7 +65,6 @@ import {
 @ApiTags('Admin - Stock')
 @ApiBearerAuth('access-token')
 @Controller('admin/stock')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles('ADMIN')
 export class StockAdminController {
     constructor(private readonly queryBus: QueryBus) {}
@@ -144,7 +140,6 @@ export class StockAdminController {
 @ApiTags('Admin - Pedidos Stock')
 @ApiBearerAuth('access-token')
 @Controller('admin/pedidos-stock')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles('ADMIN')
 export class PedidosStockController {
     constructor(

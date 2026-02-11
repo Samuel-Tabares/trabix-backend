@@ -6,7 +6,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UseGuards,
     UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -17,9 +16,7 @@ import {
     ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 
@@ -51,7 +48,6 @@ import {
 @ApiTags('Mini-Cuadres')
 @ApiBearerAuth('access-token')
 @Controller('mini-cuadres')
-@UseGuards(AuthGuard('jwt'))
 export class MiniCuadresController {
     constructor(
         private readonly commandBus: CommandBus,
@@ -163,7 +159,6 @@ export class MiniCuadresController {
      * Confirma un mini-cuadre (admin)
      */
     @Post(':id/confirmar')
-    @UseGuards(RolesGuard)
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Confirmar mini-cuadre (admin)' })

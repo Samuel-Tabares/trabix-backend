@@ -10,7 +10,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UseGuards,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -20,12 +19,10 @@ import {
     ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 
 // Auth
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 
 // DTOs
 import {
@@ -74,7 +71,6 @@ import {
 @ApiTags('Usuarios')
 @ApiBearerAuth('access-token')
 @Controller('usuarios')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class UsuariosController {
     constructor(
         private readonly commandBus: CommandBus,

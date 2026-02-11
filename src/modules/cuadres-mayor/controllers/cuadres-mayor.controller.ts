@@ -7,7 +7,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UseGuards,
     UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -18,9 +17,7 @@ import {
     ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 
@@ -56,7 +53,6 @@ import {
 @ApiTags('Cuadres Mayor')
 @ApiBearerAuth('access-token')
 @Controller('cuadres-mayor')
-@UseGuards(AuthGuard('jwt'))
 export class CuadresMayorController {
     constructor(
         private readonly commandBus: CommandBus,
@@ -125,7 +121,6 @@ export class CuadresMayorController {
      * Confirma un cuadre al mayor (admin)
      */
     @Post(':id/confirmar')
-    @UseGuards(RolesGuard)
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Confirmar cuadre al mayor (admin)' })

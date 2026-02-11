@@ -8,7 +8,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UseGuards,
     UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -19,9 +18,7 @@ import {
     ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 
@@ -62,7 +59,6 @@ import {
 @ApiTags('Cuadres')
 @ApiBearerAuth('access-token')
 @Controller('cuadres')
-@UseGuards(AuthGuard('jwt'))
 export class CuadresController {
     constructor(
         private readonly commandBus: CommandBus,
@@ -179,7 +175,6 @@ export class CuadresController {
      * Confirma un cuadre como exitoso (admin)
      */
     @Post(':id/confirmar')
-    @UseGuards(RolesGuard)
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Confirmar cuadre exitoso (admin)' })

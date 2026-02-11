@@ -8,7 +8,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UseGuards,
     UnauthorizedException,
     ForbiddenException,
 } from '@nestjs/common';
@@ -20,9 +19,7 @@ import {
     ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 
 // DTOs
@@ -74,7 +71,6 @@ import {
 @ApiTags('Lotes')
 @ApiBearerAuth('access-token')
 @Controller('lotes')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class LotesController {
     constructor(
         private readonly commandBus: CommandBus,

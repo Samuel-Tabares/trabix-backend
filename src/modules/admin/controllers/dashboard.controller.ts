@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import {
     ApiTags,
     ApiOperation,
@@ -7,9 +7,7 @@ import {
     ApiQuery,
 } from '@nestjs/swagger';
 import { QueryBus } from '@nestjs/cqrs';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 
 // DTOs
 import {
@@ -39,7 +37,6 @@ import {
 @ApiTags('Admin - Dashboard')
 @ApiBearerAuth('access-token')
 @Controller('admin/dashboard')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles('ADMIN')
 export class DashboardController {
     constructor(private readonly queryBus: QueryBus) {}

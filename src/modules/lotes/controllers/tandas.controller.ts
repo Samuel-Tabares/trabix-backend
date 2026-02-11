@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  UseGuards,
   UnauthorizedException,
   ForbiddenException,
     Inject
@@ -18,9 +17,7 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import {
   ITandaRepository,
@@ -46,7 +43,6 @@ import { TandaResponseDto } from '../application/dto';
 @ApiTags('Tandas')
 @ApiBearerAuth('access-token')
 @Controller('tandas')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class TandasController {
   constructor(
     @Inject(TANDA_REPOSITORY)
