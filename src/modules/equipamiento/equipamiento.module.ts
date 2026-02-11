@@ -20,6 +20,7 @@ import { EquipamientoEventHandlers } from './application/events';
 // Related modules
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { CuadresModule } from '../cuadres/cuadres.module';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 /**
  * Módulo de Equipamiento
@@ -41,6 +42,10 @@ import { CuadresModule } from '../cuadres/cuadres.module';
  *   de los cuadres activos del vendedor
  * - Usa ActualizadorCuadresVendedorService de CuadresModule
  *
+ * INTEGRACIÓN CON NOTIFICACIONES:
+ * - EQUIPAMIENTO_SOLICITADO: al vendedor (confirmación) y a admins (alerta)
+ * - EQUIPAMIENTO_ENTREGADO: al vendedor cuando admin activa
+ *
  * Configuración via .env:
  * - MENSUALIDAD_CON_DEPOSITO
  * - MENSUALIDAD_SIN_DEPOSITO
@@ -49,33 +54,34 @@ import { CuadresModule } from '../cuadres/cuadres.module';
  * - COSTO_DANO_PIJAMA
  */
 @Module({
-    imports: [
-        CqrsModule,
-        ConfigModule,
-        forwardRef(() => UsuariosModule),
-        forwardRef(() => CuadresModule),
-    ],
-    controllers: [EquipamientoController],
-    providers: [
-        // Repository
-        {
-            provide: EQUIPAMIENTO_REPOSITORY,
-            useClass: PrismaEquipamientoRepository,
-        },
-        // Domain Services
-        EquipamientoConfigService,
-        // Command Handlers
-        ...EquipamientoCommandHandlers,
-        // Query Handlers
-        ...EquipamientoQueryHandlers,
-        // Event Handlers
-        ...EquipamientoEventHandlers,
-    ],
-    exports: [
-        EQUIPAMIENTO_REPOSITORY,
-        EquipamientoConfigService,
-        // Exportar QueryHandlers para que cuadres pueda consultar deudas
-        ...EquipamientoQueryHandlers,
-    ],
+  imports: [
+    CqrsModule,
+    ConfigModule,
+    forwardRef(() => UsuariosModule),
+    forwardRef(() => CuadresModule),
+    forwardRef(() => NotificacionesModule),
+  ],
+  controllers: [EquipamientoController],
+  providers: [
+    // Repository
+    {
+      provide: EQUIPAMIENTO_REPOSITORY,
+      useClass: PrismaEquipamientoRepository,
+    },
+    // Domain Services
+    EquipamientoConfigService,
+    // Command Handlers
+    ...EquipamientoCommandHandlers,
+    // Query Handlers
+    ...EquipamientoQueryHandlers,
+    // Event Handlers
+    ...EquipamientoEventHandlers,
+  ],
+  exports: [
+    EQUIPAMIENTO_REPOSITORY,
+    EquipamientoConfigService,
+    // Exportar QueryHandlers para que cuadres pueda consultar deudas
+    ...EquipamientoQueryHandlers,
+  ],
 })
 export class EquipamientoModule {}

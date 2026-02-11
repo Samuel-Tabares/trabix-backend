@@ -2,23 +2,26 @@ import { EventsHandler, IEventHandler, CommandBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { CuadreExitosoEvent } from './cuadre-exitoso.event';
 import {
-    ILoteRepository,
-    LOTE_REPOSITORY,
+  ILoteRepository,
+  LOTE_REPOSITORY,
 } from '../../../lotes/domain/lote.repository.interface';
 import {
-    ITandaRepository,
-    TANDA_REPOSITORY,
+  ITandaRepository,
+  TANDA_REPOSITORY,
 } from '../../../lotes/domain/tanda.repository.interface';
 import { EnviarNotificacionCommand } from '../../../notificaciones/application/commands';
 
 /**
  * Handler del evento CuadreExitoso
  * Según sección 23 del documento
- * 
+ *
  * Acciones:
  * 1. Actualizar dinero transferido del lote
  * 2. Liberar siguiente tanda
  * 3. Enviar notificación al vendedor
+ *
+ * FIX: Lógica de negocio separada de notificaciones.
+ * Las notificaciones están en try-catch individuales para no interrumpir el flujo.
  */
 @EventsHandler(CuadreExitosoEvent)
 export class CuadreExitosoHandler implements IEventHandler<CuadreExitosoEvent> {
@@ -38,36 +41,38 @@ export class CuadreExitosoHandler implements IEventHandler<CuadreExitosoEvent> {
       `Tanda ${event.numeroTanda}, Lote ${event.loteId}`,
     );
 
-    try {
-      // 1. Actualizar dinero transferido del lote
-      await this.loteRepository.actualizarTransferido(
-        event.loteId,
-        event.montoRecibido,
-      );
+    // ========== 1. LÓGICA DE NEGOCIO (puede lanzar errores) ==========
+
+    // 1.1 Actualizar dinero transferido del lote
+    await this.loteRepository.actualizarTransferido(
+      event.loteId,
+      event.montoRecibido,
+    );
+    this.logger.log(
+      `Dinero transferido actualizado: $${event.montoRecibido.toFixed(2)}`,
+    );
+
+    // 1.2 Liberar siguiente tanda (si existe)
+    const lote = await this.loteRepository.findById(event.loteId);
+    if (!lote) {
+      this.logger.error(`Lote no encontrado: ${event.loteId}`);
+      return;
+    }
+
+    const siguienteNumeroTanda = event.numeroTanda + 1;
+    const siguienteTanda = lote.tandas.find(
+      t => t.numero === siguienteNumeroTanda && t.estado === 'INACTIVA',
+    );
+
+    if (siguienteTanda) {
+      // Liberar la siguiente tanda
+      await this.tandaRepository.liberar(siguienteTanda.id);
       this.logger.log(
-        `Dinero transferido actualizado: $${event.montoRecibido.toFixed(2)}`,
+        `Tanda ${siguienteNumeroTanda} liberada: ${siguienteTanda.id}`,
       );
 
-      // 2. Liberar siguiente tanda (si existe)
-      const lote = await this.loteRepository.findById(event.loteId);
-      if (!lote) {
-        this.logger.error(`Lote no encontrado: ${event.loteId}`);
-        return;
-      }
-
-      const siguienteNumeroTanda = event.numeroTanda + 1;
-      const siguienteTanda = lote.tandas.find(
-        t => t.numero === siguienteNumeroTanda && t.estado === 'INACTIVA',
-      );
-
-      if (siguienteTanda) {
-        // Liberar la siguiente tanda
-        await this.tandaRepository.liberar(siguienteTanda.id);
-        this.logger.log(
-          `Tanda ${siguienteNumeroTanda} liberada: ${siguienteTanda.id}`,
-        );
-
-        // Enviar notificación TandaLiberada
+      // Enviar notificación TandaLiberada (no interrumpe flujo)
+      try {
         await this.commandBus.execute(
           new EnviarNotificacionCommand(
             event.vendedorId,
@@ -79,15 +84,21 @@ export class CuadreExitosoHandler implements IEventHandler<CuadreExitosoEvent> {
             },
           ),
         );
-      } else {
-        // No hay siguiente tanda inactiva
-        // Puede significar que es la última tanda → esperar mini-cuadre
-        this.logger.log(
-          `No hay siguiente tanda para liberar (tanda ${event.numeroTanda} era la última activa)`,
+      } catch (error) {
+        this.logger.warn(
+          `Error enviando notificación TANDA_LIBERADA para tanda ${siguienteNumeroTanda}: ${error}`,
         );
       }
+    } else {
+      this.logger.log(
+        `No hay siguiente tanda para liberar (tanda ${event.numeroTanda} era la última activa)`,
+      );
+    }
 
-      // 3. Enviar notificación de cuadre exitoso al vendedor
+    // ========== 2. NOTIFICACIONES (no interrumpen flujo) ==========
+
+    // 2.1 Enviar notificación de cuadre exitoso al vendedor
+    try {
       await this.commandBus.execute(
         new EnviarNotificacionCommand(
           event.vendedorId,
@@ -99,14 +110,12 @@ export class CuadreExitosoHandler implements IEventHandler<CuadreExitosoEvent> {
           },
         ),
       );
-
-      this.logger.log(`CuadreExitosoEvent procesado exitosamente: ${event.cuadreId}`);
     } catch (error) {
-      this.logger.error(
-        `Error procesando CuadreExitosoEvent: ${event.cuadreId}`,
-        error,
+      this.logger.warn(
+        `Error enviando notificación CUADRE_EXITOSO para cuadre ${event.cuadreId}: ${error}`,
       );
-      throw error;
     }
+
+    this.logger.log(`CuadreExitosoEvent procesado exitosamente: ${event.cuadreId}`);
   }
 }

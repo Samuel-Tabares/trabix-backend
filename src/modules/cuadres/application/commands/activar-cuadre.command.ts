@@ -1,8 +1,8 @@
 import { CommandHandler, ICommandHandler, ICommand, CommandBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import {
-    ICuadreRepository,
-    CUADRE_REPOSITORY,
+  ICuadreRepository,
+  CUADRE_REPOSITORY,
 } from '../../domain/cuadre.repository.interface';
 import { CuadreEntity } from '../../domain/cuadre.entity';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
@@ -19,7 +19,7 @@ export class ActivarCuadreCommand implements ICommand {
 /**
  * Handler del comando ActivarCuadre
  * Según sección 17.6 del documento
- * 
+ *
  * Validaciones:
  * - Cuadre existe y está INACTIVO
  * - Trigger cumplido (verificado antes de llamar al comando)
@@ -68,19 +68,32 @@ export class ActivarCuadreHandler
       `Cuadre activado: ${cuadreId} - Tanda ${cuadre.tanda.numero} - Lote ${cuadre.tanda.loteId}`,
     );
 
-    // Enviar notificación de cuadre pendiente
-      await this.commandBus.execute(
+    try {
+      const vendedorId = cuadre.tanda.lote?.vendedorId;
+      if (vendedorId) {
+        await this.commandBus.execute(
           new EnviarNotificacionCommand(
-              cuadre.tanda.lote!.vendedorId,
-              'CUADRE_PENDIENTE',
-              {
-                  cuadreId: cuadreId,
-                  tandaId: cuadre.tandaId,
-                  numeroTanda: cuadre.tanda.numero,
-                  montoEsperado: Number.parseFloat(cuadre.montoEsperado.toString()),
-              },
+            vendedorId,
+            'CUADRE_PENDIENTE',
+            {
+              cuadreId: cuadreId,
+              tandaId: cuadre.tandaId,
+              numeroTanda: cuadre.tanda.numero,
+              montoEsperado: Number.parseFloat(cuadre.montoEsperado.toString()),
+            },
           ),
+        );
+      } else {
+        this.logger.warn(
+          `No se pudo enviar notificación CUADRE_PENDIENTE: vendedorId no encontrado para cuadre ${cuadreId}`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Error enviando notificación CUADRE_PENDIENTE para cuadre ${cuadreId}: ${error}`,
       );
-      return cuadreActivado;
+    }
+
+    return cuadreActivado;
   }
 }

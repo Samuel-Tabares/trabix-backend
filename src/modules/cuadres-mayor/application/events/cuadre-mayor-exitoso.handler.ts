@@ -5,10 +5,12 @@ import { EnviarNotificacionCommand } from '../../../notificaciones/application/c
 
 /**
  * Handler del evento CuadreMayorExitoso
- * 
+ *
  * Acciones según sección 23:
- * 1. Liberar tandas en cadena si corresponde (ya se hace en el command)
- * 2. Enviar notificaciones
+ * 1. Enviar notificación al vendedor
+ *
+ * FIX: Notificación envuelta en try-catch sin re-throw
+ * para no marcar el evento como fallido si solo falla la notificación.
  */
 @EventsHandler(CuadreMayorExitosoEvent)
 export class CuadreMayorExitosoHandler
@@ -26,8 +28,8 @@ export class CuadreMayorExitosoHandler
       `Cuadres cerrados: ${event.cuadresCerradosIds.length}`,
     );
 
+    // Enviar notificación al vendedor sobre el cuadre al mayor exitoso
     try {
-      // Enviar notificación al vendedor sobre el cuadre al mayor exitoso
       await this.commandBus.execute(
         new EnviarNotificacionCommand(
           event.vendedorId,
@@ -40,16 +42,15 @@ export class CuadreMayorExitosoHandler
           },
         ),
       );
-      
-      this.logger.log(
-        `CuadreMayorExitosoEvent procesado: ${event.cuadreMayorId}`,
-      );
     } catch (error) {
-      this.logger.error(
-        `Error procesando CuadreMayorExitosoEvent: ${event.cuadreMayorId}`,
-        error,
+      // FIX: No re-lanzar el error; solo loguear
+      this.logger.warn(
+        `Error enviando notificación CUADRE_EXITOSO para cuadre mayor ${event.cuadreMayorId}: ${error}`,
       );
-      throw error;
     }
+
+    this.logger.log(
+      `CuadreMayorExitosoEvent procesado: ${event.cuadreMayorId}`,
+    );
   }
 }
