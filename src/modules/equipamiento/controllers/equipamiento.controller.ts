@@ -78,7 +78,7 @@ export class EquipamientoController {
      * Solicitar equipamiento (VENDEDOR)
      */
     @Post('solicitar')
-    @Roles('VENDEDOR')
+    @Roles('VENDEDOR', 'RECLUTADOR')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
         summary: 'Solicitar equipamiento (vendedor)',
@@ -105,7 +105,7 @@ export class EquipamientoController {
      */
     @Get('me')
  
-    @Roles('VENDEDOR')
+    @Roles('VENDEDOR', 'RECLUTADOR')
     @ApiOperation({
         summary: 'Obtener mi equipamiento',
         description: 'Retorna el equipamiento activo del vendedor autenticado',
