@@ -8,7 +8,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UnauthorizedException,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -187,8 +186,6 @@ export class CuadresController {
         @Body() dto: ConfirmarCuadreDto,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<CuadreResponseDto> {
-        if (!admin) throw new UnauthorizedException();
-
         await this.commandBus.execute(
             new ConfirmarCuadreCommand(id, dto.montoRecibido, admin.id),
         );

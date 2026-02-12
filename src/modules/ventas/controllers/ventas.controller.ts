@@ -8,7 +8,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UnauthorizedException,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -76,7 +75,7 @@ export class VentasController {
      * Registra una nueva venta
      */
     @Post()
-    
+    @Roles('VENDEDOR', 'RECLUTADOR')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Registrar venta' })
     @ApiResponse({
@@ -101,7 +100,6 @@ export class VentasController {
      * Lista ventas con filtros y paginación
      */
     @Get()
-    
     @ApiOperation({ summary: 'Listar ventas' })
     @ApiResponse({
         status: 200,
@@ -124,7 +122,6 @@ export class VentasController {
      * Obtiene una venta por ID
      */
     @Get(':id')
-    
     @ApiOperation({ summary: 'Obtener venta' })
     @ApiParam({ name: 'id', description: 'ID de la venta' })
     @ApiResponse({
@@ -171,8 +168,6 @@ export class VentasController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<VentaResponseDto> {
-        if (!admin) throw new UnauthorizedException();
-
         await this.commandBus.execute(new AprobarVentaCommand(id, admin.id));
         return this.queryBus.execute(new ObtenerVentaQuery(id));
     }
@@ -202,8 +197,6 @@ export class VentasController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<{ message: string }> {
-        if (!admin) throw new UnauthorizedException();
-
         return this.commandBus.execute(new RechazarVentaCommand(id, admin.id));
     }
 }

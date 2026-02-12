@@ -6,7 +6,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UnauthorizedException,
 } from '@nestjs/common';
 import {
     ApiTags,
@@ -170,8 +169,6 @@ export class MiniCuadresController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<MiniCuadreResponseDto> {
-        if (!admin) throw new UnauthorizedException();
-
         await this.commandBus.execute(new ConfirmarMiniCuadreCommand(id, admin.id));
         return this.queryBus.execute(new ObtenerMiniCuadreQuery(id));
     }

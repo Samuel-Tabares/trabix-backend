@@ -70,6 +70,7 @@ export class VentasMayorController {
      * Registra una venta al mayor
      */
     @Post()
+    @Roles('ADMIN')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({ summary: 'Registrar venta al mayor' })
     @ApiResponse({
@@ -98,6 +99,7 @@ export class VentasMayorController {
      * Lista ventas al mayor
      */
     @Get()
+    @Roles('ADMIN')
     @ApiOperation({ summary: 'Listar ventas al mayor' })
     @ApiResponse({
         status: 200,
@@ -120,6 +122,7 @@ export class VentasMayorController {
      * Calcula el stock disponible para venta al mayor
      */
     @Get('calcular-stock')
+    @Roles('ADMIN')
     @ApiOperation({ summary: 'Calcular stock disponible' })
     @ApiResponse({
         status: 200,
@@ -137,6 +140,7 @@ export class VentasMayorController {
      * Obtiene una venta al mayor por ID
      */
     @Get(':id')
+    @Roles('ADMIN')
     @ApiOperation({ summary: 'Obtener venta al mayor' })
     @ApiParam({ name: 'id', description: 'ID de la venta al mayor' })
     @ApiResponse({

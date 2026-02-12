@@ -8,7 +8,6 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  UnauthorizedException,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -102,7 +101,6 @@ export class EquipamientoController {
      * Obtener mi equipamiento (VENDEDOR)
      */
     @Get('me')
- 
     @Roles('VENDEDOR', 'RECLUTADOR')
     @ApiOperation({
         summary: 'Obtener mi equipamiento',
@@ -126,16 +124,11 @@ export class EquipamientoController {
         return equipamiento;
     }
 
-    // =============================================
-    // ENDPOINTS PARA ADMIN
-    // =============================================
-
     /**
      * GET /equipamiento
      * Listar equipamiento (ADMIN)
      */
     @Get()
- 
     @Roles('ADMIN')
     @ApiOperation({
         summary: 'Listar equipamiento (admin)',
@@ -153,7 +146,6 @@ export class EquipamientoController {
      * Obtener detalle de equipamiento (ADMIN)
      */
     @Get(':id')
- 
     @Roles('ADMIN')
     @ApiOperation({
         summary: 'Obtener detalle de equipamiento (admin)',
@@ -173,7 +165,6 @@ export class EquipamientoController {
      * Activar equipamiento - marcar como entregado (ADMIN)
      */
     @Post(':id/activar')
- 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -187,8 +178,6 @@ export class EquipamientoController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<EquipamientoResponseDto> {
-        if (!admin) throw new UnauthorizedException();
-
         await this.commandBus.execute(new ActivarEquipamientoCommand(id, admin.id));
         return this.queryBus.execute(new ObtenerEquipamientoQuery(id));
     }
@@ -198,7 +187,6 @@ export class EquipamientoController {
      * Reportar daño (ADMIN)
      */
     @Post(':id/reportar-dano')
- 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -215,8 +203,6 @@ export class EquipamientoController {
         @Body() dto: ReportarDanoDto,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<EquipamientoConAdvertenciaDto> {
-        if (!admin) throw new UnauthorizedException();
-
         const resultado = await this.commandBus.execute(
             new ReportarDanoCommand(id, dto.tipoDano, admin.id),
         );
@@ -234,7 +220,6 @@ export class EquipamientoController {
      * Reportar pérdida total (ADMIN)
      */
     @Post(':id/reportar-perdida')
- 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -250,8 +235,6 @@ export class EquipamientoController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<EquipamientoConAdvertenciaDto> {
-        if (!admin) throw new UnauthorizedException();
-
         const resultado = await this.commandBus.execute(
             new ReportarPerdidaCommand(id, admin.id),
         );
@@ -269,7 +252,6 @@ export class EquipamientoController {
      * Devolver equipamiento (ADMIN)
      */
     @Post(':id/devolver')
- 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -285,22 +267,15 @@ export class EquipamientoController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<EquipamientoResponseDto> {
-        if (!admin) throw new UnauthorizedException();
-
         await this.commandBus.execute(new DevolverEquipamientoCommand(id, admin.id));
         return this.queryBus.execute(new ObtenerEquipamientoQuery(id));
     }
-
-    // =============================================
-    // ENDPOINTS PARA PAGO MANUAL DE DEUDAS (ADMIN)
-    // =============================================
 
     /**
      * POST /equipamiento/:id/pagar-mensualidad
      * Registrar pago de mensualidad (ADMIN)
      */
     @Post(':id/pagar-mensualidad')
- 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -316,8 +291,6 @@ export class EquipamientoController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<EquipamientoConAdvertenciaDto> {
-        if (!admin) throw new UnauthorizedException();
-
         const resultado = await this.commandBus.execute(
             new PagarMensualidadCommand(id, admin.id),
         );
@@ -335,7 +308,6 @@ export class EquipamientoController {
      * Abonar a deuda por daño (ADMIN)
      */
     @Post(':id/pagar-deuda-dano')
- 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -352,8 +324,6 @@ export class EquipamientoController {
         @Body() dto: PagarDeudaDto,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<EquipamientoConAdvertenciaDto> {
-        if (!admin) throw new UnauthorizedException();
-
         const resultado = await this.commandBus.execute(
             new PagarDeudaDanoCommand(id, dto.monto, admin.id),
         );
@@ -371,7 +341,6 @@ export class EquipamientoController {
      * Abonar a deuda por pérdida (ADMIN)
      */
     @Post(':id/pagar-deuda-perdida')
- 
     @Roles('ADMIN')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -388,8 +357,6 @@ export class EquipamientoController {
         @Body() dto: PagarDeudaDto,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<EquipamientoConAdvertenciaDto> {
-        if (!admin) throw new UnauthorizedException();
-
         const resultado = await this.commandBus.execute(
             new PagarDeudaPerdidaCommand(id, dto.monto, admin.id),
         );

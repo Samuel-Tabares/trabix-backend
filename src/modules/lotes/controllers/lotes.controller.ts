@@ -8,7 +8,6 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
-    UnauthorizedException,
     ForbiddenException,
 } from '@nestjs/common';
 import {
@@ -102,8 +101,6 @@ export class LotesController {
         @Body() createDto: CreateLoteDto,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<LoteResponseDto> {
-        if (!admin) throw new UnauthorizedException();
-
         const lote = await this.commandBus.execute(
             new CrearLoteCommand(createDto, admin.id),
         );
@@ -273,8 +270,6 @@ export class LotesController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() admin: AuthenticatedUser,
     ): Promise<LoteResponseDto> {
-        if (!admin) throw new UnauthorizedException();
-
         await this.commandBus.execute(new ActivarLoteCommand(id, admin.id));
         return this.queryBus.execute(new ObtenerLoteQuery(id));
     }

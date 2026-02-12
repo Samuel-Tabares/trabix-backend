@@ -6,7 +6,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -111,8 +110,6 @@ export class FondoRecompensasController {
     @Body() dto: RegistrarSalidaDto,
     @CurrentUser() admin: AuthenticatedUser,
   ): Promise<MovimientoFondoResponseDto> {
-    if (!admin) throw new UnauthorizedException();
-
     const movimiento = await this.commandBus.execute(
       new RegistrarSalidaFondoCommand(
         new Decimal(dto.monto),
