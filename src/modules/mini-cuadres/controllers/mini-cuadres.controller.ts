@@ -75,8 +75,6 @@ export class MiniCuadresController {
         @Param('loteId', ParseUUIDPipe) loteId: string,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<MiniCuadreResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const miniCuadre = await this.queryBus.execute(
             new ObtenerMiniCuadrePorLoteQuery(loteId),
         );
@@ -126,8 +124,6 @@ export class MiniCuadresController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<MiniCuadreResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const miniCuadre = await this.queryBus.execute(new ObtenerMiniCuadreQuery(id));
 
         // Verificar acceso para usuarios no admin

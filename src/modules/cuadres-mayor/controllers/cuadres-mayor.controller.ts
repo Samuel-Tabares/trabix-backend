@@ -74,8 +74,6 @@ export class CuadresMayorController {
         @Query() queryDto: QueryCuadresMayorDto,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<CuadresMayorPaginadosDto> {
-        if (!user) throw new UnauthorizedException();
-
         // Si no es admin, solo ve sus propios cuadres
         if (user.rol !== 'ADMIN') {
             queryDto.vendedorId = user.id;
@@ -100,8 +98,6 @@ export class CuadresMayorController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<CuadreMayorResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const cuadre = await this.queryBus.execute(new ObtenerCuadreMayorQuery(id));
 
         // Verificar acceso: admin o dueño del cuadre

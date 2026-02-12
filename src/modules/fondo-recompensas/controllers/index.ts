@@ -64,16 +64,13 @@ export class FondoRecompensasController {
    * Disponible para todos los usuarios autenticados
    */
   @Get('saldo')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Obtener saldo actual del fondo',
-    description: 'Retorna el saldo disponible en el fondo de recompensas. Disponible para todos los usuarios autenticados.',
+    description:
+      'Retorna el saldo disponible en el fondo de recompensas. Disponible para todos los usuarios autenticados.',
   })
   @ApiResponse({ status: 200, type: SaldoFondoResponseDto })
-  async obtenerSaldo(
-    @CurrentUser() user: AuthenticatedUser,
-  ): Promise<SaldoFondoResponseDto> {
-    if (!user) throw new UnauthorizedException();
-    
+  async obtenerSaldo(): Promise<SaldoFondoResponseDto> {
     return this.queryBus.execute(new ObtenerSaldoFondoQuery());
   }
 
@@ -83,17 +80,14 @@ export class FondoRecompensasController {
    * Disponible para todos los usuarios autenticados
    */
   @Get('transacciones')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Listar transacciones del fondo',
-    description: 'Lista todas las entradas y salidas del fondo. Disponible para todos los usuarios autenticados.',
+    description:
+      'Lista todas las entradas y salidas del fondo. Disponible para todos los usuarios autenticados.',
   })
   @ApiResponse({ status: 200, type: TransaccionesPaginadasDto })
   async listarTransacciones(
-    @Query() queryDto: QueryTransaccionesDto,
-    @CurrentUser() user: AuthenticatedUser,
-  ): Promise<TransaccionesPaginadasDto> {
-    if (!user) throw new UnauthorizedException();
-    
+    @Query() queryDto: QueryTransaccionesDto): Promise<TransaccionesPaginadasDto> {
     return this.queryBus.execute(new ListarTransaccionesFondoQuery(queryDto));
   }
 
@@ -105,9 +99,10 @@ export class FondoRecompensasController {
   @Post('salida')
   @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Registrar salida del fondo (admin)',
-    description: 'Registra un premio o bono para un vendedor. Requiere especificar el vendedor beneficiario. El vendedor será notificado.',
+    description:
+      'Registra un premio o bono para un vendedor. Requiere especificar el vendedor beneficiario. El vendedor será notificado.',
   })
   @ApiResponse({ status: 201, type: MovimientoFondoResponseDto })
   @ApiResponse({ status: 400, description: 'Datos inválidos o saldo insuficiente' })

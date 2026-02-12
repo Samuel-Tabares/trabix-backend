@@ -73,8 +73,6 @@ export class TandasController {
     @Param('loteId', ParseUUIDPipe) loteId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<TandaResponseDto[]> {
-    if (!user) throw new UnauthorizedException();
-
     // Verificar que el lote existe y el usuario tiene permisos
     const lote = await this.loteRepository.findById(loteId);
     if (!lote) {
@@ -116,8 +114,6 @@ export class TandasController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<TandaResponseDto> {
-    if (!user) throw new UnauthorizedException();
-
     const tanda = await this.tandaRepository.findById(id);
     if (!tanda) {
       throw new DomainException(

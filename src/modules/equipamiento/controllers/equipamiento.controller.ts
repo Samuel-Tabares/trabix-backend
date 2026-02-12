@@ -91,8 +91,6 @@ export class EquipamientoController {
         @Body() dto: SolicitarEquipamientoDto,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<EquipamientoResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const equipamiento = await this.commandBus.execute(
             new SolicitarEquipamientoCommand(user.id, dto.tieneDeposito),
         );
@@ -116,8 +114,6 @@ export class EquipamientoController {
     async obtenerMio(
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<EquipamientoResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const equipamiento = await this.queryBus.execute(
             new ObtenerMiEquipamientoQuery(user.id),
         );

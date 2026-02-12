@@ -90,8 +90,6 @@ export class VentasController {
         @Body() createDto: CreateVentaDto,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<VentaResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const venta = await this.commandBus.execute(
             new RegistrarVentaCommand(user.id, createDto),
         );
@@ -114,8 +112,6 @@ export class VentasController {
         @Query() queryDto: QueryVentasDto,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<VentasPaginadasDto> {
-        if (!user) throw new UnauthorizedException();
-
         // Si no es admin, solo ve sus propias ventas
         if (user.rol !== 'ADMIN') {
             queryDto.vendedorId = user.id;
@@ -141,8 +137,6 @@ export class VentasController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<VentaResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const venta = await this.queryBus.execute(new ObtenerVentaQuery(id));
 
         // Verificar acceso: admin o dueño de la venta

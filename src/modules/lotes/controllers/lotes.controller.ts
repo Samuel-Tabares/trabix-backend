@@ -158,8 +158,6 @@ export class LotesController {
         @Body() dto: SolicitarLoteDto,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<LoteResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const lote = await this.commandBus.execute(
             new SolicitarLoteCommand(user.id, dto.cantidadTrabix),
         );
@@ -187,8 +185,6 @@ export class LotesController {
     async obtenerInfoSolicitud(
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<InfoSolicitudLoteDto> {
-        if (!user) throw new UnauthorizedException();
-
         return this.queryBus.execute(new ObtenerInfoSolicitudQuery(user.id));
     }
 
@@ -214,8 +210,6 @@ export class LotesController {
         @Query() queryDto: QueryLotesDto,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<LotesPaginadosDto> {
-        if (!user) throw new UnauthorizedException();
-
         return this.queryBus.execute(new ListarMisLotesQuery(user.id, queryDto));
     }
 
@@ -244,8 +238,6 @@ export class LotesController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<LoteResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const lote = await this.queryBus.execute(new ObtenerLoteQuery(id));
 
         // Verificar permisos: admin puede ver cualquiera, vendedor solo los suyos
@@ -318,8 +310,6 @@ export class LotesController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<{ message: string }> {
-        if (!user) throw new UnauthorizedException();
-
         return this.commandBus.execute(
             new CancelarLoteCommand(id, user.id, user.rol === 'ADMIN'),
         );
@@ -349,8 +339,6 @@ export class LotesController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<ResumenFinancieroDto> {
-        if (!user) throw new UnauthorizedException();
-
         // Primero obtenemos el lote para verificar propiedad
         const lote = await this.queryBus.execute(new ObtenerLoteQuery(id));
 

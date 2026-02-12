@@ -84,8 +84,6 @@ export class CuadresController {
         @Query() queryDto: QueryCuadresDto,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<CuadresPaginadosDto> {
-        if (!user) throw new UnauthorizedException();
-
         // Si no es admin, aplicar restricciones
         if (user.rol !== 'ADMIN') {
             // Solo ve sus propios cuadres
@@ -142,8 +140,6 @@ export class CuadresController {
         @Param('id', ParseUUIDPipe) id: string,
         @CurrentUser() user: AuthenticatedUser,
     ): Promise<CuadreResponseDto> {
-        if (!user) throw new UnauthorizedException();
-
         const cuadre = await this.queryBus.execute(new ObtenerCuadreQuery(id));
 
         // Verificar acceso para usuarios no admin
