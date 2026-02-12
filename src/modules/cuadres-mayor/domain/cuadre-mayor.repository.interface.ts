@@ -104,8 +104,10 @@ export interface TandaParaProcesar {
  * Cuadre a cerrar en la transacción
  */
 export interface CuadreParaCerrar {
-    cuadreId: string;
-    loteId: string;
+  cuadreId: string;
+  loteId: string;
+  tandaId: string;
+  montoEsperado: string;
 }
 
 /**
