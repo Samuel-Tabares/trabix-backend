@@ -1,2999 +1,1888 @@
 /**
- * PRUEBAS E2E COMPLETAS - TRABIX Backend
- * npm install //instala dependencias
- * docker-compose -f docker-compose.test.yml up -d // levanta psql y redis
- * npx prisma generate // genera prisma
- * npx prisma migrate dev // aplica migracion de prisma a BD
- * npx prisma migrate deploy // por si no funciona la migracion de prisma a la BD
- * npx tsc --noEmit // para verificar TS
- * npx prisma migrate reset // resetea TODOOO lo de prisma y bd y ejecuta el seed
-
- * psql -h localhost -p 5433 -U postgres -d trabix_test // para entrar a psql clave:testpassword
- * para ver tablas: \dt
- * para ver estructura de una tabla: \d nombre_tabla
- * para ver datos de una tabla: SELECT * FROM nombre_tabla;
+ * ============================================================
+ * TRABIX Backend - E2E Test Suite Completo
+ * ============================================================
  *
- * npm run start:dev //no se
+ * Cubre TODOS los endpoints de TODOS los módulos:
+ *   Auth, Usuarios, Lotes, Tandas, Ventas, Cuadres,
+ *   Mini-Cuadres, Ventas Mayor, Cuadres Mayor, Equipamiento,
+ *   Fondo Recompensas, Notificaciones, Admin (Stock, Config, Dashboard)
  *
- * Prerrequisito: npx ts-node prisma/seeds/test-scenarios.seed.ts // se ejecuta al resetear
- * Ejecutar: npm run test:e2e -- --testPathPattern=all-scenarios
- * ejecutar con .env.test para conexiones de desarrollo:
- * NODE_ENV=test npx dotenv-cli -e .env.test -- npm run test:e2e -- --testPathPattern=all-scenarios
+ * Precondición: seed ejecutado (npx prisma db seed)
+ *
+ * Ejecutar:
+ *   npx jest --config test/jest-e2e.json
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../../src/app.module';
-import { PrismaService } from '../../src/infrastructure/database/prisma/prisma.service';
+import { AppModule } from '@/app.module';
+import { PrismaService } from '@infrastructure/database/prisma/prisma.service';
 
-describe('TRABIX - Pruebas E2E Completas', () => {
-    let app: INestApplication;
-    let prisma: PrismaService;
+// ============================================================
+// IDs del seed (mirrors prisma/seeds/helpers.ts)
+// ============================================================
+const ADMIN_ID = '00000000-0000-4000-a000-000000000001';
 
-    const tokens: Record<string, string> = {};
-    const ids: Record<string, string> = {};
-    let CONFIG: Record<string, number> = {};
+const V = {
+  activo_ok:           '00000000-0000-4000-a000-000000000100',
+  activo_pwd_temp:     '00000000-0000-4000-a000-000000000101',
+  inactivo:            '00000000-0000-4000-a000-000000000102',
+  eliminado:           '00000000-0000-4000-a000-000000000103',
+  bloqueado_l1:        '00000000-0000-4000-a000-000000000104',
+  bloqueado_l2:        '00000000-0000-4000-a000-000000000105',
+  bloqueado_perm:      '00000000-0000-4000-a000-000000000106',
+  con_lote_creado:     '00000000-0000-4000-a000-000000000107',
+  con_lote_finalizado: '00000000-0000-4000-a000-000000000108',
+  multi_lotes:         '00000000-0000-4000-a000-000000000109',
+  eq_solicitado:       '00000000-0000-4000-a000-000000000110',
+  eq_activo_deposito:  '00000000-0000-4000-a000-000000000111',
+  eq_activo_sin_dep:   '00000000-0000-4000-a000-000000000112',
+  eq_devuelto:         '00000000-0000-4000-a000-000000000113',
+  eq_danado:           '00000000-0000-4000-a000-000000000114',
+  eq_perdido:          '00000000-0000-4000-a000-000000000115',
+  sin_lotes:           '00000000-0000-4000-a000-000000000116',
+  inactivo_con_lote:   '00000000-0000-4000-a000-000000000117',
+  con_ventas_pend:     '00000000-0000-4000-a000-000000000118',
+  con_ventas_rech:     '00000000-0000-4000-a000-000000000119',
+  cuadre_pendiente:    '00000000-0000-4000-a000-000000000120',
+  cuadre_exitoso:      '00000000-0000-4000-a000-000000000121',
+  mini_cuadre_pend:    '00000000-0000-4000-a000-000000000122',
+  venta_mayor_pend:    '00000000-0000-4000-a000-000000000123',
+  venta_mayor_comp:    '00000000-0000-4000-a000-000000000124',
+  login_reciente:      '00000000-0000-4000-a000-000000000125',
+  sin_login:           '00000000-0000-4000-a000-000000000126',
+  cambio_estado_rec:   '00000000-0000-4000-a000-000000000127',
+  lote_forzado:        '00000000-0000-4000-a000-000000000128',
+  eq_mensualidad_mora: '00000000-0000-4000-a000-000000000129',
+};
 
-    beforeAll(async () => {
-        const moduleFixture: TestingModule = await Test.createTestingModule({
-            imports: [AppModule],
-        }).compile();
+const R = {
+  activo_con_recl: '00000000-0000-4000-a000-000000000200',
+  inactivo:        '00000000-0000-4000-a000-000000000201',
+  con_cadena:      '00000000-0000-4000-a000-000000000202',
+  eliminado:       '00000000-0000-4000-a000-000000000203',
+};
 
-        app = moduleFixture.createNestApplication();
-        app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-        app.setGlobalPrefix('api/v1');
-        await app.init();
+const V50 = {
+  activo_1:        '00000000-0000-4000-a000-000000000300',
+  activo_2:        '00000000-0000-4000-a000-000000000301',
+  inactivo:        '00000000-0000-4000-a000-000000000302',
+  con_lote:        '00000000-0000-4000-a000-000000000303',
+  cadena_nivel2:   '00000000-0000-4000-a000-000000000304',
+  pwd_temp:        '00000000-0000-4000-a000-000000000305',
+  eliminado:       '00000000-0000-4000-a000-000000000306',
+  bloqueado:       '00000000-0000-4000-a000-000000000307',
+  con_equip:       '00000000-0000-4000-a000-000000000308',
+  con_venta_mayor: '00000000-0000-4000-a000-000000000309',
+};
 
-        prisma = app.get(PrismaService);
+const LOTE = {
+  v_activo_lote1:   '00000000-0000-4000-b000-000000000001',
+  v_creado:         '00000000-0000-4000-b000-000000000002',
+  v_finalizado:     '00000000-0000-4000-b000-000000000003',
+  v_multi_1:        '00000000-0000-4000-b000-000000000004',
+  v_multi_2:        '00000000-0000-4000-b000-000000000005',
+  v_inactivo_lote:  '00000000-0000-4000-b000-000000000006',
+  v_cuadre_pend:    '00000000-0000-4000-b000-000000000007',
+  v_cuadre_exit:    '00000000-0000-4000-b000-000000000008',
+  v_mini_cuadre:    '00000000-0000-4000-b000-000000000009',
+  v_vta_pend:       '00000000-0000-4000-b000-000000000010',
+  v_vta_rech:       '00000000-0000-4000-b000-000000000011',
+  v_vta_mayor_pend: '00000000-0000-4000-b000-000000000012',
+  v_vta_mayor_comp: '00000000-0000-4000-b000-000000000013',
+  v50_con_lote:     '00000000-0000-4000-b000-000000000014',
+  v_lote_forzado:   '00000000-0000-4000-b000-000000000015',
+  v50_vta_mayor:    '00000000-0000-4000-b000-000000000016',
+};
 
-        // Cargar configuraciones
-        const cfgs = await prisma.configuracionSistema.findMany();
-        cfgs.forEach(c => CONFIG[c.clave] = parseFloat(c.valor) || 0);
-        console.log(`📋 ${Object.keys(CONFIG).length} configuraciones cargadas`);
+const TANDA = {
+  activo_t1:  '00000000-0000-4000-c000-000000000001',
+  activo_t2:  '00000000-0000-4000-c000-000000000002',
+  final_t1:   '00000000-0000-4000-c000-000000000003',
+  final_t2:   '00000000-0000-4000-c000-000000000004',
+  cuadre_t1:  '00000000-0000-4000-c000-000000000005',
+  cuadre_t2:  '00000000-0000-4000-c000-000000000006',
+  cuadre_t3:  '00000000-0000-4000-c000-000000000007',
+  exit_t1:    '00000000-0000-4000-c000-000000000008',
+  exit_t2:    '00000000-0000-4000-c000-000000000009',
+  mini_t1:    '00000000-0000-4000-c000-000000000010',
+  mini_t2:    '00000000-0000-4000-c000-000000000011',
+  vpend_t1:   '00000000-0000-4000-c000-000000000012',
+  vrech_t1:   '00000000-0000-4000-c000-000000000014',
+  multi1_t1:  '00000000-0000-4000-c000-000000000016',
+  vmayp_t1:   '00000000-0000-4000-c000-000000000020',
+  vmayc_t1:   '00000000-0000-4000-c000-000000000022',
+  vmayc_t2:   '00000000-0000-4000-c000-000000000023',
+  v50_t1:     '00000000-0000-4000-c000-000000000024',
+  forz_t1:    '00000000-0000-4000-c000-000000000026',
+  v50vm_t1:   '00000000-0000-4000-c000-000000000028',
+};
 
-        // Login usuarios de prueba
-        const users = [
-            { ced: 1234567890, pwd: 'Admin123!' },
-            { ced: 1000000021, pwd: 'Test123!' },
-            { ced: 1000000051, pwd: 'Test123!' },
-            { ced: 1000000001, pwd: 'Test123!' },
-            { ced: 1000000060, pwd: 'Test123!' },
-            { ced: 1000000029, pwd: 'Test123!' },
-        ];
+// ============================================================
+// CREDENCIALES
+// ============================================================
+const ADMIN_CEDULA = 999999999;
+const ADMIN_PASSWORD = 'AdminTrabix2026!';
+const VENDEDOR_PASSWORD = 'Trabix2026!';
+const TEMP_PASSWORD = 'TempPass123';
 
-        for (const u of users) {
-            try {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/auth/login')
-                    .send({ cedula: u.ced, password: u.pwd });
-                if (res.status === 200) {
-                    tokens[u.ced] = res.body.accessToken;
-                    ids[u.ced] = res.body.user?.id;
-                }
-            } catch {}
+// ============================================================
+// API PREFIX
+// ============================================================
+const PREFIX = '/api/v1';
+
+// ============================================================
+// TEST SUITE
+// ============================================================
+describe('TRABIX E2E - All Scenarios', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+
+  // Tokens almacenados por rol
+  let adminAccessToken: string;
+  let adminRefreshToken: string;
+  let vendedorAccessToken: string;
+  //let vendedorRefreshToken: string;
+  let reclutadorAccessToken: string;
+
+  // ============================================================
+  // SETUP & TEARDOWN
+  // ============================================================
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+
+    // Mismo pipe que en main.ts
+    app.setGlobalPrefix('api/v1');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+
+    await app.init();
+
+    prisma = app.get(PrismaService);
+
+    // Verificar que hay datos del seed
+    const userCount = await prisma.usuario.count();
+    if (userCount === 0) {
+      throw new Error(
+        'No hay datos en la BD. Ejecute primero: npx prisma db seed',
+      );
+    }
+    console.log(`✅ BD con ${userCount} usuarios (seed presente)`);
+  }, 60000);
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  // ============================================================
+  // HELPER: hacer request autenticado
+  // ============================================================
+  const authGet = (url: string, token: string) =>
+    request(app.getHttpServer())
+      .get(`${PREFIX}${url}`)
+      .set('Authorization', `Bearer ${token}`);
+
+  const authPost = (url: string, token: string) =>
+    request(app.getHttpServer())
+      .post(`${PREFIX}${url}`)
+      .set('Authorization', `Bearer ${token}`);
+
+  const authPatch = (url: string, token: string) =>
+    request(app.getHttpServer())
+      .patch(`${PREFIX}${url}`)
+      .set('Authorization', `Bearer ${token}`);
+
+  const authDelete = (url: string, token: string) =>
+    request(app.getHttpServer())
+      .delete(`${PREFIX}${url}`)
+      .set('Authorization', `Bearer ${token}`);
+
+  const publicPost = (url: string) =>
+    request(app.getHttpServer()).post(`${PREFIX}${url}`);
+
+  // Helper para obtener cédula por ID de usuario
+  const getCedulaById = async (userId: string): Promise<number> => {
+    const user = await prisma.usuario.findUnique({
+      where: { id: userId },
+      select: { cedula: true },
+    });
+    return user!.cedula;
+  };
+
+  // ============================================================
+  // 1. AUTH MODULE
+  // ============================================================
+  describe('Auth Module', () => {
+    describe('POST /auth/login', () => {
+      it('debería loguear al admin correctamente', async () => {
+        const res = await publicPost('/auth/login')
+          .send({ cedula: ADMIN_CEDULA, password: ADMIN_PASSWORD })
+          .expect(200);
+
+        expect(res.body).toHaveProperty('accessToken');
+        expect(res.body).toHaveProperty('refreshToken');
+        expect(res.body.tokenType).toBe('Bearer');
+        expect(res.body.user.rol).toBe('ADMIN');
+        expect(res.body.user.requiereCambioPassword).toBe(false);
+
+        adminAccessToken = res.body.accessToken;
+        adminRefreshToken = res.body.refreshToken;
+      });
+
+      it('debería loguear a un vendedor activo (V.activo_ok)', async () => {
+        const cedula = await getCedulaById(V.activo_ok);
+        const res = await publicPost('/auth/login')
+          .send({ cedula, password: VENDEDOR_PASSWORD })
+          .expect(200);
+
+        expect(res.body.user.rol).toBe('VENDEDOR');
+        expect(res.body.user.requiereCambioPassword).toBe(false);
+
+        vendedorAccessToken = res.body.accessToken;
+        vendedorRefreshToken = res.body.refreshToken;
+      });
+
+      it('debería loguear a un reclutador activo (R.activo_con_recl)', async () => {
+        const cedula = await getCedulaById(R.activo_con_recl);
+        const res = await publicPost('/auth/login')
+          .send({ cedula, password: VENDEDOR_PASSWORD })
+          .expect(200);
+
+        expect(res.body.user.rol).toBe('RECLUTADOR');
+        reclutadorAccessToken = res.body.accessToken;
+      });
+
+      it('debería indicar requiereCambioPassword para vendedor con pwd temporal', async () => {
+        const cedula = await getCedulaById(V.activo_pwd_temp);
+        const res = await publicPost('/auth/login')
+          .send({ cedula, password: TEMP_PASSWORD })
+          .expect(200);
+
+        expect(res.body.user.requiereCambioPassword).toBe(true);
+      });
+
+      it('debería rechazar credenciales inválidas', async () => {
+        await publicPost('/auth/login')
+          .send({ cedula: ADMIN_CEDULA, password: 'wrongpassword1!' })
+          .expect(401);
+      });
+
+      it('debería rechazar usuario inactivo', async () => {
+        const cedula = await getCedulaById(V.inactivo);
+        await publicPost('/auth/login')
+          .send({ cedula, password: VENDEDOR_PASSWORD })
+          .expect(403);
+      });
+
+      it('debería rechazar login sin datos', async () => {
+        await publicPost('/auth/login')
+          .send({})
+          .expect(400);
+      });
+    });
+
+    describe('POST /auth/refresh', () => {
+      it('debería renovar tokens con refresh token válido', async () => {
+        const res = await publicPost('/auth/refresh')
+          .send({ refreshToken: adminRefreshToken })
+          .expect(200);
+
+        expect(res.body).toHaveProperty('accessToken');
+        expect(res.body).toHaveProperty('refreshToken');
+
+        // Actualizar tokens
+        adminAccessToken = res.body.accessToken;
+        adminRefreshToken = res.body.refreshToken;
+      });
+
+      it('debería rechazar refresh token inválido', async () => {
+        await publicPost('/auth/refresh')
+          .send({ refreshToken: 'invalid-token' })
+          .expect(401);
+      });
+    });
+
+    describe('POST /auth/cambiar-password', () => {
+      it('debería cambiar la contraseña del vendedor con pwd temporal', async () => {
+        // Loguear con pwd temporal
+        const cedula = await getCedulaById(V.sin_login);
+        const loginRes = await publicPost('/auth/login')
+          .send({ cedula, password: TEMP_PASSWORD })
+          .expect(200);
+
+        const token = loginRes.body.accessToken;
+
+        await authPost('/auth/cambiar-password', token)
+          .send({
+            currentPassword: TEMP_PASSWORD,
+            newPassword: 'NuevaPass123!',
+          })
+          .expect(200);
+      });
+
+      it('debería rechazar si contraseña actual es incorrecta', async () => {
+        await authPost('/auth/cambiar-password', vendedorAccessToken)
+          .send({
+            currentPassword: 'incorrecta1!A',
+            newPassword: 'NuevaPass123!',
+          })
+          .expect(400);
+      });
+    });
+
+    describe('POST /auth/admin/reset-password/:usuarioId', () => {
+      it('debería resetear la contraseña de un vendedor (admin)', async () => {
+        const res = await authPost(
+          `/auth/admin/reset-password/${V.activo_pwd_temp}`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body).toHaveProperty('passwordTemporal');
+        expect(res.body.usuarioId).toBe(V.activo_pwd_temp);
+      });
+
+      it('debería rechazar si no es admin', async () => {
+        await authPost(
+          `/auth/admin/reset-password/${V.activo_ok}`,
+          vendedorAccessToken,
+        ).expect(403);
+      });
+    });
+
+    describe('POST /auth/admin/desbloquear/:usuarioId', () => {
+      it('debería desbloquear un usuario bloqueado (admin)', async () => {
+        await authPost(
+          `/auth/admin/desbloquear/${V.bloqueado_l1}`,
+          adminAccessToken,
+        ).expect(200);
+      });
+    });
+
+    describe('POST /auth/logout', () => {
+      it('debería cerrar sesión correctamente', async () => {
+        // Crear una sesión desechable
+        const cedula = await getCedulaById(V.login_reciente);
+        const loginRes = await publicPost('/auth/login')
+          .send({ cedula, password: VENDEDOR_PASSWORD })
+          .expect(200);
+
+        await publicPost('/auth/logout')
+          .send({
+            refreshToken: loginRes.body.refreshToken,
+            accessToken: loginRes.body.accessToken,
+          })
+          .expect(200);
+      });
+    });
+  });
+
+  // ============================================================
+  // 2. USUARIOS MODULE
+  // ============================================================
+  describe('Usuarios Module', () => {
+    let nuevoUsuarioId: string;
+
+    describe('POST /usuarios (crear vendedor)', () => {
+      it('debería crear un vendedor nuevo (admin)', async () => {
+        const res = await authPost('/usuarios', adminAccessToken)
+          .send({
+            cedula: 8888880001,
+            nombre: 'Test',
+            apellidos: 'E2E Usuario',
+            email: 'test.e2e.user@mail.com',
+            telefono: '+573009999001',
+          })
+          .expect(201);
+
+        expect(res.body).toHaveProperty('usuario');
+        expect(res.body).toHaveProperty('passwordTemporal');
+        expect(res.body.usuario.rol).toBe('VENDEDOR');
+        nuevoUsuarioId = res.body.usuario.id;
+      });
+
+      it('debería rechazar cédula duplicada', async () => {
+        await authPost('/usuarios', adminAccessToken)
+          .send({
+            cedula: ADMIN_CEDULA,
+            nombre: 'Dup',
+            apellidos: 'Cedula',
+            email: 'dup.cedula@mail.com',
+            telefono: '+573009999002',
+          })
+          .expect(409);
+      });
+
+      it('debería crear vendedor con reclutador (promueve a RECLUTADOR)', async () => {
+        const res = await authPost('/usuarios', adminAccessToken)
+          .send({
+            cedula: 8888880002,
+            nombre: 'Reclutado',
+            apellidos: 'PorActivo',
+            email: 'reclutado.test@mail.com',
+            telefono: '+573009999003',
+            reclutadorId: V.activo_ok,
+          })
+          .expect(201);
+
+        expect(res.body.usuario.reclutadorId).toBe(V.activo_ok);
+      });
+
+      it('debería rechazar si no es admin', async () => {
+        await authPost('/usuarios', vendedorAccessToken)
+          .send({
+            cedula: 8888880099,
+            nombre: 'No',
+            apellidos: 'Permitido',
+            email: 'no.permitido@mail.com',
+            telefono: '+573009999099',
+          })
+          .expect(403);
+      });
+    });
+
+    describe('GET /usuarios', () => {
+      it('debería listar usuarios (admin)', async () => {
+        const res = await authGet('/usuarios', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        expect(res.body).toHaveProperty('total');
+        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(res.body.total).toBeGreaterThan(0);
+      });
+
+      it('debería filtrar por rol VENDEDOR', async () => {
+        const res = await authGet('/usuarios?rol=VENDEDOR', adminAccessToken).expect(200);
+
+        res.body.data.forEach((u: any) => {
+          expect(u.rol).toBe('VENDEDOR');
+        });
+      });
+
+      it('debería filtrar por estado ACTIVO', async () => {
+        const res = await authGet('/usuarios?estado=ACTIVO', adminAccessToken).expect(200);
+
+        res.body.data.forEach((u: any) => {
+          expect(u.estado).toBe('ACTIVO');
+        });
+      });
+
+      it('debería paginar correctamente', async () => {
+        const res = await authGet('/usuarios?skip=0&take=5', adminAccessToken).expect(200);
+
+        expect(res.body.data.length).toBeLessThanOrEqual(5);
+      });
+
+      it('debería rechazar si no es admin', async () => {
+        await authGet('/usuarios', vendedorAccessToken).expect(403);
+      });
+    });
+
+    describe('GET /usuarios/eliminados', () => {
+      it('debería listar usuarios eliminados (admin)', async () => {
+        const res = await authGet('/usuarios/eliminados', adminAccessToken).expect(200);
+
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+    });
+
+    describe('GET /usuarios/me', () => {
+      it('debería obtener perfil del admin', async () => {
+        const res = await authGet('/usuarios/me', adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(ADMIN_ID);
+        expect(res.body.rol).toBe('ADMIN');
+      });
+
+      it('debería obtener perfil del vendedor', async () => {
+        const res = await authGet('/usuarios/me', vendedorAccessToken).expect(200);
+
+        expect(res.body.id).toBe(V.activo_ok);
+        expect(res.body.rol).toBe('VENDEDOR');
+      });
+    });
+
+    describe('GET /usuarios/me/jerarquia', () => {
+      it('debería obtener jerarquía del reclutador', async () => {
+        const res = await authGet('/usuarios/me/jerarquia', reclutadorAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('usuario');
+        expect(res.body).toHaveProperty('reclutados');
+        expect(Array.isArray(res.body.reclutados)).toBe(true);
+      });
+
+      it('debería rechazar para vendedores (no reclutadores)', async () => {
+        await authGet('/usuarios/me/jerarquia', vendedorAccessToken).expect(403);
+      });
+    });
+
+    describe('GET /usuarios/:id', () => {
+      it('debería obtener un vendedor por ID (admin)', async () => {
+        const res = await authGet(`/usuarios/${V.activo_ok}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(V.activo_ok);
+        expect(res.body).toHaveProperty('nombre');
+        expect(res.body).toHaveProperty('apellidos');
+        expect(res.body).toHaveProperty('email');
+      });
+
+      it('debería retornar 404 para ID inexistente', async () => {
+        await authGet(
+          '/usuarios/00000000-0000-4000-a000-000000000999',
+          adminAccessToken,
+        ).expect(404);
+      });
+    });
+
+    describe('PATCH /usuarios/:id', () => {
+      it('debería actualizar nombre de vendedor (admin)', async () => {
+        const res = await authPatch(`/usuarios/${V.activo_ok}`, adminAccessToken)
+          .send({ nombre: 'María Actualizada' })
+          .expect(200);
+
+        expect(res.body.nombre).toBe('María Actualizada');
+      });
+    });
+
+    describe('PATCH /usuarios/:id/estado', () => {
+      it('debería cambiar estado a INACTIVO (admin)', async () => {
+        const res = await authPatch(
+          `/usuarios/${V.cambio_estado_rec}/estado`,
+          adminAccessToken,
+        )
+          .send({ estado: 'INACTIVO' })
+          .expect(200);
+
+        expect(res.body.estado).toBe('INACTIVO');
+      });
+
+      it('debería cambiar estado a ACTIVO (admin)', async () => {
+        const res = await authPatch(
+          `/usuarios/${V.cambio_estado_rec}/estado`,
+          adminAccessToken,
+        )
+          .send({ estado: 'ACTIVO' })
+          .expect(200);
+
+        expect(res.body.estado).toBe('ACTIVO');
+      });
+    });
+
+    describe('DELETE /usuarios/:id (soft delete)', () => {
+      it('debería eliminar usuario creado en test (admin)', async () => {
+        if (!nuevoUsuarioId) return;
+
+        await authDelete(`/usuarios/${nuevoUsuarioId}`, adminAccessToken).expect(200);
+
+        // Verificar que aparece en eliminados
+        const user = await prisma.usuario.findUnique({
+          where: { id: nuevoUsuarioId },
+        });
+        expect(user?.eliminado).toBe(true);
+      });
+    });
+
+    describe('POST /usuarios/:id/restaurar', () => {
+      it('debería restaurar usuario eliminado (admin)', async () => {
+        if (!nuevoUsuarioId) return;
+
+        const res = await authPost(
+          `/usuarios/${nuevoUsuarioId}/restaurar`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.estado).toBe('INACTIVO');
+      });
+    });
+
+    describe('GET /usuarios/:id/jerarquia', () => {
+      it('debería obtener jerarquía de un reclutador (admin)', async () => {
+        const res = await authGet(
+          `/usuarios/${R.con_cadena}/jerarquia`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body).toHaveProperty('reclutados');
+        expect(res.body.totalReclutados).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  // ============================================================
+  // 3. LOTES MODULE
+  // ============================================================
+  describe('Lotes Module', () => {
+    let loteCreado: string;
+
+    describe('POST /lotes (admin crea lote)', () => {
+      it('debería crear un lote para un vendedor (admin)', async () => {
+        const res = await authPost('/lotes', adminAccessToken)
+          .send({
+            vendedorId: V.sin_lotes,
+            cantidadTrabix: 20,
+          })
+          .expect(201);
+
+        expect(res.body.vendedorId).toBe(V.sin_lotes);
+        expect(res.body.estado).toBe('CREADO');
+        expect(res.body.cantidadTrabix).toBe(20);
+        expect(res.body.tandas).toHaveLength(2); // ≤50 = 2 tandas
+        loteCreado = res.body.id;
+      });
+
+      it('debería rechazar si no es admin', async () => {
+        await authPost('/lotes', vendedorAccessToken)
+          .send({ vendedorId: V.activo_ok, cantidadTrabix: 20 })
+          .expect(403);
+      });
+    });
+
+    describe('POST /lotes/solicitar', () => {
+      it('debería solicitar lote como vendedor', async () => {
+        // Loguear con vendedor que no tiene lotes
+        const cedula = await getCedulaById(V.login_reciente);
+        const loginRes = await publicPost('/auth/login')
+          .send({ cedula, password: VENDEDOR_PASSWORD })
+          .expect(200);
+
+        const res = await authPost('/lotes/solicitar', loginRes.body.accessToken)
+          .send({ cantidadTrabix: 20 })
+          .expect(201);
+
+        expect(res.body.estado).toBe('CREADO');
+      });
+
+      it('debería rechazar para admin', async () => {
+        await authPost('/lotes/solicitar', adminAccessToken)
+          .send({ cantidadTrabix: 20 })
+          .expect(403);
+      });
+    });
+
+    describe('GET /lotes/info-solicitud', () => {
+      it('debería retornar info de solicitud para vendedor', async () => {
+        const res = await authGet('/lotes/info-solicitud', vendedorAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('cantidadMinima');
+        expect(res.body).toHaveProperty('costoPorTrabix');
+        expect(res.body).toHaveProperty('puedeSolicitar');
+      });
+    });
+
+    describe('GET /lotes', () => {
+      it('debería listar todos los lotes (admin)', async () => {
+        const res = await authGet('/lotes', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        expect(res.body.total).toBeGreaterThan(0);
+      });
+
+      it('debería filtrar por estado ACTIVO', async () => {
+        const res = await authGet('/lotes?estado=ACTIVO', adminAccessToken).expect(200);
+
+        res.body.data.forEach((l: any) => {
+          expect(l.estado).toBe('ACTIVO');
+        });
+      });
+    });
+
+    describe('GET /lotes/mis-lotes', () => {
+      it('debería listar lotes del vendedor autenticado', async () => {
+        const res = await authGet('/lotes/mis-lotes', vendedorAccessToken).expect(200);
+
+        expect(Array.isArray(res.body.data)).toBe(true);
+        res.body.data.forEach((l: any) => {
+          expect(l.vendedorId).toBe(V.activo_ok);
+        });
+      });
+    });
+
+    describe('GET /lotes/:id', () => {
+      it('debería obtener un lote activo (admin)', async () => {
+        const res = await authGet(`/lotes/${LOTE.v_activo_lote1}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(LOTE.v_activo_lote1);
+        expect(res.body.estado).toBe('ACTIVO');
+        expect(res.body.tandas.length).toBeGreaterThan(0);
+      });
+
+      it('vendedor puede ver su propio lote', async () => {
+        const res = await authGet(`/lotes/${LOTE.v_activo_lote1}`, vendedorAccessToken).expect(200);
+
+        expect(res.body.vendedorId).toBe(V.activo_ok);
+      });
+
+      it('vendedor NO puede ver lote de otro', async () => {
+        await authGet(`/lotes/${LOTE.v_finalizado}`, vendedorAccessToken).expect(403);
+      });
+    });
+
+    describe('POST /lotes/:id/activar', () => {
+      it('debería activar un lote en CREADO (admin)', async () => {
+        if (!loteCreado) return;
+
+        const res = await authPost(`/lotes/${loteCreado}/activar`, adminAccessToken).expect(200);
+
+        expect(res.body.estado).toBe('ACTIVO');
+        expect(res.body.fechaActivacion).not.toBeNull();
+        // Primera tanda debería estar LIBERADA
+        const primeraTanda = res.body.tandas.find((t: any) => t.numero === 1);
+        expect(['LIBERADA', 'EN_TRANSITO']).toContain(primeraTanda.estado);
+      });
+
+      it('debería rechazar activar un lote ya activo', async () => {
+        await authPost(`/lotes/${LOTE.v_activo_lote1}/activar`, adminAccessToken).expect(409);
+      });
+    });
+
+    describe('POST /lotes/:id/cancelar', () => {
+      it('debería cancelar un lote en CREADO', async () => {
+        const res = await authPost(`/lotes/${LOTE.v_creado}/cancelar`, adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('message');
+      });
+
+      it('debería rechazar cancelar un lote ACTIVO', async () => {
+        await authPost(`/lotes/${LOTE.v_activo_lote1}/cancelar`, adminAccessToken).expect(409);
+      });
+    });
+
+    describe('GET /lotes/:id/resumen-financiero', () => {
+      it('debería obtener resumen financiero de lote activo', async () => {
+        const res = await authGet(
+          `/lotes/${LOTE.v_activo_lote1}/resumen-financiero`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body).toHaveProperty('inversionTotal');
+        expect(res.body).toHaveProperty('dineroRecaudado');
+        expect(res.body).toHaveProperty('gananciaTotal');
+        expect(res.body).toHaveProperty('porcentajeRecaudo');
+      });
+
+      it('debería obtener resumen de lote finalizado', async () => {
+        const res = await authGet(
+          `/lotes/${LOTE.v_finalizado}/resumen-financiero`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.inversionRecuperada).toBe(true);
+      });
+    });
+  });
+
+  // ============================================================
+  // 4. TANDAS MODULE
+  // ============================================================
+  describe('Tandas Module', () => {
+    describe('GET /tandas/lote/:loteId', () => {
+      it('debería listar tandas de un lote (admin)', async () => {
+        const res = await authGet(
+          `/tandas/lote/${LOTE.v_activo_lote1}`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body.length).toBe(2);
+        res.body.forEach((t: any) => {
+          expect(t).toHaveProperty('stockInicial');
+          expect(t).toHaveProperty('stockActual');
+          expect(t).toHaveProperty('estado');
+        });
+      });
+    });
+
+    describe('GET /tandas/:id', () => {
+      it('debería obtener una tanda por ID', async () => {
+        const res = await authGet(`/tandas/${TANDA.activo_t1}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(TANDA.activo_t1);
+        expect(res.body.estado).toBe('EN_CASA');
+      });
+    });
+
+    describe('POST /tandas/:id/confirmar-entrega', () => {
+      it('debería confirmar entrega de tanda EN_TRANSITO', async () => {
+        const res = await authPost(
+          `/tandas/${TANDA.vmayc_t2}/confirmar-entrega`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.estado).toBe('EN_CASA');
+        expect(res.body.fechaEnCasa).not.toBeNull();
+      });
+
+      it('debería rechazar si tanda no está EN_TRANSITO', async () => {
+        await authPost(
+          `/tandas/${TANDA.activo_t1}/confirmar-entrega`,
+          adminAccessToken,
+        ).expect(409);
+      });
+    });
+  });
+
+  // ============================================================
+  // 5. VENTAS MODULE
+  // ============================================================
+  describe('Ventas Module', () => {
+    let ventaCreada: string;
+
+    describe('POST /ventas (registrar venta)', () => {
+      it('debería registrar una venta como vendedor', async () => {
+        const res = await authPost('/ventas', vendedorAccessToken)
+          .send({
+            detalles: [
+              { tipo: 'UNIDAD', cantidad: 1 },
+            ],
+          })
+          .expect(201);
+
+        expect(res.body.estado).toBe('PENDIENTE');
+        expect(res.body.vendedorId).toBe(V.activo_ok);
+        expect(res.body.detalles.length).toBeGreaterThan(0);
+        ventaCreada = res.body.id;
+      });
+
+      it('debería rechazar venta sin detalles', async () => {
+        await authPost('/ventas', vendedorAccessToken)
+          .send({ detalles: [] })
+          .expect(400);
+      });
+
+      it('debería rechazar para admin', async () => {
+        await authPost('/ventas', adminAccessToken)
+          .send({ detalles: [{ tipo: 'UNIDAD', cantidad: 1 }] })
+          .expect(403);
+      });
+    });
+
+    describe('GET /ventas', () => {
+      it('debería listar ventas del vendedor autenticado', async () => {
+        const res = await authGet('/ventas', vendedorAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        res.body.data.forEach((v: any) => {
+          expect(v.vendedorId).toBe(V.activo_ok);
+        });
+      });
+
+      it('admin debería ver todas las ventas', async () => {
+        const res = await authGet('/ventas', adminAccessToken).expect(200);
+
+        expect(res.body.total).toBeGreaterThan(0);
+      });
+
+      it('debería filtrar por estado PENDIENTE', async () => {
+        const res = await authGet('/ventas?estado=PENDIENTE', adminAccessToken).expect(200);
+
+        res.body.data.forEach((v: any) => {
+          expect(v.estado).toBe('PENDIENTE');
+        });
+      });
+    });
+
+    describe('GET /ventas/:id', () => {
+      it('debería obtener una venta por ID', async () => {
+        if (!ventaCreada) return;
+
+        const res = await authGet(`/ventas/${ventaCreada}`, vendedorAccessToken).expect(200);
+
+        expect(res.body.id).toBe(ventaCreada);
+        expect(res.body).toHaveProperty('detalles');
+      });
+    });
+
+    describe('POST /ventas/:id/aprobar', () => {
+      it('debería aprobar una venta pendiente (admin)', async () => {
+        if (!ventaCreada) return;
+
+        const res = await authPost(
+          `/ventas/${ventaCreada}/aprobar`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.estado).toBe('APROBADA');
+        expect(res.body.fechaValidacion).not.toBeNull();
+      });
+    });
+
+    describe('POST /ventas/:id/rechazar', () => {
+      it('debería rechazar una venta pendiente (admin)', async () => {
+        // Buscar venta pendiente del seed
+        const ventaPendiente = await prisma.venta.findFirst({
+          where: { estado: 'PENDIENTE' },
+        });
+
+        if (!ventaPendiente) return;
+
+        const res = await authPost(
+          `/ventas/${ventaPendiente.id}/rechazar`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body).toHaveProperty('message');
+      });
+    });
+  });
+
+  // ============================================================
+  // 6. CUADRES MODULE
+  // ============================================================
+  describe('Cuadres Module', () => {
+    describe('GET /cuadres', () => {
+      it('admin debería ver todos los cuadres', async () => {
+        const res = await authGet('/cuadres', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        expect(res.body.total).toBeGreaterThan(0);
+      });
+
+      it('debería filtrar por estado PENDIENTE', async () => {
+        const res = await authGet('/cuadres?estado=PENDIENTE', adminAccessToken).expect(200);
+
+        res.body.data.forEach((c: any) => {
+          expect(c.estado).toBe('PENDIENTE');
+        });
+      });
+
+      it('vendedor NO debería ver cuadres INACTIVO', async () => {
+        const res = await authGet('/cuadres', vendedorAccessToken).expect(200);
+
+        res.body.data.forEach((c: any) => {
+          expect(c.estado).not.toBe('INACTIVO');
+        });
+      });
+    });
+
+    describe('GET /cuadres/:id', () => {
+      it('debería obtener un cuadre por ID (admin)', async () => {
+        const cuadre = await prisma.cuadre.findFirst({
+          where: { estado: 'PENDIENTE' },
+        });
+
+        if (!cuadre) return;
+
+        const res = await authGet(`/cuadres/${cuadre.id}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(cuadre.id);
+        expect(res.body).toHaveProperty('montoEsperado');
+        expect(res.body).toHaveProperty('tanda');
+      });
+    });
+
+    describe('POST /cuadres/:id/confirmar', () => {
+      it('debería confirmar un cuadre pendiente (admin)', async () => {
+        const cuadre = await prisma.cuadre.findFirst({
+          where: { estado: 'PENDIENTE' },
+        });
+
+        if (!cuadre) return;
+
+        const montoEsperado = Number(cuadre.montoEsperado) - Number(cuadre.montoCubiertoPorMayor);
+
+        const res = await authPost(`/cuadres/${cuadre.id}/confirmar`, adminAccessToken)
+          .send({ montoRecibido: montoEsperado })
+          .expect(200);
+
+        expect(res.body.estado).toBe('EXITOSO');
+      });
+
+      it('debería rechazar si no es admin', async () => {
+        const cuadre = await prisma.cuadre.findFirst({
+          where: { estado: 'PENDIENTE' },
+        });
+
+        if (!cuadre) return;
+
+        await authPost(`/cuadres/${cuadre.id}/confirmar`, vendedorAccessToken)
+          .send({ montoRecibido: 10000 })
+          .expect(403);
+      });
+    });
+  });
+
+  // ============================================================
+  // 7. MINI-CUADRES MODULE
+  // ============================================================
+  describe('Mini-Cuadres Module', () => {
+    describe('GET /mini-cuadres/lote/:loteId', () => {
+      it('debería obtener mini-cuadre de un lote (admin)', async () => {
+        const res = await authGet(
+          `/mini-cuadres/lote/${LOTE.v_mini_cuadre}`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.loteId).toBe(LOTE.v_mini_cuadre);
+        expect(res.body.estado).toBe('PENDIENTE');
+      });
+    });
+
+    describe('GET /mini-cuadres/:id', () => {
+      it('debería obtener mini-cuadre por ID', async () => {
+        const mc = await prisma.miniCuadre.findFirst({
+          where: { estado: 'PENDIENTE' },
+        });
+
+        if (!mc) return;
+
+        const res = await authGet(`/mini-cuadres/${mc.id}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(mc.id);
+      });
+    });
+
+    describe('POST /mini-cuadres/:id/confirmar', () => {
+      it('debería confirmar mini-cuadre pendiente (admin)', async () => {
+        const mc = await prisma.miniCuadre.findFirst({
+          where: { estado: 'PENDIENTE' },
+        });
+
+        if (!mc) return;
+
+        const res = await authPost(
+          `/mini-cuadres/${mc.id}/confirmar`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.estado).toBe('EXITOSO');
+      });
+    });
+  });
+
+  // ============================================================
+  // 8. VENTAS MAYOR MODULE
+  // ============================================================
+  describe('Ventas Mayor Module', () => {
+    describe('GET /ventas-mayor', () => {
+      it('debería listar ventas al mayor (admin)', async () => {
+        const res = await authGet('/ventas-mayor', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        expect(res.body.total).toBeGreaterThan(0);
+      });
+
+      it('debería filtrar por estado PENDIENTE', async () => {
+        const res = await authGet(
+          '/ventas-mayor?estado=PENDIENTE',
+          adminAccessToken,
+        ).expect(200);
+
+        res.body.data.forEach((v: any) => {
+          expect(v.estado).toBe('PENDIENTE');
+        });
+      });
+    });
+
+    describe('GET /ventas-mayor/calcular-stock', () => {
+      it('debería calcular stock disponible (admin)', async () => {
+        const res = await authGet('/ventas-mayor/calcular-stock', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('stockReservado');
+        expect(res.body).toHaveProperty('stockEnCasa');
+        expect(res.body).toHaveProperty('stockTotal');
+      });
+    });
+
+    describe('GET /ventas-mayor/:id', () => {
+      it('debería obtener una venta al mayor por ID', async () => {
+        const vm = await prisma.ventaMayor.findFirst();
+
+        if (!vm) return;
+
+        const res = await authGet(`/ventas-mayor/${vm.id}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(vm.id);
+        expect(res.body).toHaveProperty('fuentesStock');
+      });
+    });
+
+    describe('POST /ventas-mayor/:id/completar', () => {
+      it('debería completar venta mayor pendiente (admin)', async () => {
+        const vm = await prisma.ventaMayor.findFirst({
+          where: { estado: 'PENDIENTE' },
+        });
+
+        if (!vm) return;
+
+        const res = await authPost(
+          `/ventas-mayor/${vm.id}/completar`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.estado).toBe('COMPLETADA');
+      });
+    });
+  });
+
+  // ============================================================
+  // 9. CUADRES MAYOR MODULE
+  // ============================================================
+  describe('Cuadres Mayor Module', () => {
+    describe('GET /cuadres-mayor', () => {
+      it('debería listar cuadres al mayor (admin)', async () => {
+        const res = await authGet('/cuadres-mayor', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        expect(res.body.total).toBeGreaterThanOrEqual(0);
+      });
+    });
+
+    describe('GET /cuadres-mayor/:id', () => {
+      it('debería obtener un cuadre mayor por ID', async () => {
+        const cm = await prisma.cuadreMayor.findFirst();
+
+        if (!cm) return;
+
+        const res = await authGet(`/cuadres-mayor/${cm.id}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(cm.id);
+        expect(res.body).toHaveProperty('evaluacionFinanciera');
+        expect(res.body).toHaveProperty('gananciasReclutadores');
+      });
+    });
+  });
+
+  // ============================================================
+  // 10. EQUIPAMIENTO MODULE
+  // ============================================================
+  describe('Equipamiento Module', () => {
+    describe('GET /equipamiento (admin listar)', () => {
+      it('debería listar todos los equipamientos (admin)', async () => {
+        const res = await authGet('/equipamiento', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        expect(res.body.total).toBeGreaterThan(0);
+      });
+
+      it('debería filtrar por estado ACTIVO', async () => {
+        const res = await authGet('/equipamiento?estado=ACTIVO', adminAccessToken).expect(200);
+
+        res.body.data.forEach((e: any) => {
+          expect(e.estado).toBe('ACTIVO');
+        });
+      });
+    });
+
+    describe('GET /equipamiento/me', () => {
+      it('debería obtener equipamiento del vendedor autenticado', async () => {
+        // Loguear como vendedor con equipamiento
+        const cedula = await getCedulaById(V.eq_activo_deposito);
+        const loginRes = await publicPost('/auth/login')
+          .send({ cedula, password: VENDEDOR_PASSWORD })
+          .expect(200);
+
+        const res = await authGet('/equipamiento/me', loginRes.body.accessToken).expect(200);
+
+        expect(res.body.vendedorId).toBe(V.eq_activo_deposito);
+        expect(res.body.estado).toBe('ACTIVO');
+        expect(res.body).toHaveProperty('mensualidadAlDia');
+        expect(res.body).toHaveProperty('deudaTotal');
+      });
+
+      it('debería retornar 404 si vendedor no tiene equipamiento', async () => {
+        await authGet('/equipamiento/me', vendedorAccessToken).expect(404);
+      });
+    });
+
+    describe('GET /equipamiento/:id', () => {
+      it('debería obtener detalle de equipamiento (admin)', async () => {
+        const eq = await prisma.equipamiento.findFirst({
+          where: { estado: 'ACTIVO' },
+        });
+
+        if (!eq) return;
+
+        const res = await authGet(`/equipamiento/${eq.id}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(eq.id);
+        expect(res.body).toHaveProperty('mensualidadActual');
+        expect(res.body).toHaveProperty('diasMoraMensualidad');
+      });
+    });
+
+    describe('POST /equipamiento/solicitar', () => {
+      it('debería solicitar equipamiento como vendedor', async () => {
+        // Loguear como vendedor sin equipamiento (V50.activo_1)
+        const cedula = await getCedulaById(V50.activo_1);
+        const loginRes = await publicPost('/auth/login')
+          .send({ cedula, password: VENDEDOR_PASSWORD })
+          .expect(200);
+
+        const res = await authPost('/equipamiento/solicitar', loginRes.body.accessToken)
+          .send({ tieneDeposito: true })
+          .expect(201);
+
+        expect(res.body.estado).toBe('SOLICITADO');
+        expect(res.body.tieneDeposito).toBe(true);
+      });
+    });
+
+    describe('POST /equipamiento/:id/activar', () => {
+      it('debería activar equipamiento SOLICITADO (admin)', async () => {
+        const eq = await prisma.equipamiento.findFirst({
+          where: { estado: 'SOLICITADO' },
+        });
+
+        if (!eq) return;
+
+        const res = await authPost(
+          `/equipamiento/${eq.id}/activar`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.estado).toBe('ACTIVO');
+        expect(res.body.fechaEntrega).not.toBeNull();
+      });
+    });
+
+    describe('POST /equipamiento/:id/pagar-mensualidad', () => {
+      it('debería registrar pago de mensualidad (admin)', async () => {
+        const eq = await prisma.equipamiento.findFirst({
+          where: { estado: 'ACTIVO', vendedorId: V.eq_mensualidad_mora },
+        });
+
+        if (!eq) return;
+
+        const res = await authPost(
+          `/equipamiento/${eq.id}/pagar-mensualidad`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body).toHaveProperty('mensualidadAlDia');
+      });
+    });
+  });
+
+  // ============================================================
+  // 11. FONDO RECOMPENSAS MODULE
+  // ============================================================
+  describe('Fondo Recompensas Module', () => {
+    describe('GET /fondo-recompensas/saldo', () => {
+      it('debería obtener saldo del fondo', async () => {
+        const res = await authGet('/fondo-recompensas/saldo', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('saldo');
+        expect(typeof res.body.saldo).toBe('number');
+      });
+
+      it('vendedor puede ver saldo del fondo', async () => {
+        const res = await authGet('/fondo-recompensas/saldo', vendedorAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('saldo');
+      });
+    });
+
+    describe('GET /fondo-recompensas/transacciones', () => {
+      it('debería listar transacciones del fondo', async () => {
+        const res = await authGet(
+          '/fondo-recompensas/transacciones',
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        expect(res.body.total).toBeGreaterThan(0);
+      });
+
+      it('debería filtrar por tipo ENTRADA', async () => {
+        const res = await authGet(
+          '/fondo-recompensas/transacciones?tipo=ENTRADA',
+          adminAccessToken,
+        ).expect(200);
+
+        res.body.data.forEach((t: any) => {
+          expect(t.tipo).toBe('ENTRADA');
+        });
+      });
+    });
+
+    describe('POST /fondo-recompensas/salida', () => {
+      it('debería registrar salida del fondo (admin)', async () => {
+        const res = await authPost('/fondo-recompensas/salida', adminAccessToken)
+          .send({
+            monto: 1000,
+            concepto: 'Premio test E2E',
+            vendedorBeneficiarioId: V.activo_ok,
+          })
+          .expect(201);
+
+        expect(res.body.tipo).toBe('SALIDA');
+        expect(res.body.monto).toBe(1000);
+        expect(res.body.vendedorBeneficiarioId).toBe(V.activo_ok);
+      });
+
+      it('debería rechazar si no es admin', async () => {
+        await authPost('/fondo-recompensas/salida', vendedorAccessToken)
+          .send({
+            monto: 1000,
+            concepto: 'Intento ilegal',
+            vendedorBeneficiarioId: V.activo_ok,
+          })
+          .expect(403);
+      });
+    });
+  });
+
+  // ============================================================
+  // 12. NOTIFICACIONES MODULE
+  // ============================================================
+  describe('Notificaciones Module', () => {
+    describe('GET /notificaciones', () => {
+      it('debería listar notificaciones del admin', async () => {
+        const res = await authGet('/notificaciones', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+        expect(res.body).toHaveProperty('noLeidas');
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('debería filtrar solo no leídas', async () => {
+        const res = await authGet(
+          '/notificaciones?soloNoLeidas=true',
+          adminAccessToken,
+        ).expect(200);
+
+        res.body.data.forEach((n: any) => {
+          expect(n.leida).toBe(false);
+        });
+      });
+    });
+
+    describe('GET /notificaciones/contador', () => {
+      it('debería obtener contador de no leídas', async () => {
+        const res = await authGet('/notificaciones/contador', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('noLeidas');
+        expect(typeof res.body.noLeidas).toBe('number');
+      });
+    });
+
+    describe('POST /notificaciones/enviar', () => {
+      it('debería enviar notificación manual (admin)', async () => {
+        const res = await authPost('/notificaciones/enviar', adminAccessToken)
+          .send({
+            usuarioId: V.activo_ok,
+            tipo: 'MANUAL',
+            titulo: 'Notificación E2E',
+            mensaje: 'Mensaje de prueba desde E2E',
+            canal: 'WEBSOCKET',
+          })
+          .expect(201);
+
+        expect(res.body.tipo).toBe('MANUAL');
+        expect(res.body.usuarioId).toBe(V.activo_ok);
+        expect(res.body.leida).toBe(false);
+      });
+    });
+
+    describe('GET /notificaciones/:id', () => {
+      it('debería obtener una notificación por ID', async () => {
+        const notif = await prisma.notificacion.findFirst({
+          where: { usuarioId: ADMIN_ID },
+        });
+
+        if (!notif) return;
+
+        const res = await authGet(`/notificaciones/${notif.id}`, adminAccessToken).expect(200);
+
+        expect(res.body.id).toBe(notif.id);
+      });
+    });
+
+    describe('PATCH /notificaciones/:id/leer', () => {
+      it('debería marcar notificación como leída', async () => {
+        const notif = await prisma.notificacion.findFirst({
+          where: { usuarioId: ADMIN_ID, leida: false },
+        });
+
+        if (!notif) return;
+
+        const res = await authPatch(
+          `/notificaciones/${notif.id}/leer`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.leida).toBe(true);
+        expect(res.body.fechaLeida).not.toBeNull();
+      });
+    });
+
+    describe('PATCH /notificaciones/leer-todas', () => {
+      it('debería marcar todas las notificaciones como leídas', async () => {
+        const res = await authPatch('/notificaciones/leer-todas', adminAccessToken)
+          .send({})
+          .expect(200);
+
+        expect(res.body).toHaveProperty('marcadas');
+        expect(typeof res.body.marcadas).toBe('number');
+      });
+    });
+  });
+
+  // ============================================================
+  // 13. ADMIN - CONFIGURACIONES MODULE
+  // ============================================================
+  describe('Admin - Configuraciones Module', () => {
+    describe('GET /admin/configuraciones', () => {
+      it('debería listar todas las configuraciones (admin)', async () => {
+        const res = await authGet('/admin/configuraciones', adminAccessToken).expect(200);
+
+        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body.length).toBeGreaterThan(0);
+
+        const primera = res.body[0];
+        expect(primera).toHaveProperty('clave');
+        expect(primera).toHaveProperty('valor');
+        expect(primera).toHaveProperty('tipo');
+        expect(primera).toHaveProperty('categoria');
+      });
+
+      it('debería rechazar para vendedor', async () => {
+        await authGet('/admin/configuraciones', vendedorAccessToken).expect(403);
+      });
+    });
+
+    describe('GET /admin/configuraciones/categoria/:categoria', () => {
+      it('debería listar configuraciones de PRECIOS', async () => {
+        const res = await authGet(
+          '/admin/configuraciones/categoria/PRECIOS',
+          adminAccessToken,
+        ).expect(200);
+
+        expect(Array.isArray(res.body)).toBe(true);
+        res.body.forEach((c: any) => {
+          expect(c.categoria).toBe('PRECIOS');
+        });
+      });
+    });
+
+    describe('GET /admin/configuraciones/:clave', () => {
+      it('debería obtener una configuración específica', async () => {
+        const res = await authGet(
+          '/admin/configuraciones/PRECIO_UNIDAD_LICOR',
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.clave).toBe('PRECIO_UNIDAD_LICOR');
+        expect(res.body.valor).toBe('8000');
+      });
+    });
+
+    describe('PATCH /admin/configuraciones/:clave', () => {
+      it('debería modificar una configuración (admin)', async () => {
+        const res = await authPatch(
+          '/admin/configuraciones/PRECIO_UNIDAD_LICOR',
+          adminAccessToken,
+        )
+          .send({ valor: '8500', motivo: 'Ajuste de precio test E2E' })
+          .expect(200);
+
+        expect(res.body.valor).toBe('8500');
+      });
+
+      // Restaurar valor original
+      afterAll(async () => {
+        await authPatch(
+          '/admin/configuraciones/PRECIO_UNIDAD_LICOR',
+          adminAccessToken,
+        ).send({ valor: '8000', motivo: 'Restaurar valor original' });
+      });
+    });
+
+    describe('GET /admin/configuraciones/historial', () => {
+      it('debería obtener historial de cambios', async () => {
+        const res = await authGet(
+          '/admin/configuraciones/historial',
+          adminAccessToken,
+        ).expect(200);
+
+        expect(Array.isArray(res.body) || res.body.data !== undefined).toBeTruthy();
+      });
+    });
+  });
+
+  // ============================================================
+  // 14. ADMIN - TIPOS DE INSUMO
+  // ============================================================
+  describe('Admin - Tipos de Insumo Module', () => {
+    let tipoInsumoId: string;
+
+    describe('POST /admin/tipos-insumo', () => {
+      it('debería crear un tipo de insumo (admin)', async () => {
+        const res = await authPost('/admin/tipos-insumo', adminAccessToken)
+          .send({ nombre: 'Insumo Test E2E', esObligatorio: false })
+          .expect(201);
+
+        expect(res.body.nombre).toBe('Insumo Test E2E');
+        expect(res.body.activo).toBe(true);
+        tipoInsumoId = res.body.id;
+      });
+    });
+
+    describe('GET /admin/tipos-insumo', () => {
+      it('debería listar tipos de insumo', async () => {
+        const res = await authGet('/admin/tipos-insumo', adminAccessToken).expect(200);
+
+        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body.length).toBeGreaterThan(0);
+      });
+
+      it('debería filtrar por activos', async () => {
+        const res = await authGet(
+          '/admin/tipos-insumo?activo=true',
+          adminAccessToken,
+        ).expect(200);
+
+        res.body.forEach((t: any) => {
+          expect(t.activo).toBe(true);
+        });
+      });
+    });
+
+    describe('PATCH /admin/tipos-insumo/:id', () => {
+      it('debería modificar tipo de insumo', async () => {
+        if (!tipoInsumoId) return;
+
+        const res = await authPatch(
+          `/admin/tipos-insumo/${tipoInsumoId}`,
+          adminAccessToken,
+        )
+          .send({ nombre: 'Insumo Renombrado E2E' })
+          .expect(200);
+
+        expect(res.body.nombre).toBe('Insumo Renombrado E2E');
+      });
+    });
+
+    describe('DELETE /admin/tipos-insumo/:id', () => {
+      it('debería desactivar tipo de insumo', async () => {
+        if (!tipoInsumoId) return;
+
+        const res = await authDelete(
+          `/admin/tipos-insumo/${tipoInsumoId}`,
+          adminAccessToken,
+        ).expect(200);
+
+        expect(res.body.activo).toBe(false);
+      });
+    });
+  });
+
+  // ============================================================
+  // 15. ADMIN - STOCK MODULE
+  // ============================================================
+  describe('Admin - Stock Module', () => {
+    describe('GET /admin/stock', () => {
+      it('debería obtener estado del stock (admin)', async () => {
+        const res = await authGet('/admin/stock', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('stockFisico');
+        expect(typeof res.body.stockFisico).toBe('number');
+      });
+    });
+
+    describe('GET /admin/stock/deficit', () => {
+      it('debería calcular déficit', async () => {
+        const res = await authGet('/admin/stock/deficit', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('stockFisico');
+        expect(res.body).toHaveProperty('stockReservado');
+        expect(res.body).toHaveProperty('deficit');
+        expect(res.body).toHaveProperty('hayDeficit');
+      });
+    });
+
+    describe('GET /admin/stock/reservado', () => {
+      it('debería obtener desglose de stock reservado', async () => {
+        const res = await authGet('/admin/stock/reservado', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('totalReservado');
+        expect(res.body).toHaveProperty('porEstado');
+        expect(res.body).toHaveProperty('porVendedor');
+        expect(res.body).toHaveProperty('porLote');
+      });
+    });
+  });
+
+  // ============================================================
+  // 16. ADMIN - PEDIDOS STOCK MODULE
+  // ============================================================
+  describe('Admin - Pedidos Stock Module', () => {
+    let pedidoId: string;
+
+    describe('POST /admin/pedidos-stock', () => {
+      it('debería crear pedido en BORRADOR (admin)', async () => {
+        const res = await authPost('/admin/pedidos-stock', adminAccessToken)
+          .send({ cantidadTrabix: 50, notas: 'Pedido E2E test' })
+          .expect(201);
+
+        expect(res.body.estado).toBe('BORRADOR');
+        expect(res.body.cantidadTrabix).toBe(50);
+        pedidoId = res.body.id;
+      });
+    });
+
+    describe('GET /admin/pedidos-stock', () => {
+      it('debería listar pedidos', async () => {
+        const res = await authGet('/admin/pedidos-stock', adminAccessToken).expect(200);
+
+        expect(res.body).toHaveProperty('data');
+      });
+
+      it('debería filtrar por estado', async () => {
+        const res = await authGet(
+          '/admin/pedidos-stock?estado=BORRADOR',
+          adminAccessToken,
+        ).expect(200);
+
+        if (res.body.data) {
+          res.body.data.forEach((p: any) => {
+            expect(p.estado).toBe('BORRADOR');
+          });
         }
-        console.log(`🔑 ${Object.keys(tokens).length} tokens cargados\n`);
-    }, 60000);
-
-    afterAll(async () => {
-        await app.close();
+      });
     });
 
-    // =================================================================
-    // 1. AUTENTICACIÓN (15 casos)
-    // =================================================================
-    describe('1. AUTENTICACIÓN', () => {
+    describe('GET /admin/pedidos-stock/:id', () => {
+      it('debería obtener pedido con detalles', async () => {
+        if (!pedidoId) return;
 
-        it('Login admin exitoso', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: 1234567890, password: 'Admin123!' });
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('accessToken');
-            expect(res.body).toHaveProperty('refreshToken');
-            expect(res.body.user.rol).toBe('ADMIN');
-        });
+        const res = await authGet(
+          `/admin/pedidos-stock/${pedidoId}`,
+          adminAccessToken,
+        ).expect(200);
 
-        it('Login vendedor 60/40', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: 1000000001, password: 'Test123!' });
-            expect(res.status).toBe(200);
-            // Verificamos que el login funciona
-            expect(res.body.user.rol).toBe('VENDEDOR');
-        });
-
-        it('Login vendedor 50/50', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: 1000000051, password: 'Test123!' });
-            expect(res.status).toBe(200);
-            expect(res.body.user.rol).toBe('VENDEDOR');
-        });
-
-        it('Cédula inexistente = 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: 1002229933, password: 'Test123!' });
-            expect(res.status).toBe(400);
-        });
-
-        it('Password incorrecto = 401', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: 1000000001, password: 'Wrong!' });
-            expect(res.status).toBe(401);
-        });
-
-        it('Usuario INACTIVO = 403', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: 1000000003, password: 'Test123!' });
-            expect(res.status).toBe(403);
-        });
-
-        it('Sin token = 401', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios');
-
-            expect(res.status).toBe(401);
-        });
-
-        it('Token inválido = 401', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios')
-                .set('Authorization', 'Bearer invalid-token');
-            expect(res.status).toBe(401);
-        });
-
-        it('Token válido = 200', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-        it('POST /auth/logout - cierra sesión', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/logout')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([200, 204]).toContain(res.status);
-        });
-        it('Login admin exitoso "de nuevo"', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: 1234567890, password: 'Admin123!' });
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('accessToken');
-            expect(res.body).toHaveProperty('refreshToken');
-            expect(res.body.user.rol).toBe('ADMIN');
-        });
-        it('GET /health/db - estado de base de datos', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/health/db');
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('status');
-        });
-        it('Refresh token funciona', async () => {
-            const login = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: 1234567890, password: 'Admin123!' });
-
-            if (login.body.refreshToken) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/auth/refresh')
-                    .send({ refreshToken: login.body.refreshToken });
-                expect([200, 201]).toContain(res.status);
-            }
-        });
-
-        it('Campos vacíos = error', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login')
-                .send({ cedula: '', password: '' });
-
-            expect([400, 401]).toContain(res.status);
-        });
-
-        it('Sin body = error', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/login');
-
-            expect([400, 401]).toContain(res.status);
-        });
-
-        it('Usuario sin cambiar pwd tiene flag', async () => {
-            const usuario = await prisma.usuario.findFirst({
-                where: { cedula: 1000000002 }
-            });
-            if (usuario) {
-                expect(usuario.requiereCambioPassword).toBe(true);
-            }
-        });
+        expect(res.body.id).toBe(pedidoId);
+        expect(res.body).toHaveProperty('detallesCosto');
+      });
     });
 
-    // =================================================================
-    // 2. USUARIOS Y JERARQUÍA (20 casos)
-    // =================================================================
-    describe('2. USUARIOS Y JERARQUÍA', () => {
-        it('Admin lista todos los usuarios', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('data');
-            expect(Array.isArray(res.body.data)).toBe(true);
-        });
+    describe('PATCH /admin/pedidos-stock/:id', () => {
+      it('debería modificar pedido en BORRADOR', async () => {
+        if (!pedidoId) return;
 
-        it('Filtrar por rol VENDEDOR', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios?rol=VENDEDOR')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            if (res.status === 200 && res.body.data) {
-                res.body.data.forEach((u: any) => expect(u.rol).toBe('VENDEDOR'));
-            }
-        });
+        const res = await authPatch(
+          `/admin/pedidos-stock/${pedidoId}`,
+          adminAccessToken,
+        )
+          .send({ cantidadTrabix: 100, notas: 'Actualizado E2E' })
+          .expect(200);
 
-        it('Filtrar por estado ACTIVO', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios?estado=ACTIVO')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            if (res.status === 200 && res.body.data) {
-                res.body.data.forEach((u: any) => expect(u.estado).toBe('ACTIVO'));
-            }
-        });
-
-        it('Filtrar por modelo 60/40 (via lotes)', async () => {
-            const lotes60 = await prisma.lote.findMany({
-                where: { modeloNegocio: 'MODELO_60_40' },
-                include: { vendedor: true },
-                take: 5
-            });
-            expect(lotes60.length).toBeGreaterThanOrEqual(0);
-        });
-
-        it('Paginación funciona', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios?page=1&limit=5')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            if (res.status === 200) {
-                expect(res.body.data.length).toBeLessThanOrEqual(5);
-            }
-        });
-
-        it('Perfil propio', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios/me')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Admin obtiene cualquier usuario', async () => {
-            const res = await request(app.getHttpServer())
-                .get(`/api/v1/usuarios/${ids[1000000001]}`)
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Usuario inexistente = 404', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios/uuid-inexistente-123')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([400, 404]).toContain(res.status);
-        });
-
-        it('Admin crea vendedor directo = 60/40', async () => {
-            const ced = `TEST-${Date.now()}`;
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    cedula: ced, nombre: 'Test', apellidos: 'User',
-                    email: `${ced}@test.com`, telefono: `320${Date.now().toString().slice(-7)}`,
-                    direccion: 'Dir Test',
-                });
-            if (res.status === 201) {
-                // Verificar que el usuario fue creado
-                expect(res.body.id).toBeDefined();
-            }
-        });
-
-        it('Cédula duplicada = 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    cedula: 1000000001, nombre: 'Dup', apellidos: 'Test',
-                    email: 'dup@test.com', telefono: '3201111111', direccion: 'Dir',
-                });
-            expect(res.status).toBe(400);
-        });
-
-        it('Con reclutador = 50/50 (en lote)', async () => {
-            const ced = `TEST-5050-${Date.now()}`;
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    cedula: ced, nombre: 'Test', apellidos: '5050',
-                    email: `${ced}@test.com`, telefono: `321${Date.now().toString().slice(-7)}`,
-                    direccion: 'Dir', reclutadorId: ids[1000000021],
-                });
-            if (res.status === 201) {
-                expect(res.body.reclutadorId).toBe(ids[1000000021]);
-            }
-        });
-
-        it('Vendedor no puede crear usuarios', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`)
-                .send({
-                    cedula: 1000028831, nombre: 'Test', apellidos: 'Test',
-                    email: 'prohibido@test.com', telefono: '3209999999', direccion: 'Dir',
-                });
-            expect([400,401,403]).toContain(res.status);
-        });
-
-        it('Jerarquía 5 niveles existe', async () => {
-            const ven = await prisma.usuario.findFirst({
-                where: { cedula: 1000000051 },
-                include: { reclutador: { include: { reclutador: { include: { reclutador: { include: { reclutador: true } } } } } } }
-            });
-            if (ven) {
-                let nivel = 1, curr: any = ven;
-                while (curr.reclutador) { nivel++; curr = curr.reclutador; }
-                expect(nivel).toBe(5);
-            }
-        });
-
-        it('REC-N4-A tiene 3 reclutados', async () => {
-            const rec = await prisma.usuario.findFirst({ where: { cedula: 1000000041 } });
-            if (rec) {
-                const count = await prisma.usuario.count({ where: { reclutadorId: rec.id } });
-                expect(count).toBe(3);
-            }
-        });
-
-        it('Admin no tiene reclutador', async () => {
-            const admin = await prisma.usuario.findFirst({ where: { rol: 'ADMIN' } });
-            expect(admin?.reclutadorId).toBeNull();
-        });
+        expect(res.body.cantidadTrabix).toBe(100);
+      });
     });
 
-    // =================================================================
-    // 3. LOTES (25 casos)
-    // =================================================================
-    describe('3. LOTES', () => {
-        async function crearVendedorTemp(suffix: string) {
-            const cedula = Number('1' + Array.from({ length: 9 }, () => Math.floor(Math.random() * 10)).join(''));
-            const admin = await prisma.usuario.findFirst({ where: { rol: 'ADMIN' } });
-            return prisma.usuario.create({
-                data: {
-                    cedula: cedula, nombre: 'Temp', apellidos: suffix,
-                    email: `${cedula}@temp.com`, telefono: `399${Date.now().toString().slice(-7)}`, passwordHash: '$2a$12$temp',
-                    requiereCambioPassword: false, rol: 'VENDEDOR', estado: 'ACTIVO', reclutadorId: admin!.id,
-                }
-            });
-        }
+    describe('POST /admin/pedidos-stock/:id/costos', () => {
+      it('debería agregar costo al pedido', async () => {
+        if (!pedidoId) return;
 
-        it('Crear lote 50 = 2 tandas', async () => {
-            const ven = await crearVendedorTemp('L50');
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/lotes')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ vendedorId: ven.id, cantidadTrabix: 50 });
-            if (res.status === 201) {
-                const tandas = await prisma.tanda.count({ where: { loteId: res.body.id } });
-                expect(tandas).toBe(2);
-            }
-        });
+        const res = await authPost(
+          `/admin/pedidos-stock/${pedidoId}/costos`,
+          adminAccessToken,
+        )
+          .send({
+            concepto: 'Trabix (unidad de producto)',
+            esObligatorio: true,
+            cantidad: 100,
+            costoTotal: 100000,
+          })
+          .expect(201);
 
-        it('Crear lote 51 = 3 tandas', async () => {
-            const ven = await crearVendedorTemp('L51');
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/lotes')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ vendedorId: ven.id, cantidadTrabix: 51 });
-            if (res.status === 201) {
-                const tandas = await prisma.tanda.count({ where: { loteId: res.body.id } });
-                expect(tandas).toBe(3);
-            }
-        });
-
-        it('Suma tandas = cantidadTrabix', async () => {
-            const lotes = await prisma.lote.findMany({ include: { tandas: true }, take: 20 });
-            for (const l of lotes) {
-                const total = l.tandas.reduce((s, t) => s + t.stockInicial, 0);
-                expect(total).toBe(l.cantidadTrabix);
-            }
-        });
-
-        it('Estado inicial CREADO', async () => {
-            const ven = await crearVendedorTemp('CREADO');
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/lotes')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ vendedorId: ven.id, cantidadTrabix: 50 });
-            if (res.status === 201) {
-                expect(res.body.estado).toBe('CREADO');
-            }
-        });
-
-        it('Inversión usa config del sistema', async () => {
-            const COSTO = CONFIG['COSTO_INVERSION_TRABIX'] || 2400;
-            const lote = await prisma.lote.findFirst({ where: { cantidadTrabix: 100 } });
-            if (lote) {
-                expect(Number(lote.inversionTotal)).toBe(100 * COSTO);
-            }
-        });
-
-        it('Inversión vendedor = 50%', async () => {
-            const lote = await prisma.lote.findFirst({ where: { cantidadTrabix: 100 } });
-            if (lote) {
-                expect(Number(lote.inversionVendedor)).toBe(Number(lote.inversionTotal) * 0.5);
-            }
-        });
-
-        it('Inversión admin = 50%', async () => {
-            const lote = await prisma.lote.findFirst({ where: { cantidadTrabix: 100 } });
-            if (lote) {
-                expect(Number(lote.inversionAdmin)).toBe(Number(lote.inversionTotal) * 0.5);
-            }
-        });
-
-        it('Cantidad 0 = error', async () => {
-            const ven = await crearVendedorTemp('ERR0');
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/lotes')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ vendedorId: ven.id, cantidadTrabix: 0 });
-            expect(res.status).toBe(400);
-        });
-
-        it('Activar lote cambia estado', async () => {
-            const lote = await prisma.lote.findFirst({ where: { estado: 'CREADO' } });
-            if (lote) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/lotes/${lote.id}/activar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                if (res.status === 200) {
-                    expect(res.body.estado).toBe('ACTIVO');
-                }
-            }
-        });
-
-        it('Admin lista todos los lotes', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/lotes')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Filtrar por estado ACTIVO', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/lotes?estado=ACTIVO')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Múltiples lotes activos permitidos', async () => {
-            const multi = await prisma.usuario.findFirst({ where: { cedula: 1000000019 } });
-            if (multi) {
-                const count = await prisma.lote.count({ where: { vendedorId: multi.id, estado: 'ACTIVO' } });
-                expect(count).toBeGreaterThanOrEqual(1);
-            }
-        });
-
-        it('Lote FINALIZADO existe', async () => {
-            const lote = await prisma.lote.findFirst({ where: { estado: 'FINALIZADO' } });
-            expect(lote).not.toBeNull();
-        });
-
-        it('2 tandas si ≤50, 3 si >50', async () => {
-            const lotes = await prisma.lote.findMany({ include: { tandas: true }, take: 30 });
-            for (const l of lotes) {
-                if (l.cantidadTrabix <= 50) expect(l.tandas.length).toBe(2);
-                else expect(l.tandas.length).toBe(3);
-            }
-        });
-
-        it('dineroRecaudado inicial = 0', async () => {
-            const lote = await prisma.lote.findFirst({ where: { estado: 'CREADO' } });
-            if (lote) expect(Number(lote.dineroRecaudado)).toBe(0);
-        });
-
-        it('fechaActivacion null si CREADO', async () => {
-            const lote = await prisma.lote.findFirst({ where: { estado: 'CREADO' } });
-            if (lote) expect(lote.fechaActivacion).toBeNull();
-        });
-
-        it('fechaActivacion existe si ACTIVO', async () => {
-            const lote = await prisma.lote.findFirst({ where: { estado: 'ACTIVO' } });
-            if (lote) expect(lote.fechaActivacion).not.toBeNull();
-        });
-
-        it('Lote forzado existe', async () => {
-            const lote = await prisma.lote.findFirst({ where: { esLoteForzado: true } });
-            expect(lote).not.toBeNull();
-        });
+        expect(res.body.detallesCosto.length).toBeGreaterThan(0);
+      });
     });
 
-    // =================================================================
-    // 4. TANDAS (15 casos)
-    // =================================================================
-    describe('4. TANDAS', () => {
-        it('Existe INACTIVA', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'INACTIVA' } });
-            expect(t).not.toBeNull();
-        });
+    describe('POST /admin/pedidos-stock/:id/cancelar', () => {
+      it('debería cancelar pedido en BORRADOR', async () => {
+        if (!pedidoId) return;
 
-        it('Existe LIBERADA', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'LIBERADA' } });
-            expect(t).not.toBeNull();
-        });
+        const res = await authPost(
+          `/admin/pedidos-stock/${pedidoId}/cancelar`,
+          adminAccessToken,
+        )
+          .send({ motivo: 'Cancelado por test E2E' })
+          .expect(200);
 
-        it('Existe EN_TRANSITO', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'EN_TRANSITO' } });
-            expect(t).not.toBeNull();
-        });
+        expect(res.body.estado).toBe('CANCELADO');
+      });
+    });
+  });
 
-        it('Existe EN_CASA', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'EN_CASA' } });
-            expect(t).not.toBeNull();
-        });
+  // ============================================================
+  // 17. ADMIN - DASHBOARD MODULE
+  // ============================================================
+  describe('Admin - Dashboard Module', () => {
+    describe('GET /admin/dashboard/resumen', () => {
+      it('debería obtener resumen del dashboard', async () => {
+        const res = await authGet('/admin/dashboard/resumen', adminAccessToken).expect(200);
 
-        it('Existe FINALIZADA', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'FINALIZADA' } });
-            expect(t).not.toBeNull();
-        });
-
-        it('LIBERADA tiene fechaLiberacion', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'LIBERADA' } });
-            expect(t?.fechaLiberacion).not.toBeNull();
-        });
-
-        it('EN_CASA tiene fechaEnCasa', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'EN_CASA' } });
-            expect(t?.fechaEnCasa).not.toBeNull();
-        });
-
-        it('stockActual <= stockInicial', async () => {
-            const tandas = await prisma.tanda.findMany({ take: 50 });
-            tandas.forEach(t => expect(t.stockActual).toBeLessThanOrEqual(t.stockInicial));
-        });
-
-        it('Stock nunca negativo', async () => {
-            const tandas = await prisma.tanda.findMany();
-            tandas.forEach(t => expect(t.stockActual).toBeGreaterThanOrEqual(0));
-        });
-
-        it('FINALIZADA tiene stock = 0', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'FINALIZADA' } });
-            if (t) expect(t.stockActual).toBe(0);
-        });
-
-        it('Solo 1 EN_CASA o LIBERADA por lote activo', async () => {
-            const lotes = await prisma.lote.findMany({ where: { estado: 'ACTIVO' }, include: { tandas: true }, take: 10 });
-            for (const l of lotes) {
-                const activas = l.tandas.filter(t => ['LIBERADA', 'EN_TRANSITO', 'EN_CASA'].includes(t.estado));
-                expect(activas.length).toBeLessThanOrEqual(1);
-            }
-        });
-
-        it('Número de tanda correcto (1-3)', async () => {
-            const tandas = await prisma.tanda.findMany({ take: 50 });
-            tandas.forEach(t => expect([1, 2, 3]).toContain(t.numero));
-        });
-
-        it('Edge case: stock = 1', async () => {
-            const t = await prisma.tanda.findFirst({ where: { estado: 'EN_CASA', stockActual: 1 } });
-            if (t) expect(t.stockActual).toBe(1);
-        });
-
-        it('Edge case: liberada hace ~2h', async () => {
-            const hace2h = new Date(Date.now() - 2 * 60 * 60 * 1000);
-            const tanda = await prisma.tanda.findFirst({
-                where: { estado: 'LIBERADA', fechaLiberacion: { gte: hace2h } }
-            });
-            // Verificamos que la consulta funciona y retorna resultado coherente
-            if (tanda) {
-                expect(tanda.estado).toBe('LIBERADA');
-            }
-        });
+        expect(res.body).toHaveProperty('ventasHoy');
+        expect(res.body).toHaveProperty('ingresosHoy');
+        expect(res.body).toHaveProperty('stockFisico');
+        expect(res.body).toHaveProperty('cuadresPendientes');
+        expect(res.body).toHaveProperty('vendedoresActivos');
+        expect(res.body).toHaveProperty('saldoFondo');
+      });
     });
 
-    // =================================================================
-    // 5. VENTAS AL DETAL (20 casos)
-    // =================================================================
-    describe('5. VENTAS AL DETAL', () => {
-        it('Existe PENDIENTE', async () => {
-            const v = await prisma.venta.findFirst({ where: { estado: 'PENDIENTE' } });
-            expect(v).not.toBeNull();
-        });
+    describe('GET /admin/dashboard/ventas-periodo', () => {
+      it('debería obtener ventas del día', async () => {
+        const res = await authGet(
+          '/admin/dashboard/ventas-periodo?periodo=dia',
+          adminAccessToken,
+        ).expect(200);
 
-        it('Existe APROBADA', async () => {
-            const v = await prisma.venta.findFirst({ where: { estado: 'APROBADA' } });
-            expect(v).not.toBeNull();
-        });
+        expect(res.body).toHaveProperty('periodo');
+        expect(res.body).toHaveProperty('totalVentas');
+        expect(res.body).toHaveProperty('totalIngresos');
+      });
 
-        it('Precio UNIDAD usa config', async () => {
-            const PRECIO = CONFIG['PRECIO_UNIDAD'] || 8000;
-            const d = await prisma.detalleVenta.findFirst({ where: { tipo: 'UNIDAD' } });
-            if (d) expect(Number(d.precioUnitario)).toBe(PRECIO);
-        });
+      it('debería obtener ventas de la semana', async () => {
+        await authGet(
+          '/admin/dashboard/ventas-periodo?periodo=semana',
+          adminAccessToken,
+        ).expect(200);
+      });
 
-        it('Precio PROMO usa config', async () => {
-            const PRECIO = CONFIG['PRECIO_PROMO'] || 15000;
-            const d = await prisma.detalleVenta.findFirst({ where: { tipo: 'PROMO' } });
-            if (d) expect(Number(d.precioUnitario)).toBe(PRECIO);
-        });
-
-        it('Precio SIN_LICOR usa config', async () => {
-            const PRECIO = CONFIG['PRECIO_SIN_LICOR'] || 7000;
-            const d = await prisma.detalleVenta.findFirst({ where: { tipo: 'SIN_LICOR' } });
-            if (d) expect(Number(d.precioUnitario)).toBe(PRECIO);
-        });
-
-        it('Precio REGALO = 0', async () => {
-            const d = await prisma.detalleVenta.findFirst({ where: { tipo: 'REGALO' } });
-            if (d) expect(Number(d.precioUnitario)).toBe(0);
-        });
-
-        it('Subtotal = cantidad * precio', async () => {
-            const detalles = await prisma.detalleVenta.findMany({ take: 20 });
-            for (const d of detalles) {
-                const expected = d.cantidad * Number(d.precioUnitario);
-                expect(Number(d.subtotal)).toBe(expected);
-            }
-        });
-
-        it('MontoTotal = suma subtotales', async () => {
-            const ventas = await prisma.venta.findMany({ include: { detalles: true }, take: 10 });
-            for (const v of ventas) {
-                const suma = v.detalles.reduce((s, d) => s + Number(d.subtotal), 0);
-                expect(Number(v.montoTotal)).toBe(suma);
-            }
-        });
-
-        it('Admin lista ventas', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/ventas')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Filtrar por PENDIENTE', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/ventas?estado=PENDIENTE')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Admin aprueba venta', async () => {
-            const v = await prisma.venta.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (v) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/ventas/${v.id}/aprobar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400]).toContain(res.status);
-            }
-        });
-
-        it('Venta tiene fechaRegistro', async () => {
-            const v = await prisma.venta.findFirst();
-            expect(v?.fechaRegistro).not.toBeNull();
-        });
-
-        it('APROBADA tiene fechaValidacion', async () => {
-            const v = await prisma.venta.findFirst({ where: { estado: 'APROBADA' } });
-            if (v) expect(v.fechaValidacion).not.toBeNull();
-        });
-
-        it('Venta pertenece a tanda', async () => {
-            const v = await prisma.venta.findFirst();
-            expect(v?.tandaId).not.toBeNull();
-        });
-
-        it('Venta pertenece a lote', async () => {
-            const v = await prisma.venta.findFirst();
-            expect(v?.loteId).not.toBeNull();
-        });
-
-        it('Venta mixta tiene múltiples detalles', async () => {
-            const v = await prisma.venta.findFirst({
-                where: { vendedor: { cedula: 1000000032 } },
-                include: { detalles: true }
-            });
-            if (v) expect(v.detalles.length).toBeGreaterThan(1);
-        });
-
-        it('Límite regalos 8%', async () => {
-            const LIMITE = CONFIG['LIMITE_REGALOS_PORCENTAJE'] || 8;
-            const v = await prisma.venta.findFirst({
-                where: { vendedor: { cedula: 1000000036 } },
-                include: { detalles: true, lote: true }
-            });
-            if (v && v.lote) {
-                const regalos = v.detalles.filter(d => d.tipo === 'REGALO').reduce((s, d) => s + d.cantidad, 0);
-                const max = Math.floor(v.lote.cantidadTrabix * LIMITE / 100);
-                expect(regalos).toBeLessThanOrEqual(max);
-            }
-        });
+      it('debería obtener ventas del mes', async () => {
+        await authGet(
+          '/admin/dashboard/ventas-periodo?periodo=mes',
+          adminAccessToken,
+        ).expect(200);
+      });
     });
 
-    // =================================================================
-    // 6. CUADRES (15 casos)
-    // =================================================================
-    describe('6. CUADRES', () => {
-        it('Existe INACTIVO', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { estado: 'INACTIVO' } });
-            expect(c).not.toBeNull();
-        });
+    describe('GET /admin/dashboard/vendedores-activos', () => {
+      it('debería obtener cantidad de vendedores activos', async () => {
+        const res = await authGet(
+          '/admin/dashboard/vendedores-activos',
+          adminAccessToken,
+        ).expect(200);
 
-        it('Existe PENDIENTE', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            expect(c).not.toBeNull();
-        });
-
-        it('Existe EXITOSO', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { estado: 'EXITOSO' } });
-            expect(c).not.toBeNull();
-        });
-
-        it('montoFaltante = esperado - recibido', async () => {
-            const cuadres = await prisma.cuadre.findMany({ take: 10 });
-            for (const c of cuadres) {
-                const faltante = Number(c.montoEsperado) - Number(c.montoRecibido);
-                expect(Number(c.montoFaltante)).toBe(faltante);
-            }
-        });
-
-        it('EXITOSO tiene faltante = 0', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { estado: 'EXITOSO' } });
-            if (c) expect(Number(c.montoFaltante)).toBe(0);
-        });
-
-        it('PENDIENTE tiene fechaPendiente', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (c) expect(c.fechaPendiente).not.toBeNull();
-        });
-
-        it('EXITOSO tiene fechaExitoso', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { estado: 'EXITOSO' } });
-            if (c) expect(c.fechaExitoso).not.toBeNull();
-        });
-
-        it('Concepto INVERSION_ADMIN existe', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { concepto: 'INVERSION_ADMIN' } });
-            expect(c).not.toBeNull();
-        });
-
-        it('Concepto GANANCIAS existe', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { concepto: 'GANANCIAS' } });
-            expect(c).not.toBeNull();
-        });
-
-        it('Concepto MIXTO existe', async () => {
-            const c = await prisma.cuadre.findFirst({ where: { concepto: 'MIXTO' } });
-            expect(c).not.toBeNull();
-        });
-
-        it('Admin lista cuadres pendientes', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/cuadres?estado=PENDIENTE')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('MontoEsperado usa config sistema', async () => {
-            const COSTO = CONFIG['COSTO_INVERSION_TRABIX'] || 2400;
-            const c = await prisma.cuadre.findFirst({ where: { concepto: 'INVERSION_ADMIN' } });
-            // Solo verificamos que el monto es múltiplo del costo
-            if (c) expect(Number(c.montoEsperado) % COSTO).toBeLessThan(COSTO);
-        });
+        expect(res.body).toHaveProperty('total');
+        expect(res.body).toHaveProperty('vendedores');
+        expect(res.body).toHaveProperty('reclutadores');
+        expect(res.body.total).toBe(res.body.vendedores + res.body.reclutadores);
+      });
     });
 
-    // =================================================================
-    // 7. EQUIPAMIENTO (10 casos)
-    // =================================================================
-    describe('7. EQUIPAMIENTO', () => {
-        it('Existe ACTIVO', async () => {
-            const e = await prisma.equipamiento.findFirst({ where: { estado: 'ACTIVO' } });
-            expect(e).not.toBeNull();
-        });
+    describe('GET /admin/dashboard/cuadres-pendientes', () => {
+      it('debería listar cuadres pendientes', async () => {
+        const res = await authGet(
+          '/admin/dashboard/cuadres-pendientes',
+          adminAccessToken,
+        ).expect(200);
 
-        it('Existe DANADO', async () => {
-            const e = await prisma.equipamiento.findFirst({ where: { estado: 'DANADO' } });
-            expect(e).not.toBeNull();
-        });
+        expect(Array.isArray(res.body)).toBe(true);
+      });
+    });
+  });
 
-        it('Existe PERDIDO', async () => {
-            const e = await prisma.equipamiento.findFirst({ where: { estado: 'PERDIDO' } });
-            expect(e).not.toBeNull();
-        });
-
-        it('Existe DEVUELTO', async () => {
-            const e = await prisma.equipamiento.findFirst({ where: { estado: 'DEVUELTO' } });
-            expect(e).not.toBeNull();
-        });
-
-        it('Existe SOLICITADO', async () => {
-            const e = await prisma.equipamiento.findFirst({ where: { estado: 'SOLICITADO' } });
-            expect(e).not.toBeNull();
-        });
-
-        it('Mensualidad con depósito usa config', async () => {
-            const MENS = CONFIG['MENSUALIDAD_CON_DEPOSITO'] || 9990;
-            const e = await prisma.equipamiento.findFirst({ where: { tieneDeposito: true, estado: 'ACTIVO' } });
-            if (e) expect(Number(e.mensualidadActual)).toBe(MENS);
-        });
-
-        it('Mensualidad sin depósito usa config', async () => {
-            const MENS = CONFIG['MENSUALIDAD_SIN_DEPOSITO'] || 19990;
-            const e = await prisma.equipamiento.findFirst({ where: { tieneDeposito: false, estado: 'ACTIVO' } });
-            if (e) expect(Number(e.mensualidadActual)).toBe(MENS);
-        });
-
-        it('Depósito usa config', async () => {
-            const DEP = CONFIG['COSTO_DEPOSITO'] || 49990;
-            const e = await prisma.equipamiento.findFirst({ where: { tieneDeposito: true } });
-            if (e) expect(Number(e.depositoPagado)).toBe(DEP);
-        });
-
-        it('Solo 1 activo por vendedor (relación 1:1)', async () => {
-            // La relación Usuario → Equipamiento es 1:1 por @unique en vendedorId
-            const vendedores = await prisma.usuario.findMany({
-                where: { rol: 'VENDEDOR' },
-                include: { equipamiento: true },
-                take: 20
-            });
-            for (const v of vendedores) {
-                // equipamiento es singular (1:1), no array
-                if (v.equipamiento) {
-                    expect(v.equipamiento.vendedorId).toBe(v.id);
-                }
-            }
-        });
-
-        it('Admin lista equipamientos', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/equipamiento')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
+  // ============================================================
+  // 18. SEGURIDAD Y ACCESO
+  // ============================================================
+  describe('Seguridad y Control de Acceso', () => {
+    it('debería rechazar request sin token', async () => {
+      await request(app.getHttpServer())
+        .get(`${PREFIX}/usuarios/me`)
+        .expect(401);
     });
 
-    // =================================================================
-    // 8. CASCADA 50/50 (10 casos)
-    // =================================================================
-    describe('8. CASCADA 50/50', () => {
-        it('Cálculo cascada 5 niveles', async () => {
-            // Verificar con datos reales de GananciaReclutador
-            const ganancias = await prisma.gananciaReclutador.findMany({
-                orderBy: { nivel: 'desc' },
-                take: 5
-            });
-
-            if (ganancias.length > 0) {
-                // Verificar que los niveles están ordenados correctamente
-                for (let i = 1; i < ganancias.length; i++) {
-                    expect(ganancias[i - 1].nivel).toBeGreaterThanOrEqual(ganancias[i].nivel);
-                }
-            }
-        });
-
-        it('Cadena intacta', async () => {
-            const v = await prisma.usuario.findFirst({
-                where: { cedula: 1000000051 },
-                include: { reclutador: { include: { reclutador: { include: { reclutador: true } } } } }
-            });
-            expect(v?.reclutador).not.toBeNull();
-            expect(v?.reclutador?.reclutador).not.toBeNull();
-            expect(v?.reclutador?.reclutador?.reclutador).not.toBeNull();
-        });
-
-        it('3 vendedores bajo N4-A', async () => {
-            const n4 = await prisma.usuario.findFirst({ where: { cedula: 1000000041 } });
-            if (n4) {
-                const count = await prisma.usuario.count({ where: { reclutadorId: n4.id } });
-                expect(count).toBe(3);
-            }
-        });
-
-        it('Cuadre exitoso en N5 para cascada', async () => {
-            // Cuadre → Tanda → Lote → Vendedor
-            const c = await prisma.cuadre.findFirst({
-                where: {
-                    estado: 'EXITOSO',
-                    tanda: { lote: { vendedor: { cedula: 1000000051 } } }
-                }
-            });
-            expect(c).not.toBeNull();
-        });
-
-        it('Cuadre pendiente en N5 para cascada', async () => {
-            // Cuadre → Tanda → Lote → Vendedor
-            const c = await prisma.cuadre.findFirst({
-                where: {
-                    estado: 'PENDIENTE',
-                    tanda: { lote: { vendedor: { cedula: 1000000052 } } }
-                }
-            });
-            expect(c).not.toBeNull();
-        });
+    it('debería rechazar token inválido', async () => {
+      await request(app.getHttpServer())
+        .get(`${PREFIX}/usuarios/me`)
+        .set('Authorization', 'Bearer invalid.token.here')
+        .expect(401);
     });
 
-    // =================================================================
-    // 9. VENTAS AL MAYOR (8 casos)
-    // =================================================================
-    describe('9. VENTAS AL MAYOR', () => {
-        it('Existe ANTICIPADO', async () => {
-            const v = await prisma.ventaMayor.findFirst({ where: { modalidad: 'ANTICIPADO' } });
-            expect(v).not.toBeNull();
-        });
-
-        it('Existe CONTRAENTREGA', async () => {
-            const v = await prisma.ventaMayor.findFirst({ where: { modalidad: 'CONTRAENTREGA' } });
-            expect(v).not.toBeNull();
-        });
-
-        it('Existe PENDIENTE', async () => {
-            const v = await prisma.ventaMayor.findFirst({ where: { estado: 'PENDIENTE' } });
-            expect(v).not.toBeNull();
-        });
-
-        it('Existe COMPLETADA', async () => {
-            const v = await prisma.ventaMayor.findFirst({ where: { estado: 'COMPLETADA' } });
-            expect(v).not.toBeNull();
-        });
-
-        it('Cantidad >= mínimo', async () => {
-            const MIN = CONFIG['MINIMO_VENTA_MAYOR'] || 21;
-            const ventas = await prisma.ventaMayor.findMany();
-            // Campo correcto: cantidadUnidades
-            ventas.forEach(v => expect(v.cantidadUnidades).toBeGreaterThanOrEqual(MIN));
-        });
-
-        it('IngresoBruto = cantidad * precio', async () => {
-            const PRECIO = CONFIG['PRECIO_UNIDAD'] || 8000;
-            const v = await prisma.ventaMayor.findFirst();
-            if (v) {
-                // Campo correcto: cantidadUnidades
-                expect(Number(v.ingresoBruto)).toBe(v.cantidadUnidades * PRECIO);
-            }
-        });
-
-        it('COMPLETADA tiene fechaCompletada', async () => {
-            const v = await prisma.ventaMayor.findFirst({ where: { estado: 'COMPLETADA' } });
-            if (v) expect(v.fechaCompletada).not.toBeNull();
-        });
-
-        it('Lote forzado por VMayor existe', async () => {
-            const l = await prisma.lote.findFirst({ where: { esLoteForzado: true } });
-            expect(l).not.toBeNull();
-        });
+    it('vendedor NO puede acceder a endpoints de admin', async () => {
+      await authGet('/admin/dashboard/resumen', vendedorAccessToken).expect(403);
+      await authGet('/admin/stock', vendedorAccessToken).expect(403);
+      await authGet('/admin/configuraciones', vendedorAccessToken).expect(403);
     });
 
-    // =================================================================
-    // 10. FONDO Y ADMIN (10 casos)
-    // =================================================================
-    describe('10. FONDO Y ADMIN', () => {
-        it('Existen entradas fondo', async () => {
-            const e = await prisma.transaccionFondo.findFirst({ where: { tipo: 'ENTRADA' } });
-            expect(e).not.toBeNull();
-        });
-
-        it('Existen salidas fondo', async () => {
-            const s = await prisma.transaccionFondo.findFirst({ where: { tipo: 'SALIDA' } });
-            expect(s).not.toBeNull();
-        });
-
-        it('Saldo = entradas - salidas', async () => {
-            const entradas = await prisma.transaccionFondo.aggregate({ where: { tipo: 'ENTRADA' }, _sum: { monto: true } });
-            const salidas = await prisma.transaccionFondo.aggregate({ where: { tipo: 'SALIDA' }, _sum: { monto: true } });
-            const saldo = Number(entradas._sum.monto || 0) - Number(salidas._sum.monto || 0);
-            expect(saldo).toBeGreaterThanOrEqual(0);
-        });
-
-        it('Entrada usa config (aporte por trabix)', async () => {
-            const APORTE = CONFIG['APORTE_FONDO_POR_TRABIX'] || 200;
-            // Campo correcto: motivo (no concepto)
-            const e = await prisma.transaccionFondo.findFirst({
-                where: { tipo: 'ENTRADA', motivo: { contains: '100' } }
-            });
-            if (e) expect(Number(e.monto)).toBe(100 * APORTE);
-        });
-
-        it('Admin ve stock', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/stock')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Admin lista configuraciones', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/configuraciones')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Stock > 0', async () => {
-            const s = await prisma.stockAdmin.findFirst();
-            expect(s?.stockFisico).toBeGreaterThan(0);
-        });
-
-        it('Vendedor no accede a admin', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/stock')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`);
-            expect([401, 403]).toContain(res.status);
-        });
-
-        it('Health check', async () => {
-            const res = await request(app.getHttpServer()).get('/api/v1/health');
-            expect(res.status).toBe(200);
-        });
-
-        it('Total configuraciones >= 10', async () => {
-            const count = await prisma.configuracionSistema.count();
-            expect(count).toBeGreaterThanOrEqual(10);
-        });
+    it('vendedor NO puede aprobar ventas', async () => {
+      const venta = await prisma.venta.findFirst({ where: { estado: 'PENDIENTE' } });
+      if (venta) {
+        await authPost(`/ventas/${venta.id}/aprobar`, vendedorAccessToken).expect(403);
+      }
     });
 
-    // =================================================================
-    // 11. MINI-CUADRES (10 casos)
-    // =================================================================
-    describe('11. MINI-CUADRES', () => {
-        it('Mini-cuadre existe en lote finalizado', async () => {
-            const mc = await prisma.miniCuadre.findFirst({
-                include: { lote: true }
-            });
-            expect(mc).not.toBeNull();
-        });
+    it('vendedor NO puede activar lotes', async () => {
+      await authPost(
+        `/lotes/${LOTE.v_multi_2}/activar`,
+        vendedorAccessToken,
+      ).expect(403);
+    });
+  });
 
-        it('Lote FINALIZADO puede tener mini-cuadre', async () => {
-            const lote = await prisma.lote.findFirst({
-                where: { estado: 'FINALIZADO' },
-                include: { miniCuadre: true }
-            });
-            if (lote && lote.miniCuadre) {
-                expect(lote.miniCuadre.loteId).toBe(lote.id);
-            }
-        });
-
-        it('Mini-cuadre puede estar PENDIENTE', async () => {
-            const mc = await prisma.miniCuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            // Puede existir o no, verificamos que la query funciona
-            if (mc) {
-                expect(mc.estado).toBe('PENDIENTE');
-            }
-        });
-
-        it('Mini-cuadre puede confirmarse como EXITOSO', async () => {
-            const mc = await prisma.miniCuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (mc) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/mini-cuadres/${mc.id}/confirmar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ montoRecibido: Number(mc.montoFinal) });
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Mini-cuadre tiene relación 1:1 con Lote', async () => {
-            const lotes = await prisma.lote.findMany({
-                include: { miniCuadre: true },
-                take: 10
-            });
-            for (const lote of lotes) {
-                // miniCuadre es singular (relación 1:1)
-                if (lote.miniCuadre) {
-                    expect(lote.miniCuadre.loteId).toBe(lote.id);
-                }
-            }
-        });
-
-        it('Mini-cuadre EXITOSO tiene fechaExitoso', async () => {
-            const mc = await prisma.miniCuadre.findFirst({ where: { estado: 'EXITOSO' } });
-            if (mc) {
-                expect(mc.fechaExitoso).not.toBeNull();
-            }
-        });
-
-        it('Mini-cuadre PENDIENTE tiene fechaPendiente', async () => {
-            const mc = await prisma.miniCuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (mc) {
-                expect(mc.fechaPendiente).not.toBeNull();
-            }
-        });
-        it('Mini-cuadre se activa cuando última tanda llega a stock 0', async () => {
-            const miniCuadre = await prisma.miniCuadre.findFirst({
-                where: { estado: { in: ['PENDIENTE', 'EXITOSO'] } },
-                include: {
-                    lote: {
-                        include: {
-                            tandas: { orderBy: { numero: 'desc' }, take: 1 }
-                        }
-                    }
-                }
-            });
-
-            if (miniCuadre && miniCuadre.lote.tandas[0]) {
-                // La última tanda debe estar FINALIZADA o con stock 0
-                const ultimaTanda = miniCuadre.lote.tandas[0];
-                expect(
-                    ultimaTanda.estado === 'FINALIZADA' || ultimaTanda.stockActual === 0
-                ).toBe(true);
-            }
-        });
-
-        it('Mini-cuadre NO existe en lote ACTIVO con stock disponible', async () => {
-            const lotesActivosConStock = await prisma.lote.findMany({
-                where: {
-                    estado: 'ACTIVO',
-                    tandas: { some: { stockActual: { gt: 0 } } }
-                },
-                include: { miniCuadre: true },
-                take: 10
-            });
-
-            for (const lote of lotesActivosConStock) {
-                // Si tiene miniCuadre, debe estar INACTIVO
-                if (lote.miniCuadre) {
-                    expect(lote.miniCuadre.estado).toBe('INACTIVO');
-                }
-            }
-        });
-
-        it('Mini-cuadre EXITOSO implica lote FINALIZADO o por finalizar', async () => {
-            const miniCuadreExitoso = await prisma.miniCuadre.findFirst({
-                where: { estado: 'EXITOSO' },
-                include: { lote: true }
-            });
-
-            if (miniCuadreExitoso) {
-                // El lote debe estar FINALIZADO o todas sus tandas finalizadas
-                expect(['ACTIVO', 'FINALIZADO']).toContain(miniCuadreExitoso.lote.estado);
-            }
-        });
+  // ============================================================
+  // 19. VALIDACIÓN DE DATOS
+  // ============================================================
+  describe('Validación de Datos (DTO)', () => {
+    it('debería rechazar crear usuario con email inválido', async () => {
+      await authPost('/usuarios', adminAccessToken)
+        .send({
+          cedula: 7777770001,
+          nombre: 'Test',
+          apellidos: 'Invalid Email',
+          email: 'not-an-email',
+          telefono: '+573008888001',
+        })
+        .expect(400);
     });
 
-    // =================================================================
-    // 12. PRIORIZACIÓN DE LOTES (10 casos)
-    // =================================================================
-    describe('12. PRIORIZACIÓN DE LOTES', () => {
-        it('V60-MULTI-L tiene múltiples lotes activos', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000019 } });
-            if (ven) {
-                const count = await prisma.lote.count({ where: { vendedorId: ven.id, estado: 'ACTIVO' } });
-                expect(count).toBeGreaterThan(1);
-            }
-        });
-
-        it('Lotes ordenados por fechaCreacion ASC', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000019 } });
-            if (ven) {
-                const lotes = await prisma.lote.findMany({
-                    where: { vendedorId: ven.id, estado: 'ACTIVO' },
-                    orderBy: { fechaCreacion: 'asc' }
-                });
-                for (let i = 1; i < lotes.length; i++) {
-                    expect(lotes[i].fechaCreacion.getTime()).toBeGreaterThanOrEqual(lotes[i-1].fechaCreacion.getTime());
-                }
-            }
-        });
-
-        it('Lote más antiguo tiene prioridad para ventas', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000019 } });
-            if (ven) {
-                const loteMasAntiguo = await prisma.lote.findFirst({
-                    where: { vendedorId: ven.id, estado: 'ACTIVO' },
-                    orderBy: { fechaCreacion: 'asc' }
-                });
-                if (loteMasAntiguo) {
-                    await prisma.tanda.findFirst({
-                        where: { loteId: loteMasAntiguo.id, estado: 'EN_CASA' }
-                    });
-                    // Verificamos que existe tanda activa o el lote está bien configurado
-                    expect(loteMasAntiguo.id).toBeDefined();
-                }
-            }
-        });
-
-        it('Al finalizar lote, siguiente es el más antiguo', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000019 } });
-            if (ven) {
-                const lotes = await prisma.lote.findMany({
-                    where: { vendedorId: ven.id, estado: 'ACTIVO' },
-                    orderBy: { fechaCreacion: 'asc' }
-                });
-                expect(lotes.length).toBeGreaterThanOrEqual(1);
-            }
-        });
-
-        it('Ventas asociadas al lote correcto (más antiguo)', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000030 } });
-            if (ven) {
-                const ventas = await prisma.venta.findMany({
-                    where: { vendedorId: ven.id },
-                    include: { lote: true }
-                });
-                ventas.forEach(v => expect(v.loteId).not.toBeNull());
-            }
-        });
-
-        it('Stock se descuenta del lote más antiguo', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000019 } });
-            if (ven) {
-                const lotes = await prisma.lote.findMany({
-                    where: { vendedorId: ven.id, estado: 'ACTIVO' },
-                    orderBy: { fechaCreacion: 'asc' },
-                    include: { tandas: { where: { estado: 'EN_CASA' } } }
-                });
-                if (lotes.length >= 2 && lotes[0].tandas[0] && lotes[1].tandas[0]) {
-                    // El primer lote (más antiguo) debería usarse primero
-                    expect(lotes[0].fechaCreacion.getTime()).toBeLessThanOrEqual(lotes[1].fechaCreacion.getTime());
-                }
-            }
-        });
-
-        it('No crear venta si no hay lote activo con stock', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000062 } });
-            if (ven && tokens[1234567890]) {
-                const lotes = await prisma.lote.count({ where: { vendedorId: ven.id, estado: 'ACTIVO' } });
-                expect(lotes).toBe(0);
-            }
-        });
-
-        it('Lote finalizado no se usa para ventas', async () => {
-            const loteFin = await prisma.lote.findFirst({ where: { estado: 'FINALIZADO' } });
-            if (loteFin) {
-                const ventas = await prisma.venta.findMany({ where: { loteId: loteFin.id } });
-                expect(Array.isArray(ventas)).toBe(true);
-            }
-        });
-
-        it('fechaActivacion define antigüedad', async () => {
-            const lotes = await prisma.lote.findMany({
-                where: { estado: 'ACTIVO', fechaActivacion: { not: null } },
-                orderBy: { fechaActivacion: 'asc' },
-                take: 5
-            });
-            for (let i = 1; i < lotes.length; i++) {
-                if (lotes[i].fechaActivacion && lotes[i-1].fechaActivacion) {
-                    expect(lotes[i].fechaActivacion!.getTime()).toBeGreaterThanOrEqual(lotes[i-1].fechaActivacion!.getTime());
-                }
-            }
-        });
-
-        it('Lotes CREADO no se usan para ventas', async () => {
-            const loteCreado = await prisma.lote.findFirst({ where: { estado: 'CREADO' } });
-            if (loteCreado) {
-                const ventas = await prisma.venta.count({ where: { loteId: loteCreado.id } });
-                expect(ventas).toBe(0);
-            }
-        });
+    it('debería rechazar cédula con menos de 6 dígitos', async () => {
+      await authPost('/usuarios', adminAccessToken)
+        .send({
+          cedula: 12345,
+          nombre: 'Test',
+          apellidos: 'Short Cedula',
+          email: 'short.cedula@mail.com',
+          telefono: '+573008888002',
+        })
+        .expect(400);
     });
 
-    // =================================================================
-    // 13. FLUJOS INTEGRADOS - VENTAS (12 casos)
-    // =================================================================
-    describe('13. FLUJOS INTEGRADOS - VENTAS', () => {
-        it('Flujo: Crear venta -> estado PENDIENTE', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000060 } });
-            if (ven && tokens[1000000060]) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/ventas')
-                    .set('Authorization', `Bearer ${tokens[1000000060]}`)
-                    .send({
-                        detalles: [{ tipo: 'UNIDAD', cantidad: 1 }]
-                    });
-                if (res.status === 201) {
-                    expect(res.body.estado).toBe('PENDIENTE');
-                }
-            }
-        });
-
-        it('Flujo: Aprobar venta -> estado APROBADA', async () => {
-            const venta = await prisma.venta.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (venta) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/ventas/${venta.id}/aprobar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400]).toContain(res.status);
-            }
-        });
-
-        it('Flujo: Rechazar venta -> estado RECHAZADA', async () => {
-            const venta = await prisma.venta.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (venta) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/ventas/${venta.id}/rechazar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Aprobar venta descuenta stock de tanda', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'EN_CASA', stockActual: { gt: 5 } } });
-            if (tanda) {
-                const stockAntes = tanda.stockActual;
-                expect(stockAntes).toBeGreaterThan(0);
-            }
-        });
-
-        it('Venta aumenta dineroRecaudado del lote', async () => {
-            const lote = await prisma.lote.findFirst({
-                where: { estado: 'ACTIVO' },
-                include: { ventas: { where: { estado: 'APROBADA' } } }
-            });
-            if (lote && lote.ventas.length > 0) {
-                expect(Number(lote.dineroRecaudado)).toBeGreaterThanOrEqual(0);
-            }
-        });
-
-        it('Venta con REGALO cuenta unidades pero monto = 0', async () => {
-            const detalle = await prisma.detalleVenta.findFirst({ where: { tipo: 'REGALO' } });
-            if (detalle) {
-                expect(Number(detalle.precioUnitario)).toBe(0);
-                expect(Number(detalle.subtotal)).toBe(0);
-                expect(detalle.cantidad).toBeGreaterThan(0);
-            }
-        });
-
-        it('No permitir más regalos que límite 8%', async () => {
-            const LIMITE = CONFIG['LIMITE_REGALOS_PORCENTAJE'] || 8;
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000036 } });
-            if (ven) {
-                const lote = await prisma.lote.findFirst({ where: { vendedorId: ven.id } });
-                if (lote) {
-                    const maxRegalos = Math.floor(lote.cantidadTrabix * LIMITE / 100);
-                    expect(maxRegalos).toBe(8);
-                }
-            }
-        });
-
-        it('Venta solo de tanda EN_CASA', async () => {
-            const ventas = await prisma.venta.findMany({
-                include: { tanda: true },
-                take: 20
-            });
-            for (const v of ventas) {
-                expect(['EN_CASA', 'FINALIZADA']).toContain(v.tanda.estado);
-            }
-        });
-
-        it('Precio usa configuración del sistema', async () => {
-            const PRECIO_UNI = CONFIG['PRECIO_UNIDAD'] || 8000;
-            const PRECIO_PROMO = CONFIG['PRECIO_PROMO'] || 15000;
-
-            const detalleUni = await prisma.detalleVenta.findFirst({ where: { tipo: 'UNIDAD' } });
-            const detallePromo = await prisma.detalleVenta.findFirst({ where: { tipo: 'PROMO' } });
-
-            if (detalleUni) expect(Number(detalleUni.precioUnitario)).toBe(PRECIO_UNI);
-            if (detallePromo) expect(Number(detallePromo.precioUnitario)).toBe(PRECIO_PROMO);
-        });
-
-        it('Múltiples detalles en una venta', async () => {
-            const venta = await prisma.venta.findFirst({
-                where: { detalles: { some: {} } },
-                include: { detalles: true }
-            });
-            if (venta) {
-                expect(venta.detalles.length).toBeGreaterThanOrEqual(1);
-            }
-        });
-
-        it('Venta tiene fechaRegistro automática', async () => {
-            const venta = await prisma.venta.findFirst();
-            expect(venta?.fechaRegistro).not.toBeNull();
-        });
-
-        it('Venta APROBADA tiene fechaValidacion', async () => {
-            const venta = await prisma.venta.findFirst({ where: { estado: 'APROBADA' } });
-            if (venta) expect(venta.fechaValidacion).not.toBeNull();
-        });
+    it('debería rechazar venta con tipo inválido', async () => {
+      await authPost('/ventas', vendedorAccessToken)
+        .send({
+          detalles: [{ tipo: 'INVALIDO', cantidad: 1 }],
+        })
+        .expect(400);
     });
 
-    // =================================================================
-    // 14. FLUJOS INTEGRADOS - TANDAS (10 casos)
-    // =================================================================
-    describe('14. FLUJOS INTEGRADOS - TANDAS', () => {
-        it('Flujo: INACTIVA -> LIBERADA (admin libera)', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'INACTIVA' } });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/tandas/${tanda.id}/liberar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Flujo: LIBERADA -> EN_TRANSITO (vendedor recoge)', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'LIBERADA' } });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/tandas/${tanda.id}/recoger`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Flujo: EN_TRANSITO -> EN_CASA (vendedor confirma)', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'EN_TRANSITO' } });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/tandas/${tanda.id}/confirmar-recepcion`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Flujo: EN_CASA + stock=0 -> FINALIZADA', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'FINALIZADA', stockActual: 0 } });
-            if (tanda) {
-                expect(tanda.stockActual).toBe(0);
-                expect(tanda.estado).toBe('FINALIZADA');
-            }
-        });
-
-        it('LIBERADA requiere esperar 2h para EN_TRANSITO', async () => {
-            const hace2h = new Date(Date.now() - 2 * 60 * 60 * 1000);
-            const tandaReciente = await prisma.tanda.findFirst({
-                where: { estado: 'LIBERADA', fechaLiberacion: { gt: hace2h } }
-            });
-            if (tandaReciente) {
-                expect(tandaReciente.fechaLiberacion!.getTime()).toBeGreaterThan(hace2h.getTime());
-            }
-        });
-
-        it('Solo una tanda activa por lote', async () => {
-            const lotes = await prisma.lote.findMany({
-                where: { estado: 'ACTIVO' },
-                include: { tandas: true },
-                take: 10
-            });
-            for (const lote of lotes) {
-                const activas = lote.tandas.filter(t =>
-                    ['LIBERADA', 'EN_TRANSITO', 'EN_CASA'].includes(t.estado)
-                );
-                expect(activas.length).toBeLessThanOrEqual(1);
-            }
-        });
-
-        it('Siguiente tanda se activa al finalizar anterior', async () => {
-            const lote = await prisma.lote.findFirst({
-                where: { tandas: { some: { estado: 'FINALIZADA' } } },
-                include: { tandas: { orderBy: { numero: 'asc' } } }
-            });
-            if (lote && lote.tandas.length > 1) {
-                const t1 = lote.tandas.find(t => t.numero === 1);
-                const t2 = lote.tandas.find(t => t.numero === 2);
-                if (t1?.estado === 'FINALIZADA' && t2) {
-                    expect(['LIBERADA', 'EN_TRANSITO', 'EN_CASA', 'FINALIZADA', 'INACTIVA']).toContain(t2.estado);
-                }
-            }
-        });
-
-        it('stockActual nunca mayor que stockInicial', async () => {
-            const tandas = await prisma.tanda.findMany({ take: 50 });
-            tandas.forEach(t => expect(t.stockActual).toBeLessThanOrEqual(t.stockInicial));
-        });
-
-        it('Tanda INACTIVA no tiene fechas', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'INACTIVA' } });
-            if (tanda) {
-                expect(tanda.fechaLiberacion).toBeNull();
-                expect(tanda.fechaEnTransito).toBeNull();
-                expect(tanda.fechaEnCasa).toBeNull();
-            }
-        });
-
-        it('Tanda FINALIZADA tiene fechaFinalizada', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'FINALIZADA' } });
-            if (tanda) {
-                expect(tanda.fechaFinalizada).not.toBeNull();
-            }
-        });
+    it('debería rechazar cantidad negativa en venta', async () => {
+      await authPost('/ventas', vendedorAccessToken)
+        .send({
+          detalles: [{ tipo: 'UNIDAD', cantidad: -1 }],
+        })
+        .expect(400);
     });
 
-    // =================================================================
-    // 15. FLUJOS INTEGRADOS - CUADRES (12 casos)
-    // =================================================================
-    describe('15. FLUJOS INTEGRADOS - CUADRES', () => {
-        it('Trigger: stock < 10% activa cuadre PENDIENTE', async () => {
-            const cuadre = await prisma.cuadre.findFirst({
-                where: { estado: 'PENDIENTE' },
-                include: { tanda: true }
-            });
-            if (cuadre && cuadre.tanda) {
-                expect(cuadre.estado).toBe('PENDIENTE');
-            }
-        });
-
-        it('Cuadre INACTIVO no tiene fechaPendiente', async () => {
-            const cuadre = await prisma.cuadre.findFirst({ where: { estado: 'INACTIVO' } });
-            if (cuadre) expect(cuadre.fechaPendiente).toBeNull();
-        });
-
-        it('Cuadre PENDIENTE tiene fechaPendiente', async () => {
-            const cuadre = await prisma.cuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (cuadre) expect(cuadre.fechaPendiente).not.toBeNull();
-        });
-
-        it('Confirmar cuadre -> EXITOSO', async () => {
-            const cuadre = await prisma.cuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (cuadre) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/cuadres/${cuadre.id}/confirmar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ montoRecibido: Number(cuadre.montoEsperado) });
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Cuadre EXITOSO tiene montoFaltante = 0', async () => {
-            const cuadre = await prisma.cuadre.findFirst({ where: { estado: 'EXITOSO' } });
-            if (cuadre) expect(Number(cuadre.montoFaltante)).toBe(0);
-        });
-
-        it('Cuadre parcial: recibido < esperado', async () => {
-            const cuadre = await prisma.cuadre.findFirst({
-                where: {
-                    estado: 'PENDIENTE',
-                    montoRecibido: { gt: 0 },
-                    montoFaltante: { gt: 0 }
-                }
-            });
-            if (cuadre) {
-                expect(Number(cuadre.montoRecibido)).toBeLessThan(Number(cuadre.montoEsperado));
-            }
-        });
-
-        it('montoEsperado incluye inversión admin', async () => {
-            const COSTO = CONFIG['COSTO_INVERSION_TRABIX'] || 2400;
-            const cuadre = await prisma.cuadre.findFirst({ where: { concepto: 'INVERSION_ADMIN' } });
-            if (cuadre) {
-                expect(Number(cuadre.montoEsperado) % COSTO).toBeLessThan(COSTO);
-            }
-        });
-
-        it('Cuadre incluye deuda de equipamiento', async () => {
-            // Cadena correcta: Cuadre → Tanda → Lote → Vendedor → Equipamiento
-            const cuadre = await prisma.cuadre.findFirst({
-                include: {
-                    tanda: {
-                        include: {
-                            lote: {
-                                include: {
-                                    vendedor: {
-                                        include: { equipamiento: true }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            if (cuadre && cuadre.tanda?.lote?.vendedor?.equipamiento) {
-                expect(cuadre.concepto).toBe('MIXTO');
-            }
-        });
-
-        it('Admin lista cuadres pendientes', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/cuadres?estado=PENDIENTE')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect(res.status).toBe(200);
-        });
-
-        it('Cuadre exitoso permite liberar siguiente tanda', async () => {
-            const cuadre = await prisma.cuadre.findFirst({
-                where: { estado: 'EXITOSO' },
-                include: { tanda: { include: { lote: { include: { tandas: true } } } } }
-            });
-            if (cuadre?.tanda?.lote?.tandas) {
-                const siguienteTanda = cuadre.tanda.lote.tandas.find(
-                    t => t.numero === cuadre.tanda!.numero + 1
-                );
-                if (siguienteTanda) {
-                    expect(['INACTIVA', 'LIBERADA']).toContain(siguienteTanda.estado);
-                } else {
-                    expect(siguienteTanda).toBeUndefined();
-                }
-            }
-        });
-
-        it('Cuadre calcula correctamente: esperado - recibido = faltante', async () => {
-            const cuadres = await prisma.cuadre.findMany({ take: 20 });
-            for (const c of cuadres) {
-                const faltante = Number(c.montoEsperado) - Number(c.montoRecibido);
-                expect(Number(c.montoFaltante)).toBe(faltante);
-            }
-        });
-
-        it('No duplicar cuadres para misma tanda (relación 1:1)', async () => {
-            // Tanda → Cuadre es 1:1 (cuadre singular, no cuadres)
-            const tandas = await prisma.tanda.findMany({
-                include: { cuadre: true },
-                take: 20
-            });
-            for (const t of tandas) {
-                // cuadre es singular (relación 1:1)
-                if (t.cuadre) {
-                    expect(['INVERSION_ADMIN', 'GANANCIAS', 'MIXTO']).toContain(t.cuadre.concepto);
-                }
-            }
-        });
+    it('debería rechazar lote con cantidadTrabix 0', async () => {
+      await authPost('/lotes', adminAccessToken)
+        .send({ vendedorId: V.sin_lotes, cantidadTrabix: 0 })
+        .expect(400);
     });
 
-    // =================================================================
-    // 16. FLUJOS INTEGRADOS - CASCADA 50/50 (10 casos)
-    // =================================================================
-    describe('16. FLUJOS INTEGRADOS - CASCADA 50/50', () => {
-        it('Cuadre exitoso en N5 dispara cascada', async () => {
-            // Cadena correcta: Cuadre → Tanda → Lote → Vendedor
-            const cuadre = await prisma.cuadre.findFirst({
-                where: {
-                    estado: 'EXITOSO',
-                    tanda: { lote: { vendedor: { cedula: 1000000051 } } }
-                }
-            });
-            expect(cuadre).not.toBeNull();
-        });
-
-        it('Ganancia N5: 50% del total (verificado en BD)', async () => {
-            const ganancia = await prisma.gananciaReclutador.findFirst({
-                where: { nivel: 5 }
-            });
-            if (ganancia) {
-                expect(Number(ganancia.monto)).toBeGreaterThan(0);
-            }
-        });
-
-        it('Ganancia N4: 50% de lo que sube (verificado en BD)', async () => {
-            const ganancia = await prisma.gananciaReclutador.findFirst({
-                where: { nivel: 4 }
-            });
-            if (ganancia) {
-                expect(Number(ganancia.monto)).toBeGreaterThan(0);
-            }
-        });
-
-        it('Ganancia N3: 50% del resto (verificado en BD)', async () => {
-            const gananciaReclutador = await prisma.gananciaReclutador.findFirst({
-                where: { nivel: 3 }
-            });
-            if (gananciaReclutador) {
-                expect(Number(gananciaReclutador.monto)).toBeGreaterThan(0);
-            }
-        });
-
-        it('Ganancia N2: 50% del resto (verificado en BD)', async () => {
-            const ganancia = await prisma.gananciaReclutador.findFirst({
-                where: { nivel: 2 }
-            });
-            if (ganancia) {
-                expect(Number(ganancia.monto)).toBeGreaterThan(0);
-            }
-        });
-
-        it('Admin recibe el resto final', async () => {
-            const cuadreMayor = await prisma.cuadreMayor.findFirst({
-                where: { estado: 'EXITOSO' },
-                include: { gananciasReclutadores: true }
-            });
-
-            if (cuadreMayor) {
-                const totalReclutadores = cuadreMayor.gananciasReclutadores.reduce(
-                    (sum, g) => sum + Number(g.monto), 0
-                );
-                const gananciasAdmin = Number(cuadreMayor.gananciasAdmin);
-
-                expect(gananciasAdmin).toBeGreaterThanOrEqual(0);
-                expect(totalReclutadores + gananciasAdmin).toBeLessThanOrEqual(
-                    Number(cuadreMayor.ingresoBruto)
-                );
-            }
-        });
-
-        it('Suma cascada = 100% ganancia (verificado en cuadreMayor)', async () => {
-            const cuadreMayor = await prisma.cuadreMayor.findFirst({
-                where: { estado: 'EXITOSO' },
-                include: { gananciasReclutadores: true }
-            });
-
-            if (cuadreMayor) {
-                const totalReclutadores = cuadreMayor.gananciasReclutadores.reduce(
-                    (sum, g) => sum + Number(g.monto), 0
-                );
-                const gananciasAdmin = Number(cuadreMayor.gananciasAdmin);
-                const gananciasVendedor = Number(cuadreMayor.gananciasVendedor);
-
-                // La suma de todas las ganancias debe ser coherente
-                expect(totalReclutadores + gananciasAdmin + gananciasVendedor).toBeGreaterThan(0);
-            }
-        });
-
-        it('Jerarquía VEN-N5-A1 tiene 4 niveles arriba', async () => {
-            const ven = await prisma.usuario.findFirst({
-                where: { cedula: 1000000051 },
-                include: {
-                    reclutador: {
-                        include: {
-                            reclutador: {
-                                include: {
-                                    reclutador: {
-                                        include: { reclutador: true }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            if (ven) {
-                let niveles = 0, curr: any = ven;
-                while (curr.reclutador) { niveles++; curr = curr.reclutador; }
-                expect(niveles).toBe(4);
-            }
-        });
-
-        it('Lote 50/50 existe para vendedor con reclutador', async () => {
-            const lote5050 = await prisma.lote.findFirst({
-                where: { modeloNegocio: 'MODELO_50_50' },
-                include: { vendedor: true }
-            });
-            if (lote5050) {
-                expect(lote5050.vendedor.reclutadorId).not.toBeNull();
-            }
-        });
-
-        it('Cascada se detiene en vendedor 60/40', async () => {
-            const lote6040 = await prisma.lote.findFirst({
-                where: { modeloNegocio: 'MODELO_60_40' },
-                include: { vendedor: true }
-            });
-            if (lote6040) {
-                expect(lote6040.modeloNegocio).toBe('MODELO_60_40');
-            }
-        });
+    it('debería rechazar contraseña débil en cambio de password', async () => {
+      await authPost('/auth/cambiar-password', vendedorAccessToken)
+        .send({
+          currentPassword: VENDEDOR_PASSWORD,
+          newPassword: '123',
+        })
+        .expect(400);
     });
-
-    // =================================================================
-    // 17. FLUJOS INTEGRADOS - VENTA MAYOR (8 casos)
-    // =================================================================
-    describe('17. FLUJOS INTEGRADOS - VENTA MAYOR', () => {
-        it('Venta mayor >= 21 unidades', async () => {
-            const MIN = CONFIG['MINIMO_VENTA_MAYOR'] || 21;
-            // Campo correcto: cantidadUnidades
-            const vm = await prisma.ventaMayor.findFirst();
-            if (vm) expect(vm.cantidadUnidades).toBeGreaterThanOrEqual(MIN);
-        });
-
-        it('Venta mayor < 21 debe fallar', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000061 } });
-            if (ven) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/ventas-mayor')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ vendedorId: ven.id, cantidadUnidades: 20, modalidad: 'ANTICIPADO' });
-                expect([400, 404]).toContain(res.status);
-            }
-        });
-
-        it('ANTICIPADO: paga antes de recibir', async () => {
-            const vm = await prisma.ventaMayor.findFirst({ where: { modalidad: 'ANTICIPADO' } });
-            expect(vm).not.toBeNull();
-        });
-
-        it('CONTRAENTREGA: paga al recibir', async () => {
-            const vm = await prisma.ventaMayor.findFirst({ where: { modalidad: 'CONTRAENTREGA' } });
-            expect(vm).not.toBeNull();
-        });
-
-        it('Sin lotes activos: crea lote forzado', async () => {
-            const loteForzado = await prisma.lote.findFirst({ where: { esLoteForzado: true } });
-            expect(loteForzado).not.toBeNull();
-        });
-
-        it('Lote forzado tiene cantidad exacta de venta', async () => {
-            const loteForzado = await prisma.lote.findFirst({
-                where: { esLoteForzado: true, ventaMayorOrigenId: { not: null } },
-                include: { ventaMayorOrigen: true }
-            });
-            if (loteForzado && loteForzado.ventaMayorOrigen) {
-                expect(loteForzado.cantidadTrabix).toBe(loteForzado.ventaMayorOrigen.cantidadUnidades);
-            }
-        });
-
-        it('Venta mayor COMPLETADA tiene fechaCompletada', async () => {
-            const vm = await prisma.ventaMayor.findFirst({ where: { estado: 'COMPLETADA' } });
-            if (vm) expect(vm.fechaCompletada).not.toBeNull();
-        });
-
-        it('ingresoBruto = cantidad * precio', async () => {
-            const PRECIO = CONFIG['PRECIO_UNIDAD'] || 8000;
-            const vm = await prisma.ventaMayor.findFirst();
-            if (vm) {
-                // Campo correcto: cantidadUnidades
-                expect(Number(vm.ingresoBruto)).toBe(vm.cantidadUnidades * PRECIO);
-            }
-        });
-    });
-
-    // =================================================================
-    // 18. SEGURIDAD Y PERMISOS (RBAC) - 15 casos
-    // =================================================================
-    describe('18. SEGURIDAD Y PERMISOS (RBAC)', () => {
-        //TODO
-        it('Vendedor NO puede listar todos los usuarios', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`);
-            expect([401, 403]).toContain(res.status);
-        });
-
-//TODO VENDEDOR SI PUEDE CREAR LOTES, CUANDO SOLICITA MAS TRABIX, PERO NO PUEDE ACTIVARLOS, LA ACTIVACION VA AUTOMATICA CON CONFIRMACION DE PAGO DE ADMIN
-        it('Vendedor NO puede crear lotes', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/lotes')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`)
-                .send({ vendedorId: ids[1000000001], cantidadTrabix: 50 });
-            expect([401, 403]).toContain(res.status);
-        });
-//TODO
-        it('Vendedor NO puede activar lotes', async () => {
-            const lote = await prisma.lote.findFirst({ where: { estado: 'CREADO' } });
-            if (lote) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/lotes/${lote.id}/activar`)
-                    .set('Authorization', `Bearer ${tokens[1000000001]}`);
-                expect([401, 403]).toContain(res.status);
-            }
-        });
-//TODO
-        it('Vendedor NO puede aprobar ventas', async () => {
-            const venta = await prisma.venta.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (venta) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/ventas/${venta.id}/aprobar`)
-                    .set('Authorization', `Bearer ${tokens[1000000001]}`);
-                expect([401, 403]).toContain(res.status);
-            }
-        });
-//TODO SI PUEDE RECHAZAR VENTAS, ES COMO QUE SE EQUIVOCÓ HACIENDO LA LISTA DE LAS VENTAS Y DESPUES LAS CORRIGIÓ
-        it('Vendedor NO puede rechazar ventas', async () => {
-            const venta = await prisma.venta.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (venta) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/ventas/${venta.id}/rechazar`)
-                    .set('Authorization', `Bearer ${tokens[1000000001]}`);
-                expect([401, 403]).toContain(res.status);
-            }
-        });
-//TODO
-        it('Vendedor NO puede confirmar cuadres', async () => {
-            const cuadre = await prisma.cuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (cuadre) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/cuadres/${cuadre.id}/confirmar`)
-                    .set('Authorization', `Bearer ${tokens[1000000001]}`)
-                    .send({ montoRecibido: 100000 });
-                expect([401, 403]).toContain(res.status);
-            }
-        });
-
-        it('Vendedor NO puede liberar tandas', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'INACTIVA' } });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/tandas/${tanda.id}/liberar`)
-                    .set('Authorization', `Bearer ${tokens[1000000001]}`);
-                expect([401,404,403]).toContain(res.status);
-            }
-        });
-
-        it('Vendedor NO puede modificar configuraciones', async () => {
-            const res = await request(app.getHttpServer())
-                .put('/api/v1/admin/configuraciones/PRECIO_UNIDAD')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`)
-                .send({ valor: '10000' });
-            expect([401, 403, 404]).toContain(res.status);
-        });
-//TODO: SI DEBERIA PODER VER TRANSACCIONES, PERO QUE ENTONCES EL SISTEMA DE TRANSACCIONES NO VEA DIRECTAMENTE
-        //TODO: LAS TRANSACCIONES, SINO LAS TRANSACCIONES APROBADAS, QUE LAS TRANSACCIONES ENTREN DIRECTAMENTE QUE PUEDA ADMIN
-        //TODO: VERLAS PERO QUE LOS USUARIOS PUEDAN VER LAS YA APROBADAS (AHI SE PONE DIVIDIRLAS ALEATORIAMENTE
-        //TODO:  PARA QUE NO SEPAN QUIEN METIO Y CUANTO)
-        it('Vendedor NO puede ver transacciones del fondo', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/fondo/transacciones')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`);
-            expect([401, 403, 404]).toContain(res.status);
-        });
-
-        it('Vendedor solo ve SUS lotes', async () => {
-            const vendedor = await prisma.usuario.findFirst({ where: { cedula: 1000000060 } });
-            expect(vendedor).toBeDefined(); // aseguramos que exista
-
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/lotes/mis-lotes')
-                .set('Authorization', `Bearer ${tokens[1000000060]}`);
-
-            // Verificamos que el endpoint funcione
-            expect(res.status).toBe(200);
-            expect(res.body.data).toBeDefined();
-
-            // Verificamos que todos los lotes pertenezcan al vendedor
-            res.body.data.forEach((l: any) => {
-                expect(l.vendedorId).toBe(vendedor!.id);
-            });
-        });
-
-        it('Vendedor solo ve SUS ventas', async () => {
-            // 1. Asegurarse que el vendedor exista
-            const vendedor = await prisma.usuario.findFirst({ where: { cedula: 1000000029 } });
-            expect(vendedor).toBeDefined();
-
-            // 2. Hacer la solicitud
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/ventas/mis-ventas')
-                .set('Authorization', `Bearer ${tokens[1000000029]}`);
-
-            // 3. Verificar que la respuesta sea 200
-            expect(res.status).toBe(200);
-            expect(res.body.data).toBeDefined();
-
-            // 4. Verificar que todos los registros pertenezcan al vendedor correcto
-            res.body.data.forEach((v: any) => {
-                expect(v.vendedorId).toBe(vendedor!.id);
-            });
-        });
-//todo
-        it('Admin puede ver todo', async () => {
-            const endpoints = ['/api/v1/usuarios', '/api/v1/lotes', '/api/v1/ventas', '/api/v1/cuadres'];
-            for (const ep of endpoints) {
-                const res = await request(app.getHttpServer())
-                    .get(ep)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect(res.status).toBe(200);
-            }
-        });
-
-        it('Vendedor NO puede desactivar usuarios', async () => {
-            const res = await request(app.getHttpServer())
-                .patch(`/api/v1/usuarios/${ids[1000000002]}/desactivar`)
-                .set('Authorization', `Bearer ${tokens[1000000001]}`);
-            expect([401, 403, 404]).toContain(res.status);
-        });
-    });
-
-    // =================================================================
-    // 19. FLUJOS DE EQUIPAMIENTO - 12 casos
-    // =================================================================
-    describe('19. FLUJOS DE EQUIPAMIENTO', () => {
-        it('Vendedor puede solicitar equipamiento', async () => {
-            const venSinEquipo = await prisma.usuario.findFirst({ where: { cedula: 1000000013 } });
-            if (venSinEquipo) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/equipamiento/solicitar')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ vendedorId: venSinEquipo.id, tieneDeposito: true });
-                expect([200, 201, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Admin aprueba solicitud de equipamiento', async () => {
-            const equipo = await prisma.equipamiento.findFirst({ where: { estado: 'SOLICITADO' } });
-            if (equipo) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/equipamiento/${equipo.id}/aprobar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Admin rechaza solicitud de equipamiento', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/equipamiento/test-id/rechazar')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([200, 400, 404]).toContain(res.status);
-        });
-
-        it('Admin registra entrega de equipamiento', async () => {
-            const equipo = await prisma.equipamiento.findFirst({ where: { estado: 'SOLICITADO' } });
-            if (equipo) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/equipamiento/${equipo.id}/entregar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Admin registra daño en nevera', async () => {
-            const equipo = await prisma.equipamiento.findFirst({ where: { estado: 'ACTIVO' } });
-            if (equipo) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/equipamiento/${equipo.id}/reportar-dano`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ tipoDano: 'NEVERA' });
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Admin registra daño en pijama', async () => {
-            const equipo = await prisma.equipamiento.findFirst({ where: { estado: 'ACTIVO' } });
-            if (equipo) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/equipamiento/${equipo.id}/reportar-dano`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ tipoDano: 'PIJAMA' });
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Admin registra pérdida de equipamiento', async () => {
-            const equipo = await prisma.equipamiento.findFirst({ where: { estado: 'ACTIVO' } });
-            if (equipo) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/equipamiento/${equipo.id}/reportar-perdida`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Vendedor devuelve equipamiento', async () => {
-            const equipo = await prisma.equipamiento.findFirst({ where: { estado: 'ACTIVO' } });
-            if (equipo) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/equipamiento/${equipo.id}/devolver`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Registrar pago de mensualidad', async () => {
-            const equipo = await prisma.equipamiento.findFirst({ where: { estado: 'ACTIVO' } });
-            if (equipo) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/equipamiento/${equipo.id}/pagar-mensualidad`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Deuda por daño se calcula correctamente', async () => {
-            const DANO_NEVERA = CONFIG['COSTO_DANO_NEVERA'] || 30000;
-            const DANO_PIJAMA = CONFIG['COSTO_DANO_PIJAMA'] || 60000;
-
-            const equipoDanoN = await prisma.equipamiento.findFirst({
-                where: { vendedor: { cedula: 1000000007 } }
-            });
-            if (equipoDanoN) expect(Number(equipoDanoN.deudaDano)).toBe(DANO_NEVERA);
-
-            const equipoDanoP = await prisma.equipamiento.findFirst({
-                where: { vendedor: { cedula: 1000000008 } }
-            });
-            if (equipoDanoP) expect(Number(equipoDanoP.deudaDano)).toBe(DANO_PIJAMA);
-
-            const equipoDanoA = await prisma.equipamiento.findFirst({
-                where: { vendedor: { cedula: 1000000009 } }
-            });
-            if (equipoDanoA) expect(Number(equipoDanoA.deudaDano)).toBe(DANO_NEVERA + DANO_PIJAMA);
-        });
-
-        it('Devuelto con depósito tiene depositoDevuelto = true', async () => {
-            const equipo = await prisma.equipamiento.findFirst({
-                where: { vendedor: { cedula: 1000000011 } }
-            });
-            if (equipo) {
-                expect(equipo.estado).toBe('DEVUELTO');
-                expect(equipo.depositoDevuelto).toBe(true);
-            }
-        });
-
-        it('Mensualidad atrasada > 30 días', async () => {
-            const equipo = await prisma.equipamiento.findFirst({
-                where: { vendedor: { cedula: 1000000006 } }
-            });
-            if (equipo && equipo.ultimaMensualidadPagada) {
-                const diff = Date.now() - equipo.ultimaMensualidadPagada.getTime();
-                const dias = diff / (1000 * 60 * 60 * 24);
-                expect(dias).toBeGreaterThan(30);
-            }
-        });
-    });
-
-    // =================================================================
-    // 20. CÁLCULOS FINANCIEROS - 10 casos
-    // =================================================================
-    describe('20. CÁLCULOS FINANCIEROS', () => {
-        it('Inversión total = cantidad * costo', async () => {
-            const COSTO = CONFIG['COSTO_INVERSION_TRABIX'] || 2400;
-            const lotes = await prisma.lote.findMany({ take: 10 });
-            for (const l of lotes) {
-                expect(Number(l.inversionTotal)).toBe(l.cantidadTrabix * COSTO);
-            }
-        });
-
-        it('Inversión se divide 50/50 exacto', async () => {
-            const lotes = await prisma.lote.findMany({ take: 10 });
-            for (const l of lotes) {
-                expect(Number(l.inversionVendedor)).toBe(Number(l.inversionTotal) / 2);
-                expect(Number(l.inversionAdmin)).toBe(Number(l.inversionTotal) / 2);
-                expect(Number(l.inversionVendedor) + Number(l.inversionAdmin)).toBe(Number(l.inversionTotal));
-            }
-        });
-
-        it('dineroRecaudado aumenta al aprobar venta', async () => {
-            const lote = await prisma.lote.findFirst({
-                where: { ventas: { some: { estado: 'APROBADA' } } }
-            });
-            if (lote) {
-                expect(Number(lote.dineroRecaudado)).toBeGreaterThanOrEqual(0);
-            }
-        });
-
-        it('Ganancia bruta = recaudado - inversión', async () => {
-            const lotes = await prisma.lote.findMany({
-                where: { estado: 'FINALIZADO' },
-                take: 5
-            });
-            for (const l of lotes) {
-                const ganancia = Number(l.dineroRecaudado) - Number(l.inversionTotal);
-                expect(typeof ganancia).toBe('number');
-            }
-        });
-
-        it('Distribución 60/40 correcta (verificado en lote)', async () => {
-            const lote6040 = await prisma.lote.findFirst({
-                where: { modeloNegocio: 'MODELO_60_40' }
-            });
-            if (lote6040) {
-                expect(lote6040.modeloNegocio).toBe('MODELO_60_40');
-            }
-        });
-
-        it('Distribución 50/50 correcta (verificado en lote)', async () => {
-            const lote5050 = await prisma.lote.findFirst({
-                where: { modeloNegocio: 'MODELO_50_50' }
-            });
-            if (lote5050) {
-                expect(lote5050.modeloNegocio).toBe('MODELO_50_50');
-            }
-        });
-
-        it('Aporte al fondo = cantidad * aporte por unidad', async () => {
-            const APORTE = CONFIG['APORTE_FONDO_POR_TRABIX'] || 200;
-            // Campo correcto: motivo (no concepto)
-            const entrada = await prisma.transaccionFondo.findFirst({
-                where: { tipo: 'ENTRADA', motivo: { contains: '100' } }
-            });
-            if (entrada) {
-                expect(Number(entrada.monto)).toBe(100 * APORTE);
-            }
-        });
-
-        it('Saldo fondo = entradas - salidas', async () => {
-            const entradas = await prisma.transaccionFondo.aggregate({
-                where: { tipo: 'ENTRADA' },
-                _sum: { monto: true }
-            });
-            const salidas = await prisma.transaccionFondo.aggregate({
-                where: { tipo: 'SALIDA' },
-                _sum: { monto: true }
-            });
-            const saldo = Number(entradas._sum.monto || 0) - Number(salidas._sum.monto || 0);
-            expect(saldo).toBeGreaterThanOrEqual(0);
-        });
-        it('GET /lotes/:id/resumen-financiero retorna datos correctos', async () => {
-            const lote = await prisma.lote.findFirst({ where: { estado: 'ACTIVO' } });
-            if (lote) {
-                const res = await request(app.getHttpServer())
-                    .get(`/api/v1/lotes/${lote.id}/resumen-financiero`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                if (res.status === 200) {
-                    expect(res.body).toHaveProperty('inversionTotal');
-                    expect(res.body).toHaveProperty('dineroRecaudado');
-                }
-            }
-        });
-        it('Montos de venta son correctos según precios config', async () => {
-            const P_UNI = CONFIG['PRECIO_UNIDAD'] || 8000;
-            const P_PROMO = CONFIG['PRECIO_PROMO'] || 15000;
-            const P_SL = CONFIG['PRECIO_SIN_LICOR'] || 7000;
-
-            const ventas = await prisma.venta.findMany({
-                include: { detalles: true },
-                take: 10
-            });
-
-            for (const v of ventas) {
-                let totalCalculado = 0;
-                for (const d of v.detalles) {
-                    const precio = d.tipo === 'UNIDAD' ? P_UNI :
-                        d.tipo === 'PROMO' ? P_PROMO :
-                            d.tipo === 'SIN_LICOR' ? P_SL : 0;
-                    totalCalculado += d.cantidad * precio;
-                }
-                expect(Number(v.montoTotal)).toBe(totalCalculado);
-            }
-        });
-
-        it('Cuadre montoEsperado basado en inversión admin', async () => {
-            const cuadre = await prisma.cuadre.findFirst({
-                where: { concepto: 'INVERSION_ADMIN' },
-                include: { tanda: true }
-            });
-            if (cuadre && cuadre.tanda) {
-                expect(Number(cuadre.montoEsperado)).toBeGreaterThan(0);
-            }
-        });
-    });
-
-    // =================================================================
-    // 21. EDGE CASES VENTAS - 8 casos
-    // =================================================================
-    describe('21. EDGE CASES VENTAS', () => {
-        it('Venta con cantidad > stock disponible debe fallar', async () => {
-            const tanda = await prisma.tanda.findFirst({
-                where: { estado: 'EN_CASA', stockActual: { gt: 0, lt: 5 } },
-                include: { lote: true }
-            });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/ventas')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({
-                        vendedorId: tanda.lote.vendedorId,
-                        detalles: [{ tipo: 'UNIDAD', cantidad: tanda.stockActual + 10 }]
-                    });
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Venta cuando stock = 0 debe fallar', async () => {
-            const tanda = await prisma.tanda.findFirst({
-                where: { estado: 'EN_CASA', stockActual: 0 },
-                include: { lote: true }
-            });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/ventas')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({
-                        vendedorId: tanda.lote.vendedorId,
-                        detalles: [{ tipo: 'UNIDAD', cantidad: 1 }]
-                    });
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Venta de tanda LIBERADA (no EN_CASA) debe fallar', async () => {
-            const tanda = await prisma.tanda.findFirst({
-                where: { estado: 'LIBERADA' },
-                include: { lote: true }
-            });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/ventas')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({
-                        vendedorId: tanda.lote.vendedorId,
-                        tandaId: tanda.id,
-                        detalles: [{ tipo: 'UNIDAD', cantidad: 1 }]
-                    });
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Venta de tanda INACTIVA debe fallar', async () => {
-            const tanda = await prisma.tanda.findFirst({
-                where: { estado: 'INACTIVA' },
-                include: { lote: true }
-            });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/ventas')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({
-                        vendedorId: tanda.lote.vendedorId,
-                        tandaId: tanda.id,
-                        detalles: [{ tipo: 'UNIDAD', cantidad: 1 }]
-                    });
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Venta con cantidad 0 debe fallar', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/ventas')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    vendedorId: ids[1000000060],
-                    detalles: [{ tipo: 'UNIDAD', cantidad: 0 }]
-                });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Venta con cantidad negativa debe fallar', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/ventas')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    vendedorId: ids[1000000060],
-                    detalles: [{ tipo: 'UNIDAD', cantidad: -5 }]
-                });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Exceder límite de regalos 8% debe fallar', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000036 } });
-            const lote = await prisma.lote.findFirst({ where: { vendedorId: ven?.id } });
-            if (lote) {
-                const LIMITE = CONFIG['LIMITE_REGALOS_PORCENTAJE'] || 8;
-                const maxRegalos = Math.floor(lote.cantidadTrabix * LIMITE / 100);
-
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/ventas')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({
-                        vendedorId: ven?.id,
-                        detalles: [{ tipo: 'REGALO', cantidad: maxRegalos + 5 }]
-                    });
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Venta sin detalles debe fallar', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/ventas')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    vendedorId: ids[1000000060],
-                    detalles: []
-                });
-            expect([400, 422]).toContain(res.status);
-        });
-    });
-
-    // =================================================================
-    // 22. REGLAS DE NEGOCIO - 10 casos
-    // =================================================================
-    describe('22. REGLAS DE NEGOCIO', () => {
-        it('No liberar tanda 2 si cuadre 1 pendiente', async () => {
-            // Cuadre → Tanda es 1:1 (cuadre singular)
-            const lote = await prisma.lote.findFirst({
-                where: {
-                    tandas: {
-                        some: { numero: 1, cuadre: { estado: 'PENDIENTE' } }
-                    }
-                },
-                include: { tandas: { orderBy: { numero: 'asc' } } }
-            });
-            if (lote && lote.tandas[1]?.estado === 'INACTIVA') {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/tandas/${lote.tandas[1].id}/liberar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([400,404,422]).toContain(res.status);
-            }
-        });
-
-        it('No liberar tanda si anterior no finalizada', async () => {
-            const lote = await prisma.lote.findFirst({
-                where: { tandas: { some: { numero: 1, estado: 'EN_CASA' } } },
-                include: { tandas: { orderBy: { numero: 'asc' } } }
-            });
-            if (lote && lote.tandas[1]?.estado === 'INACTIVA') {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/tandas/${lote.tandas[1].id}/liberar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([400,404,422]).toContain(res.status);
-            }
-        });
-
-        it('Regla 2 horas: LIBERADA no puede pasar a EN_TRANSITO antes de 2h', async () => {
-            const tanda = await prisma.tanda.findFirst({
-                where: {
-                    estado: 'LIBERADA',
-                    fechaLiberacion: { gt: new Date(Date.now() - 60 * 60 * 1000) }
-                }
-            });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/tandas/${tanda.id}/recoger`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Stock admin suficiente para crear lote', async () => {
-            const stock = await prisma.stockAdmin.findFirst();
-            if (stock && stock.stockFisico < 1000) {
-                const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000001 } });
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/lotes')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ vendedorId: ven?.id, cantidadTrabix: stock.stockFisico + 1000 });
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Usuario INACTIVO no puede tener lotes nuevos', async () => {
-            const venInactivo = await prisma.usuario.findFirst({ where: { cedula: 1000000003 } });
-            if (venInactivo) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/lotes')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ vendedorId: venInactivo.id, cantidadTrabix: 50 });
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Venta mayor mínimo 21 unidades', async () => {
-            const MIN = CONFIG['MINIMO_VENTA_MAYOR'] || 21;
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000001 } });
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/ventas-mayor')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ vendedorId: ven?.id, cantidadUnidades: MIN - 1, modalidad: 'ANTICIPADO' });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Modelo se asigna en Lote según reclutador', async () => {
-            // Directo de admin = 60/40
-            const admin = await prisma.usuario.findFirst({ where: { rol: 'ADMIN' } });
-            const directos = await prisma.usuario.findMany({
-                where: { reclutadorId: admin?.id, rol: 'VENDEDOR' },
-                include: { lotes: true }
-            });
-            for (const d of directos) {
-                for (const lote of d.lotes) {
-                    expect(lote.modeloNegocio).toBe('MODELO_60_40');
-                }
-            }
-        });
-
-        it('Lote se finaliza cuando todas las tandas finalizan', async () => {
-            const loteFin = await prisma.lote.findFirst({
-                where: { estado: 'FINALIZADO' },
-                include: { tandas: true }
-            });
-            if (loteFin) {
-                const todasFinalizadas = loteFin.tandas.every(t => t.estado === 'FINALIZADA');
-                expect(todasFinalizadas).toBe(true);
-            }
-        });
-
-        it('Trigger cuadre cuando stock < 10%', async () => {
-            const tanda = await prisma.tanda.findFirst({
-                where: {
-                    estado: 'EN_CASA',
-                    stockActual: { lte: 3 },
-                    stockInicial: { gte: 30 }
-                },
-                include: { cuadre: true }
-            });
-            if (tanda) {
-                // Puede tener cuadre PENDIENTE o superior
-                expect(tanda.stockActual).toBeLessThanOrEqual(3);
-            }
-        });
-
-        it('No aprobar venta de vendedor INACTIVO', async () => {
-            const venInactivo = await prisma.usuario.findFirst({ where: { estado: 'INACTIVO' } });
-            if (venInactivo) {
-                const venta = await prisma.venta.findFirst({
-                    where: { vendedorId: venInactivo.id, estado: 'PENDIENTE' }
-                });
-                if (venta) {
-                    const res = await request(app.getHttpServer())
-                        .post(`/api/v1/ventas/${venta.id}/aprobar`)
-                        .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                    expect([400, 422]).toContain(res.status);
-                }
-            }
-        });
-    });
-
-    // =================================================================
-    // 23. ACTUALIZACIÓN DE DATOS (CRUD) - 8 casos
-    // =================================================================
-    describe('23. ACTUALIZACIÓN DE DATOS (CRUD)', () => {
-        it('Admin actualiza datos de vendedor', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000001 } });
-            if (ven) {
-                const res = await request(app.getHttpServer())
-                    .patch(`/api/v1/usuarios/${ven.id}`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ telefono: '3109876543' });
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Admin reactiva vendedor', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { estado: 'INACTIVO' } });
-            if (ven) {
-                const res = await request(app.getHttpServer())
-                    .patch(`/api/v1/usuarios/${ven.id}/activar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404]).toContain(res.status);
-            }
-        });
-
-        it('Usuario cambia su password', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/auth/cambiar-password')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`)
-                .send({ passwordActual: 'Test123!', passwordNuevo: 'Test123!' });
-            expect([200, 400, 401, 404]).toContain(res.status);
-        });
-
-        it('Admin actualiza configuración', async () => {
-            const res = await request(app.getHttpServer())
-                .patch('/api/v1/admin/configuraciones/PRECIO_UNIDAD')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ valor: '8000' });
-            expect([200, 400, 404]).toContain(res.status);
-        });
-
-        it('Admin actualiza stock', async () => {
-            const res = await request(app.getHttpServer())
-                .patch('/api/v1/admin/stock')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ cantidad: 100, tipo: 'ENTRADA', motivo: 'Reposición test' });
-            expect([200, 400, 404]).toContain(res.status);
-        });
-
-        it('Vendedor actualiza su perfil', async () => {
-            const res = await request(app.getHttpServer())
-                .patch('/api/v1/usuarios/me')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`)
-                .send({ telefono: '3101234567' });
-            expect([200, 400, 404]).toContain(res.status);
-        });
-
-        it('No se puede cambiar cédula', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000001 } });
-            if (ven) {
-                const res = await request(app.getHttpServer())
-                    .patch(`/api/v1/usuarios/${ven.id}`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ cedula: 'NUEVA-CEDULA' });
-                expect([200, 400]).toContain(res.status);
-                const updated = await prisma.usuario.findUnique({ where: { id: ven.id } });
-                expect(updated?.cedula).toBe(1000000001);
-            }
-        });
-    });
-
-    // =================================================================
-    // 24. DASHBOARD Y REPORTES - 6 casos
-    // =================================================================
-    describe('24. DASHBOARD Y REPORTES', () => {
-        it('Admin obtiene dashboard general', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/dashboard')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([200, 404]).toContain(res.status);
-        });
-
-        it('Vendedor obtiene su dashboard', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/vendedor/dashboard')
-                .set('Authorization', `Bearer ${tokens[1000000001]}`);
-            expect([200, 404]).toContain(res.status);
-        });
-
-        it('Admin obtiene reporte de ventas', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/reportes/ventas')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([200, 404]).toContain(res.status);
-        });
-
-        it('Admin obtiene reporte de cuadres pendientes', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/reportes/cuadres-pendientes')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([200, 404]).toContain(res.status);
-        });
-
-        it('Admin obtiene estadísticas del fondo', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/fondo/estadisticas')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([200, 404]).toContain(res.status);
-        });
-
-        it('Admin obtiene resumen de vendedores', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/admin/reportes/vendedores')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([200, 404]).toContain(res.status);
-        });
-    });
-
-    // =================================================================
-    // 25. INTEGRIDAD DE DATOS - 6 casos
-    // =================================================================
-    describe('25. INTEGRIDAD DE DATOS', () => {
-        it('No eliminar usuario con lotes activos', async () => {
-            const ven = await prisma.usuario.findFirst({
-                where: { lotes: { some: { estado: 'ACTIVO' } } }
-            });
-            if (ven) {
-                const res = await request(app.getHttpServer())
-                    .delete(`/api/v1/usuarios/${ven.id}`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([400, 403, 404, 405]).toContain(res.status);
-            }
-        });
-
-        it('No eliminar lote con ventas', async () => {
-            const lote = await prisma.lote.findFirst({
-                where: { ventas: { some: {} } }
-            });
-            if (lote) {
-                const res = await request(app.getHttpServer())
-                    .delete(`/api/v1/lotes/${lote.id}`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([400, 403, 404, 405]).toContain(res.status);
-            }
-        });
-
-        it('ID inválido retorna 400 o 404', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios/id-invalido-123')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([400, 404]).toContain(res.status);
-        });
-
-        it('UUID inexistente retorna 404', async () => {
-            const res = await request(app.getHttpServer())
-                .get('/api/v1/usuarios/00000000-0000-0000-0000-000000000000')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-            expect([400, 404]).toContain(res.status);
-        });
-
-        it('Datos malformados retornan 400', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ cedula: 123, nombre: null });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Relaciones se mantienen consistentes', async () => {
-            const ventas = await prisma.venta.findMany({ include: { vendedor: true }, take: 20 });
-            ventas.forEach(v => {
-                expect(v.vendedor).not.toBeNull();
-                expect(v.vendedorId).toBe(v.vendedor.id);
-            });
-
-            const lotes = await prisma.lote.findMany({ include: { vendedor: true }, take: 20 });
-            lotes.forEach(l => {
-                expect(l.vendedor).not.toBeNull();
-                expect(l.vendedorId).toBe(l.vendedor.id);
-            });
-        });
-    });
-
-    // =================================================================
-    // 26. FLUJOS E2E COMPLETOS - 4 casos
-    // =================================================================
-    describe('26. FLUJOS E2E COMPLETOS', () => {
-        it('Flujo completo: Crear vendedor → Lote → Activar → Vender → Cuadrar', async () => {
-            const cedula = `E2E-FULL-${Date.now()}`;
-            const resUsuario = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    cedula, nombre: 'E2E', apellidos: 'Full Test',
-                    email: `${cedula}@test.com`, telefono: `399${Date.now().toString().slice(-7)}`,
-                    direccion: 'E2E Test'
-                });
-
-            if (resUsuario.status === 201) {
-                const vendedorId = resUsuario.body.id;
-                expect(vendedorId).toBeDefined();
-
-                const resLote = await request(app.getHttpServer())
-                    .post('/api/v1/lotes')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ vendedorId, cantidadTrabix: 50 });
-
-                if (resLote.status === 201) {
-                    const loteId = resLote.body.id;
-                    expect(resLote.body.estado).toBe('CREADO');
-
-                    const resActivar = await request(app.getHttpServer())
-                        .post(`/api/v1/lotes/${loteId}/activar`)
-                        .set('Authorization', `Bearer ${tokens[1234567890]}`);
-
-                    if (resActivar.status === 200) {
-                        expect(resActivar.body.estado).toBe('ACTIVO');
-
-                        const tanda = await prisma.tanda.findFirst({
-                            where: { loteId, numero: 1 }
-                        });
-
-                        if (tanda) {
-                            await request(app.getHttpServer())
-                                .post(`/api/v1/tandas/${tanda.id}/liberar`)
-                                .set('Authorization', `Bearer ${tokens[1234567890]}`);
-
-                            expect(tanda.id).toBeDefined();
-                        }
-                    }
-                }
-            }
-        });
-
-        it('Flujo completo: Venta mayor sin stock → Lote forzado', async () => {
-            const cedula = `E2E-VM-${Date.now()}`;
-            const resUsuario = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    cedula, nombre: 'E2E', apellidos: 'Venta Mayor',
-                    email: `${cedula}@test.com`, telefono: `398${Date.now().toString().slice(-7)}`,
-                    direccion: 'E2E VM'
-                });
-
-            if (resUsuario.status === 201) {
-                const vendedorId = resUsuario.body.id;
-                const MIN = CONFIG['MINIMO_VENTA_MAYOR'] || 21;
-
-                const resVM = await request(app.getHttpServer())
-                    .post('/api/v1/ventas-mayor')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ vendedorId, cantidadUnidades: MIN + 5, modalidad: 'ANTICIPADO' });
-
-                expect([200, 201, 400]).toContain(resVM.status);
-            }
-        });
-
-        it('Flujo cascada 50/50: Cuadre exitoso distribuye ganancias', async () => {
-            // Cadena correcta: Cuadre → Tanda → Lote
-            const cuadre = await prisma.cuadre.findFirst({
-                where: {
-                    estado: 'EXITOSO',
-                    tanda: { lote: { modeloNegocio: 'MODELO_50_50' } }
-                },
-                include: {
-                    tanda: {
-                        include: {
-                            lote: {
-                                include: {
-                                    vendedor: {
-                                        include: {
-                                            reclutador: {
-                                                include: {
-                                                    reclutador: {
-                                                        include: {
-                                                            reclutador: true
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            if (cuadre) {
-                expect(cuadre.tanda.lote.vendedor).not.toBeNull();
-                expect(Number(cuadre.montoRecibido)).toBeGreaterThan(0);
-            }
-        });
-
-        it('Flujo equipamiento: Solicitar → Aprobar → Entregar → Usar → Devolver', async () => {
-            const venSinEquipo = await prisma.usuario.findFirst({
-                where: { cedula: 1000000013 }
-            });
-
-            if (venSinEquipo) {
-                const equipoExistente = await prisma.equipamiento.findFirst({
-                    where: { vendedorId: venSinEquipo.id, estado: 'ACTIVO' }
-                });
-
-                if (!equipoExistente) {
-                    const resSolicitar = await request(app.getHttpServer())
-                        .post('/api/v1/equipamiento/solicitar')
-                        .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                        .send({ vendedorId: venSinEquipo.id, tieneDeposito: true });
-
-                    expect([200, 201, 400]).toContain(resSolicitar.status);
-
-                    if (resSolicitar.status === 201) {
-                        const equipoId = resSolicitar.body.id;
-
-                        await request(app.getHttpServer())
-                            .post(`/api/v1/equipamiento/${equipoId}/aprobar`)
-                            .set('Authorization', `Bearer ${tokens[1234567890]}`);
-
-                        await request(app.getHttpServer())
-                            .post(`/api/v1/equipamiento/${equipoId}/entregar`)
-                            .set('Authorization', `Bearer ${tokens[1234567890]}`);
-
-                        expect(equipoId).toBeDefined();
-                    }
-                }
-            }
-        });
-    });
-
-    // =================================================================
-    // 27. VALIDACIONES DE ENTRADA - 8 casos adicionales
-    // =================================================================
-    describe('27. VALIDACIONES DE ENTRADA', () => {
-        it('Email inválido al crear usuario', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    cedula: `VAL-${Date.now()}`, nombre: 'Test', apellidos: 'Val',
-                    email: 'email-invalido', telefono: '3101234567', direccion: 'Dir'
-                });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Teléfono muy corto al crear usuario', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    cedula: `VAL2-${Date.now()}`, nombre: 'Test', apellidos: 'Val',
-                    email: 'val@test.com', telefono: '123', direccion: 'Dir'
-                });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Cantidad lote negativa', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/lotes')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ vendedorId: ids[1000000001], cantidadTrabix: -50 });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Cantidad lote decimal', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/lotes')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ vendedorId: ids[1000000001], cantidadTrabix: 50.5 });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Tipo de venta inválido', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/ventas')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    vendedorId: ids[1000000060],
-                    detalles: [{ tipo: 'TIPO_INEXISTENTE', cantidad: 5 }]
-                });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Modalidad venta mayor inválida', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/ventas-mayor')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({
-                    vendedorId: ids[1000000001],
-                    cantidadUnidades: 25,
-                    modalidad: 'MODALIDAD_FAKE'
-                });
-            expect([400, 422]).toContain(res.status);
-        });
-
-        it('Monto cuadre negativo', async () => {
-            const cuadre = await prisma.cuadre.findFirst({ where: { estado: 'PENDIENTE' } });
-            if (cuadre) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/cuadres/${cuadre.id}/confirmar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ montoRecibido: -50000 });
-                expect([400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Campos requeridos faltantes', async () => {
-            const res = await request(app.getHttpServer())
-                .post('/api/v1/usuarios')
-                .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                .send({ cedula: `INCOMP-${Date.now()}` });
-            expect([400, 422]).toContain(res.status);
-        });
-    });
-
-    // =================================================================
-    // 28. CONCURRENCIA Y EDGE CASES ADICIONALES - 6 casos
-    // =================================================================
-    describe('28. CONCURRENCIA Y EDGE CASES', () => {
-        it('Doble aprobación de misma venta', async () => {
-            const venta = await prisma.venta.findFirst({ where: { estado: 'APROBADA' } });
-            if (venta) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/ventas/${venta.id}/aprobar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Doble confirmación de cuadre', async () => {
-            const cuadre = await prisma.cuadre.findFirst({ where: { estado: 'EXITOSO' } });
-            if (cuadre) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/cuadres/${cuadre.id}/confirmar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({ montoRecibido: Number(cuadre.montoEsperado) });
-                expect([200, 400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Liberar tanda ya liberada', async () => {
-            const tanda = await prisma.tanda.findFirst({ where: { estado: 'LIBERADA' } });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/tandas/${tanda.id}/liberar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 404, 422]).toContain(res.status);
-            }
-        });
-
-        it('Activar lote ya activo', async () => {
-            const lote = await prisma.lote.findFirst({ where: { estado: 'ACTIVO' } });
-            if (lote) {
-                const res = await request(app.getHttpServer())
-                    .post(`/api/v1/lotes/${lote.id}/activar`)
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`);
-                expect([200, 400, 422]).toContain(res.status);
-            }
-        });
-
-        it('Múltiples ventas simultáneas mismo vendedor', async () => {
-            const ven = await prisma.usuario.findFirst({ where: { cedula: 1000000060 } });
-            if (ven) {
-                const promesas = [1, 2, 3].map(() =>
-                    request(app.getHttpServer())
-                        .post('/api/v1/ventas')
-                        .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                        .send({
-                            vendedorId: ven.id,
-                            detalles: [{ tipo: 'UNIDAD', cantidad: 1 }]
-                        })
-                );
-
-                const resultados = await Promise.all(promesas);
-                const exitosos = resultados.filter(r => r.status === 201);
-                expect(exitosos.length).toBeGreaterThanOrEqual(0);
-            }
-        });
-
-        it('Stock exacto para última venta', async () => {
-            const tanda = await prisma.tanda.findFirst({
-                where: { estado: 'EN_CASA', stockActual: { gt: 0, lte: 3 } },
-                include: { lote: true }
-            });
-            if (tanda) {
-                const res = await request(app.getHttpServer())
-                    .post('/api/v1/ventas')
-                    .set('Authorization', `Bearer ${tokens[1234567890]}`)
-                    .send({
-                        vendedorId: tanda.lote.vendedorId,
-                        detalles: [{ tipo: 'UNIDAD', cantidad: tanda.stockActual }]
-                    });
-                expect([200, 201, 400]).toContain(res.status);
-            }
-        });
-    });
+  });
 });
