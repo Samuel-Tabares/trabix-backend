@@ -18,16 +18,11 @@ import { FondoRecompensasCommandHandlers } from './application/commands';
 import { FondoRecompensasQueryHandlers } from './application/queries';
 import { FondoRecompensasEventHandlers } from './application/events';
 
-// Usuarios Module (para validar vendedor beneficiario)
+// Related modules
 import { UsuariosModule } from '../usuarios/usuarios.module';
-
-// Notificaciones Module (para notificar al beneficiario)
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 /**
- * Módulo del Fondo de Recompensas
- * Según sección 12 del documento
- * 
  * Gestiona:
  * - Consulta de saldo del fondo (todos los usuarios)
  * - Listado de transacciones (todos los usuarios)
@@ -48,23 +43,18 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
   ],
   controllers: [FondoRecompensasController],
   providers: [
-    // Repository
+    // Repository (hexagonal)
     {
       provide: FONDO_RECOMPENSAS_REPOSITORY,
       useClass: PrismaFondoRecompensasRepository,
     },
-    PrismaFondoRecompensasRepository,
-    
-    // Domain Services
+
+    // Domain service
     FondoRecompensasService,
-    
-    // Command Handlers
+
+    // CQRS
     ...FondoRecompensasCommandHandlers,
-    
-    // Query Handlers
     ...FondoRecompensasQueryHandlers,
-    
-    // Event Handlers
     ...FondoRecompensasEventHandlers,
   ],
   exports: [

@@ -4,9 +4,9 @@ import { ConfigModule } from '@nestjs/config';
 
 // Domain
 import {
-    CalculadoraGananciasService,
-    Modelo6040Strategy,
-    Modelo5050CascadaStrategy,
+  CalculadoraGananciasService,
+  Modelo6040Strategy,
+  Modelo5050CascadaStrategy,
 } from './domain/calculadora-ganancias.service';
 import { CalculadoraMontoEsperadoService } from './domain/calculadora-monto-esperado.service';
 import { ActualizadorCuadresVendedorService } from './domain/actualizador-cuadres-vendedor.service';
@@ -15,7 +15,7 @@ import { CUADRE_REPOSITORY } from './domain/cuadre.repository.interface';
 // Infrastructure
 import { PrismaCuadreRepository } from './infrastructure/prisma-cuadre.repository';
 
-// Application - Commands, Queries, Events
+// Application
 import { CuadreCommandHandlers } from './application/commands';
 import { CuadreQueryHandlers } from './application/queries';
 import { CuadreEventHandlers } from './application/events';
@@ -23,15 +23,12 @@ import { CuadreEventHandlers } from './application/events';
 // Controllers
 import { CuadresController } from './controllers/cuadres.controller';
 
-// Módulos necesarios
+// Related modules
 import { LotesModule } from '../lotes/lotes.module';
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 import { EquipamientoModule } from '../equipamiento/equipamiento.module';
 
 /**
- * Módulo de Cuadres
- * Según sección 8 del documento
- *
  * Responsabilidades:
  * - Gestión de cuadres normales
  * - Cálculo de ganancias (60/40 y 50/50 con cascada)
@@ -58,44 +55,38 @@ import { EquipamientoModule } from '../equipamiento/equipamiento.module';
  * - PORCENTAJE_GANANCIA_VENDEDOR_50_50
  */
 @Module({
-    imports: [
-        CqrsModule,
-        ConfigModule,
-        forwardRef(() => LotesModule),
-        forwardRef(() => NotificacionesModule),
-        forwardRef(() => EquipamientoModule),
-    ],
-    controllers: [CuadresController],
-    providers: [
-        // Repository
-        {
-            provide: CUADRE_REPOSITORY,
-            useClass: PrismaCuadreRepository,
-        },
+  imports: [
+    CqrsModule,
+    ConfigModule,
+    forwardRef(() => LotesModule),
+    forwardRef(() => NotificacionesModule),
+    forwardRef(() => EquipamientoModule),
+  ],
+  controllers: [CuadresController],
+  providers: [
+    // Repository (hexagonal)
+    {
+      provide: CUADRE_REPOSITORY,
+      useClass: PrismaCuadreRepository,
+    },
 
-        // Domain Services - Estrategias de ganancias
-        Modelo6040Strategy,
-        Modelo5050CascadaStrategy,
-        CalculadoraGananciasService,
-        CalculadoraMontoEsperadoService,
-        ActualizadorCuadresVendedorService,
+    // Domain services
+    Modelo6040Strategy,
+    Modelo5050CascadaStrategy,
+    CalculadoraGananciasService,
+    CalculadoraMontoEsperadoService,
+    ActualizadorCuadresVendedorService,
 
-        // Command Handlers
-        ...CuadreCommandHandlers,
-
-        // Query Handlers
-        ...CuadreQueryHandlers,
-
-        // Event Handlers
-        ...CuadreEventHandlers,
-    ],
-    exports: [
-        CUADRE_REPOSITORY,
-        CalculadoraGananciasService,
-        CalculadoraMontoEsperadoService,
-        ActualizadorCuadresVendedorService,
-        Modelo6040Strategy,
-        Modelo5050CascadaStrategy,
-    ],
+    // CQRS
+    ...CuadreCommandHandlers,
+    ...CuadreQueryHandlers,
+    ...CuadreEventHandlers,
+  ],
+  exports: [
+    CUADRE_REPOSITORY,
+    CalculadoraGananciasService,
+    CalculadoraMontoEsperadoService,
+    ActualizadorCuadresVendedorService,
+  ],
 })
 export class CuadresModule {}

@@ -7,6 +7,9 @@ import { VentasController } from './controllers/ventas.controller';
 
 // Domain
 import { VENTA_REPOSITORY } from './domain/venta.repository.interface';
+import { VendedorPuedeVenderSpecification } from './domain/vendedor-puede-vender.specification';
+import { RegaloPermitidoSpecification } from './domain/regalo-permitido.specification';
+import { CalculadoraPreciosVentaService } from './domain/calculadora-precios-venta.service';
 
 // Infrastructure
 import { PrismaVentaRepository } from './infrastructure/prisma-venta.repository';
@@ -17,14 +20,12 @@ import { VentaQueryHandlers } from './application/queries';
 import { VentaEventHandlers } from './application/events';
 
 // Related modules
+import { UsuariosModule } from '../usuarios/usuarios.module';
 import { LotesModule } from '../lotes/lotes.module';
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
-import { CuadresModule } from '../cuadres/cuadres.module'; // NUEVO
+import { CuadresModule } from '../cuadres/cuadres.module';
 
 /**
- * Módulo de Ventas
- * Según sección 5 del documento
- *
  * Gestiona:
  * - Registro de ventas normales
  * - Aprobación/rechazo de ventas
@@ -47,7 +48,8 @@ import { CuadresModule } from '../cuadres/cuadres.module'; // NUEVO
         ConfigModule,
         forwardRef(() => LotesModule),
         forwardRef(() => NotificacionesModule),
-        forwardRef(() => CuadresModule), // NUEVO - para ActualizadorCuadresVendedorService
+        forwardRef(() => CuadresModule),
+        forwardRef(() => UsuariosModule),
     ],
     controllers: [VentasController],
     providers: [
@@ -56,6 +58,9 @@ import { CuadresModule } from '../cuadres/cuadres.module'; // NUEVO
             provide: VENTA_REPOSITORY,
             useClass: PrismaVentaRepository,
         },
+      VendedorPuedeVenderSpecification,
+      RegaloPermitidoSpecification,
+      CalculadoraPreciosVentaService,
         // Command Handlers
         ...VentaCommandHandlers,
         // Query Handlers

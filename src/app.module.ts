@@ -34,7 +34,6 @@ import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
-    // Configuración global con validación Joi
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
@@ -49,19 +48,16 @@ import { AdminModule } from './modules/admin/admin.module';
       ],
     }),
 
-    // Winston Logger global
     WinstonModule.forRoot(winstonConfig),
 
-    // Rate Limiting global (sección 22.4)
     ThrottlerModule.forRoot([
       {
         name: 'global',
-        ttl: 60000, // 60 segundos
-        limit: 100, // 100 requests por minuto por IP
+        ttl: 60000,
+        limit: 100,
       },
     ]),
 
-    // Event Emitter para eventos internos
     EventEmitterModule.forRoot({
       wildcard: false,
       delimiter: '.',
@@ -70,20 +66,16 @@ import { AdminModule } from './modules/admin/admin.module';
       ignoreErrors: false,
     }),
 
-    // Scheduler para jobs programados
     ScheduleModule.forRoot(),
 
-    // CQRS para separación de comandos y consultas
-    CqrsModule.forRoot(),
+    CqrsModule,
 
-    // Infrastructure modules
     PrismaModule,
     CacheModule,
     QueueModule,
     EventsModule,
     SchedulerModule,
 
-    // Feature modules
     HealthModule,
     AuthModule,
     UsuariosModule,
@@ -100,7 +92,6 @@ import { AdminModule } from './modules/admin/admin.module';
   ],
   controllers: [],
   providers: [
-    // ThrottlerGuard global para rate limiting
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

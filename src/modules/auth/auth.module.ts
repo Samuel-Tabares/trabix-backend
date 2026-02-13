@@ -11,12 +11,9 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { LoginThrottleGuard } from './guards/login-throttle.guard';
 
-/**
- * Módulo de autenticación
- * Según secciones 22.1, 22.2 del documento
- */
 @Module({
   imports: [
+    ConfigModule, // ← necesario para usar ConfigService aquí
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

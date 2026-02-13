@@ -1,6 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { ConfigModule } from '@nestjs/config';
 
 // Controllers
 import { MiniCuadresController } from './controllers/mini-cuadres.controller';
@@ -22,40 +21,38 @@ import { LotesModule } from '../lotes/lotes.module';
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 /**
- * Módulo de Mini-Cuadres
- * Según sección 9 del documento
+ * Responsabilidades:
+ * - Activación automática cuando stock final llega a 0
+ * - Confirmación administrativa del mini-cuadre
+ * - Cierre definitivo del lote (estado FINALIZADO)
  *
- * Gestiona:
- * - Activación del mini-cuadre cuando stock llega a 0
- * - Confirmación del mini-cuadre por admin
- * - Cierre de lote (estado FINALIZADO)
- *
- * El mini-cuadre es un evento distinto al cuadre normal que cierra el lote.
- * Se activa automáticamente cuando el stock de la última tanda llega a 0.
- *
- * Estados:
- * - INACTIVO: stock de última tanda > 0
- * - PENDIENTE: stock de última tanda = 0
- * - EXITOSO: admin confirma consolidación final
+ * Estados del mini-cuadre:
+ * - INACTIVO → stock > 0
+ * - PENDIENTE → stock = 0
+ * - EXITOSO → consolidación confirmada
  */
 @Module({
-    imports: [
-        CqrsModule,
-        ConfigModule,
-        forwardRef(() => LotesModule),
-        forwardRef(() => NotificacionesModule),
-    ],
-    controllers: [MiniCuadresController],
-    providers: [
-        {
-            provide: MINI_CUADRE_REPOSITORY,
-            useClass: PrismaMiniCuadreRepository,
-        },
-        CierreLoteService,
-        ...MiniCuadreCommandHandlers,
-        ...MiniCuadreQueryHandlers,
-        ...MiniCuadreEventHandlers,
-    ],
-    exports: [MINI_CUADRE_REPOSITORY, CierreLoteService],
+  imports: [
+    CqrsModule,
+    forwardRef(() => LotesModule),
+    forwardRef(() => NotificacionesModule),
+  ],
+  controllers: [MiniCuadresController],
+  providers: [
+    {
+      provide: MINI_CUADRE_REPOSITORY,
+      useClass: PrismaMiniCuadreRepository,
+    },
+    // Domain
+    CierreLoteService,
+    // CQRS
+    ...MiniCuadreCommandHandlers,
+    ...MiniCuadreQueryHandlers,
+    ...MiniCuadreEventHandlers,
+  ],
+  exports: [
+    MINI_CUADRE_REPOSITORY,
+    CierreLoteService,
+  ],
 })
 export class MiniCuadresModule {}

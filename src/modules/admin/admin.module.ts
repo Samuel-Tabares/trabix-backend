@@ -2,33 +2,30 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
 // Controllers
+import { DashboardController } from '../admin/controllers/dashboard.controller';
 import {
-    DashboardController,
-} from '../admin/controllers/dashboard.controller';
-import {
-    StockAdminController,
-    PedidosStockController,
+  StockAdminController,
+  PedidosStockController,
 } from '../admin/controllers/stock.controller';
 import {
-
-    ConfiguracionesController,
-    TiposInsumoController,
+  ConfiguracionesController,
+  TiposInsumoController,
 } from '../admin/controllers/configuraciones.controller';
 
 // Domain
 import {
-    PEDIDO_STOCK_REPOSITORY,
-    CONFIGURACION_REPOSITORY,
-    TIPO_INSUMO_REPOSITORY,
-    STOCK_ADMIN_REPOSITORY,
+  PEDIDO_STOCK_REPOSITORY,
+  CONFIGURACION_REPOSITORY,
+  TIPO_INSUMO_REPOSITORY,
+  STOCK_ADMIN_REPOSITORY,
 } from '../admin/domain/repositories';
 
 // Infrastructure
 import {
-    PrismaPedidoStockRepository,
-    PrismaConfiguracionRepository,
-    PrismaTipoInsumoRepository,
-    PrismaStockAdminRepository,
+  PrismaPedidoStockRepository,
+  PrismaConfiguracionRepository,
+  PrismaTipoInsumoRepository,
+  PrismaStockAdminRepository,
 } from '../admin/infrastructure';
 
 // Application
@@ -36,9 +33,6 @@ import { AdminCommandHandlers } from '../admin/application/commands';
 import { AdminQueryHandlers } from '../admin/application/queries';
 
 /**
- * Módulo de Admin
- * Según sección 1 y Fase 10 del documento
- * 
  * Gestiona:
  * - Pedidos de stock (CRUD completo con costos)
  * - Configuraciones del sistema (con historial)
@@ -56,7 +50,6 @@ import { AdminQueryHandlers } from '../admin/application/queries';
     DashboardController,
   ],
   providers: [
-    // Repositories
     {
       provide: PEDIDO_STOCK_REPOSITORY,
       useClass: PrismaPedidoStockRepository,
@@ -73,9 +66,7 @@ import { AdminQueryHandlers } from '../admin/application/queries';
       provide: STOCK_ADMIN_REPOSITORY,
       useClass: PrismaStockAdminRepository,
     },
-    // Command Handlers
     ...AdminCommandHandlers,
-    // Query Handlers
     ...AdminQueryHandlers,
   ],
   exports: [

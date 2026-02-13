@@ -6,8 +6,8 @@ import {
     LoteConTandas,
 } from '../../../lotes/domain/lote.repository.interface';
 import { LoteEntity } from '../../domain/lote.entity';
-import { DomainException } from '@domain/exceptions/domain.exception';
-import { LoteActivadoEvent } from '@modules/lotes/application/events/lote-activado.event';
+import { DomainException } from '../../../../domain/exceptions/domain.exception';
+import { LoteActivadoEvent } from '../events/lote-activado.event';
 
 /**
  * Command para activar un lote

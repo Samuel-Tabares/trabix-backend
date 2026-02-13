@@ -16,9 +16,6 @@ import { UsuarioCommandHandlers } from './application/commands';
 import { UsuarioQueryHandlers } from './application/queries';
 
 /**
- * Módulo de Usuarios
- * Según sección 20.3 del documento
- *
  * Gestiona:
  * - Creación de vendedores (con promoción automática a RECLUTADOR)
  * - Listado y consulta de usuarios
@@ -35,7 +32,6 @@ import { UsuarioQueryHandlers } from './application/queries';
       provide: USUARIO_REPOSITORY,
       useClass: PrismaUsuarioRepository,
     },
-    PrismaUsuarioRepository,
 
     // Command Handlers
     ...UsuarioCommandHandlers,

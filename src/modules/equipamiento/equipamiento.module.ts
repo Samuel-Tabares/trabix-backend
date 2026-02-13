@@ -23,9 +23,6 @@ import { CuadresModule } from '../cuadres/cuadres.module';
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 
 /**
- * Módulo de Equipamiento
- * Según sección 10 del documento
- *
  * Gestiona:
  * - Solicitud de equipamiento (vendedor)
  * - Activación/entrega de equipamiento (admin)
@@ -56,32 +53,30 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 @Module({
   imports: [
     CqrsModule,
-    ConfigModule,
+    ConfigModule, // necesario para EquipamientoConfigService (.env)
     forwardRef(() => UsuariosModule),
     forwardRef(() => CuadresModule),
     forwardRef(() => NotificacionesModule),
   ],
   controllers: [EquipamientoController],
   providers: [
-    // Repository
+    // Repository (hexagonal)
     {
       provide: EQUIPAMIENTO_REPOSITORY,
       useClass: PrismaEquipamientoRepository,
     },
-    // Domain Services
+
+    // Domain service
     EquipamientoConfigService,
-    // Command Handlers
+
+    // CQRS
     ...EquipamientoCommandHandlers,
-    // Query Handlers
     ...EquipamientoQueryHandlers,
-    // Event Handlers
     ...EquipamientoEventHandlers,
   ],
   exports: [
     EQUIPAMIENTO_REPOSITORY,
-    EquipamientoConfigService,
-    // Exportar QueryHandlers para que cuadres pueda consultar deudas
-    ...EquipamientoQueryHandlers,
+    EquipamientoConfigService, // lo que realmente necesita otros módulos
   ],
 })
 export class EquipamientoModule {}

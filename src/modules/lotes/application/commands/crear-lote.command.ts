@@ -12,7 +12,7 @@ import {
 } from '../../../usuarios/domain/usuario.repository.interface';
 import { CalculadoraInversionService } from '../../domain/calculadora-inversion.service';
 import { CalculadoraTandasService } from '../../domain/calculadora-tandas.service';
-import { DomainException } from '@domain/exceptions/domain.exception';
+import { DomainException } from '../../../../domain/exceptions/domain.exception';
 import { CreateLoteDto } from '../../../lotes/application/dto';
 
 /**

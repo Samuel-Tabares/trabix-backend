@@ -17,8 +17,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '@/app.module';
-import { PrismaService } from '@infrastructure/database/prisma/prisma.service';
+import { AppModule } from '../../src/app.module';
+import { PrismaService } from '../../src/infrastructure/database/prisma/prisma.service';
 
 // ============================================================
 // IDs del seed (mirrors prisma/seeds/helpers.ts)
@@ -144,7 +144,7 @@ describe('TRABIX E2E - All Scenarios', () => {
   let adminAccessToken: string;
   let adminRefreshToken: string;
   let vendedorAccessToken: string;
-  //let vendedorRefreshToken: string;
+  //let vendedorRefreshToken: string; se declara, no se usa
   let reclutadorAccessToken: string;
 
   // ============================================================
@@ -251,7 +251,6 @@ describe('TRABIX E2E - All Scenarios', () => {
         expect(res.body.user.requiereCambioPassword).toBe(false);
 
         vendedorAccessToken = res.body.accessToken;
-        vendedorRefreshToken = res.body.refreshToken;
       });
 
       it('debería loguear a un reclutador activo (R.activo_con_recl)', async () => {

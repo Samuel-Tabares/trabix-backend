@@ -25,9 +25,6 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 import { FondoRecompensasModule } from '../fondo-recompensas/fondo-recompensas.module';
 
 /**
- * Módulo de Cuadres al Mayor
- * Según sección 8 del documento
- *
  * Responsabilidades:
  * - Gestión de cuadres al mayor (ventas mayoristas)
  * - Evaluación financiera completa
@@ -40,31 +37,34 @@ import { FondoRecompensasModule } from '../fondo-recompensas/fondo-recompensas.m
  * - EXITOSO: admin confirmó la operación
  */
 @Module({
-    imports: [
-        CqrsModule,
-        ConfigModule, // Necesario para acceder a configuración
-        forwardRef(() => LotesModule),
-        forwardRef(() => CuadresModule),
-        forwardRef(() => UsuariosModule),
-        forwardRef(() => NotificacionesModule),
-        forwardRef(() => FondoRecompensasModule),
-    ],
-    controllers: [CuadresMayorController],
-    providers: [
-        // Repository
-        {
-            provide: CUADRE_MAYOR_REPOSITORY,
-            useClass: PrismaCuadreMayorRepository,
-        },
-        // Domain Services
-        EvaluadorFinancieroMayorService,
-        // Command Handlers
-        ...CuadreMayorCommandHandlers,
-        // Query Handlers
-        ...CuadreMayorQueryHandlers,
-        // Event Handlers
-        ...CuadreMayorEventHandlers,
-    ],
-    exports: [CUADRE_MAYOR_REPOSITORY, EvaluadorFinancieroMayorService],
+  imports: [
+    CqrsModule,
+    ConfigModule,
+    forwardRef(() => LotesModule),
+    forwardRef(() => CuadresModule),
+    forwardRef(() => UsuariosModule),
+    forwardRef(() => NotificacionesModule),
+    forwardRef(() => FondoRecompensasModule),
+  ],
+  controllers: [CuadresMayorController],
+  providers: [
+    // Repository (hexagonal)
+    {
+      provide: CUADRE_MAYOR_REPOSITORY,
+      useClass: PrismaCuadreMayorRepository,
+    },
+
+    // Domain service
+    EvaluadorFinancieroMayorService,
+
+    // CQRS
+    ...CuadreMayorCommandHandlers,
+    ...CuadreMayorQueryHandlers,
+    ...CuadreMayorEventHandlers,
+  ],
+  exports: [
+    CUADRE_MAYOR_REPOSITORY,
+    EvaluadorFinancieroMayorService,
+  ],
 })
 export class CuadresMayorModule {}
