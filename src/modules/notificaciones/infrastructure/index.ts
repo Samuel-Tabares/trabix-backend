@@ -71,7 +71,7 @@ export class PrismaNotificacionRepository implements INotificacionRepository {
         tipo: data.tipo,
         titulo: data.titulo,
         mensaje: data.mensaje,
-        datos: data.datos ?? Prisma.JsonNull,
+        datos: (data.datos as Prisma.InputJsonValue | undefined) ?? Prisma.JsonNull,
         canal: data.canal || 'WEBSOCKET',
       },
     });
