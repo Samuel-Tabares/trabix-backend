@@ -41,7 +41,7 @@ export async function seedUsuarios(prisma: PrismaClient) {
     update: {},
     create: {
       id: ADMIN_ID,
-      cedula: 999999999,
+      cedula: 1234567890,
       nombre: 'Carlos',
       apellidos: 'Administrador Trabix',
       email: 'admin@trabix.co',

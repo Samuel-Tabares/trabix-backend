@@ -125,7 +125,7 @@ const TANDA = {
 // ============================================================
 // CREDENCIALES
 // ============================================================
-const ADMIN_CEDULA = 999999999;
+const ADMIN_CEDULA = 1234567890;
 const ADMIN_PASSWORD = 'AdminTrabix2026!';
 const VENDEDOR_PASSWORD = 'Trabix2026!';
 const TEMP_PASSWORD = 'TempPass123';
@@ -409,7 +409,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería crear un vendedor nuevo (admin)', async () => {
         const res = await authPost('/usuarios', adminAccessToken)
           .send({
-            cedula: 8888880001,
+            cedula: 1000000001,
             nombre: 'Test',
             apellidos: 'E2E Usuario',
             email: 'test.e2e.user@mail.com',
@@ -438,7 +438,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería crear vendedor con reclutador (promueve a RECLUTADOR)', async () => {
         const res = await authPost('/usuarios', adminAccessToken)
           .send({
-            cedula: 8888880002,
+            cedula: 1000000002,
             nombre: 'Reclutado',
             apellidos: 'PorActivo',
             email: 'reclutado.test@mail.com',
@@ -453,7 +453,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería rechazar si no es admin', async () => {
         await authPost('/usuarios', vendedorAccessToken)
           .send({
-            cedula: 8888880099,
+            cedula: 1000000099,
             nombre: 'No',
             apellidos: 'Permitido',
             email: 'no.permitido@mail.com',

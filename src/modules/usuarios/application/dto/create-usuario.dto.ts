@@ -32,7 +32,7 @@ export class CreateUsuarioDto {
   @IsInt({ message: 'La cédula debe ser un número entero' })
   @IsNotEmpty({ message: 'La cédula es requerida' })
   @Min(100000, { message: 'La cédula debe tener al menos 6 dígitos' })
-  @Max(9999999999, { message: 'La cédula no puede exceder 10 dígitos' })
+  @Max(2147483646, { message: 'La cédula no puede exceder 10 dígitos' })
   cedula!: number;
 
   @ApiProperty({
