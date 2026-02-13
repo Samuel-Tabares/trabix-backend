@@ -219,6 +219,7 @@ export class LotesController {
      * Admin puede ver cualquier lote, vendedor/reclutador solo los suyos
      */
     @Get(':id')
+    @Roles('ADMIN', 'RECLUTADOR', 'VENDEDOR')
     @ApiOperation({
         summary: 'Obtener lote',
         description: 'Obtiene los datos de un lote. Admin ve cualquiera, vendedor solo los suyos.',
@@ -280,6 +281,7 @@ export class LotesController {
      * Admin puede cancelar cualquiera, vendedor/reclutador solo los suyos
      */
     @Post(':id/cancelar')
+    @Roles('ADMIN', 'RECLUTADOR', 'VENDEDOR')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
         summary: 'Cancelar solicitud de lote',
@@ -316,6 +318,7 @@ export class LotesController {
      * Admin puede ver cualquiera, vendedor/reclutador solo los suyos
      */
     @Get(':id/resumen-financiero')
+    @Roles('ADMIN', 'RECLUTADOR', 'VENDEDOR')
     @ApiOperation({
         summary: 'Resumen financiero del lote',
         description:

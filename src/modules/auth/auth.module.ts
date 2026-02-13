@@ -11,6 +11,9 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { LoginThrottleGuard } from './guards/login-throttle.guard';
 
+import { APP_GUARD } from '@nestjs/core';
+
+
 @Module({
   imports: [
     ConfigModule, // ← necesario para usar ConfigService aquí
@@ -28,18 +31,22 @@ import { LoginThrottleGuard } from './guards/login-throttle.guard';
   ],
   controllers: [AuthController],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
     AuthService,
     TokenBlacklistService,
     JwtStrategy,
-    JwtAuthGuard,
-    RolesGuard,
     LoginThrottleGuard,
   ],
   exports: [
     AuthService,
     TokenBlacklistService,
-    JwtAuthGuard,
-    RolesGuard,
     LoginThrottleGuard,
   ],
 })

@@ -19,10 +19,6 @@ import { DomainExceptionFilter } from './presentation/http/filters/domain-except
 import { LoggingInterceptor } from './presentation/http/interceptors/logging.interceptor';
 import { IdempotencyInterceptor } from './presentation/http/interceptors/idempotency.interceptor';
 
-// Guards
-import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
-import {  RolesGuard } from './modules/auth/guards/roles.guard';
-
 // Services
 import { RedisService } from './infrastructure/cache/redis.service';
 
@@ -135,16 +131,6 @@ async function bootstrap() {
     app.useGlobalInterceptors(
         new LoggingInterceptor(),
         new IdempotencyInterceptor(reflector, redisService),
-    );
-
-    /**
-     * ===============================
-     * Guards globales
-     * ===============================
-     */
-    app.useGlobalGuards(
-        app.get(JwtAuthGuard),
-        app.get(RolesGuard),
     );
 
     /**
