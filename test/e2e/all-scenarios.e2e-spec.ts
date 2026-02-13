@@ -409,7 +409,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería crear un vendedor nuevo (admin)', async () => {
         const res = await authPost('/usuarios', adminAccessToken)
           .send({
-            cedula: 1000000001,
+            cedula: 1445526602,
             nombre: 'Test',
             apellidos: 'E2E Usuario',
             email: 'test.e2e.user@mail.com',
@@ -438,7 +438,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería crear vendedor con reclutador (promueve a RECLUTADOR)', async () => {
         const res = await authPost('/usuarios', adminAccessToken)
           .send({
-            cedula: 1000000002,
+            cedula: 1445526602,
             nombre: 'Reclutado',
             apellidos: 'PorActivo',
             email: 'reclutado.test@mail.com',
@@ -453,7 +453,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería rechazar si no es admin', async () => {
         await authPost('/usuarios', vendedorAccessToken)
           .send({
-            cedula: 1000000099,
+            cedula: 1445526699,
             nombre: 'No',
             apellidos: 'Permitido',
             email: 'no.permitido@mail.com',
