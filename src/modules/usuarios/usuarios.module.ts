@@ -39,6 +39,6 @@ import { UsuarioQueryHandlers } from './application/queries';
     // Query Handlers
     ...UsuarioQueryHandlers,
   ],
-  exports: [USUARIO_REPOSITORY, PrismaUsuarioRepository],
+  exports: [USUARIO_REPOSITORY],
 })
 export class UsuariosModule {}

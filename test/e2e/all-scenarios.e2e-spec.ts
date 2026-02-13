@@ -11,7 +11,7 @@
  * Precondición: seed ejecutado (npx prisma db seed)
  *
  * Ejecutar:
- *   npx jest --config test/jest-e2e.json
+ * NODE_ENV=test npx dotenv-cli -e .env.test -- npm run test:e2e -- --testPathPattern=all-scenarios
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -19,6 +19,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/infrastructure/database/prisma/prisma.service';
+import { LoginThrottleGuard } from '@/modules/auth/guards/login-throttle.guard';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 // ============================================================
 // IDs del seed (mirrors prisma/seeds/helpers.ts)
@@ -144,16 +146,26 @@ describe('TRABIX E2E - All Scenarios', () => {
   let adminAccessToken: string;
   let adminRefreshToken: string;
   let vendedorAccessToken: string;
-  //let vendedorRefreshToken: string; se declara, no se usa
+  //let vendedorRefreshToken: string; se declara mas no se usa
   let reclutadorAccessToken: string;
 
   // ============================================================
   // SETUP & TEARDOWN
   // ============================================================
   beforeAll(async () => {
+    // Guard pass-through para desactivar rate limiting en tests
+    const noopGuard = { canActivate: () => true };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      // Desactivar throttling en tests — no necesario para E2E
+      // y LoginThrottleGuard tiene conflicto de DI con ConfigService
+      .overrideGuard(ThrottlerGuard)
+      .useValue(noopGuard)
+      .overrideGuard(LoginThrottleGuard)
+      .useValue(noopGuard)
+      .compile();
 
     app = moduleFixture.createNestApplication();
 
