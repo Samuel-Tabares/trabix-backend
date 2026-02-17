@@ -19,7 +19,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/infrastructure/database/prisma/prisma.service';
-import { LoginThrottleGuard } from '@/modules/auth/guards/login-throttle.guard';
+import { LoginThrottleGuard } from '../../src/modules/auth/guards/login-throttle.guard';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 // ============================================================
