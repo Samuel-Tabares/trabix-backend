@@ -171,11 +171,15 @@ export class ConfirmarCuadreHandler implements ICommandHandler<ConfirmarCuadreCo
     const operaciones: string[] = [];
 
     // Reducir deuda de daño si existe
+    // BUG-008 FIX: Use { set: 0 } instead of { decrement: staleAmount }.
+    // Decrementing by a value read outside the transaction can produce a
+    // negative deudaDano if another operation modified it concurrently.
+    // Setting to 0 is both the correct intent (clear all debt) and atomic-safe.
     if (deudaDano.greaterThan(0)) {
       await tx.equipamiento.update({
         where: { id: equipamiento.id },
         data: {
-          deudaDano: { decrement: Number.parseFloat(deudaDano.toFixed(2)) },
+          deudaDano: { set: 0 },
         },
       });
       operaciones.push(`deuda daño: -$${deudaDano.toFixed(2)}`);
@@ -186,7 +190,7 @@ export class ConfirmarCuadreHandler implements ICommandHandler<ConfirmarCuadreCo
       await tx.equipamiento.update({
         where: { id: equipamiento.id },
         data: {
-          deudaPerdida: { decrement: Number.parseFloat(deudaPerdida.toFixed(2)) },
+          deudaPerdida: { set: 0 },
         },
       });
       operaciones.push(`deuda pérdida: -$${deudaPerdida.toFixed(2)}`);

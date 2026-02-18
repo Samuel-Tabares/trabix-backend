@@ -68,8 +68,10 @@ export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
 
       this.logger.log(`VentaAprobadaEvent procesado exitosamente: ${event.ventaId}`);
     } catch (error) {
+      // BUG-007 FIX: Do NOT re-throw. The venta is already APROBADA in the DB.
+      // Re-throwing would propagate a 500 to the caller even though the command
+      // succeeded, causing the admin to see an error on an already-approved venta.
       this.logger.error(`Error procesando VentaAprobadaEvent: ${event.ventaId}`, error);
-      throw error;
     }
   }
 
