@@ -165,3 +165,6 @@ Usa esta opción para forzar conexiones y variables del entorno de test.
 swagger: http://localhost:3000/docs
 api base: http://localhost:3000/api/v1
 ambiente: development
+
+para dev entrar a bd psql -h localhost -p 5432 -U trabix_user -d trabix_db
+clave: trabix_password

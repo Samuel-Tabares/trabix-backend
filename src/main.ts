@@ -40,9 +40,10 @@ async function bootstrap() {
    * Configuración general
    * ===============================
    */
-  const apiPrefix = configService.get<string>('app.apiPrefix')!;
+  const apiPrefix = configService.get<string>('API_PREFIX')!;
   const nodeEnv = configService.get<string>('app.nodeEnv')!;
   const port = configService.get<number>('app.port')!;
+  const apiVersion = configService.get<string>('API_VERSION', '1')!;
 
   app.setGlobalPrefix(apiPrefix);
 
@@ -53,7 +54,7 @@ async function bootstrap() {
    */
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: configService.get<string>('app.apiVersion', '1'),
+    defaultVersion: apiVersion,
   });
 
   /**
