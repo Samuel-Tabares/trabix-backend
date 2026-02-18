@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -47,13 +47,22 @@ import { AdminModule } from './modules/admin/admin.module';
 
     WinstonModule.forRoot(winstonConfig),
 
-    ThrottlerModule.forRoot([
-      {
-        name: 'global',
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => [
+        {
+          name: 'global',
+          ttl: configService.get<number>('throttle.global.ttl', 60000),
+          limit: configService.get<number>('throttle.global.limit', 100),
+        },
+        {
+          name: 'login',
+          ttl: configService.get<number>('throttle.login.ttl', 60000),
+          limit: configService.get<number>('throttle.login.limit', 5),
+        },
+      ],
+    }),
 
     EventEmitterModule.forRoot({
       wildcard: false,

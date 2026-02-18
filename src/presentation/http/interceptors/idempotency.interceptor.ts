@@ -5,7 +5,7 @@ import {
   CallHandler,
   ConflictException,
 } from '@nestjs/common';
-import { catchError, from, mergeMap, Observable, of } from 'rxjs';
+import { catchError, from, mergeMap, Observable, of, throwError } from 'rxjs';
 import { Reflector } from '@nestjs/core';
 import { RedisService } from '../../../infrastructure/cache/redis.service';
 
@@ -99,10 +99,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
           })(),
         ),
       ),
-      catchError(async (err) => {
-        await this.releaseLock(lockKey);
-        throw err;
-      }),
+      catchError((err) =>
+        from(this.releaseLock(lockKey)).pipe(mergeMap(() => throwError(() => err))),
+      ),
     );
   }
 

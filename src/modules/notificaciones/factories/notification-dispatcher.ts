@@ -131,6 +131,12 @@ export class NotificationDispatcher {
 
   constructor(
     private readonly webSocketChannel: WebSocketChannel,
+    // TODO (#10): Inyectar y registrar PushChannel y WhatsAppChannel cuando estén implementados.
+    // Sin esto, las notificaciones con canal PUSH o WHATSAPP se persisten en DB pero nunca se envían.
+    // Pasos:
+    //   1. Descomentar los parámetros del constructor.
+    //   2. Descomentar las líneas channels.set() correspondientes.
+    //   3. Implementar la integración real en PushChannel y WhatsAppChannel.
     //private readonly pushChannel: PushChannel,
     //private readonly whatsAppChannel: WhatsAppChannel,
   ) {

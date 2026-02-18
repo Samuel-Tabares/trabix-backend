@@ -7,7 +7,7 @@ import throttleConfig from './throttle.config';
 const configuration = () => ({
   app: {
     nodeEnv: process.env.NODE_ENV,
-    port: Number(process.env.PORT),
+    port: Number(process.env.PORT) || 3000,
     apiPrefix: process.env.API_PREFIX,
   },
 
@@ -20,88 +20,88 @@ const configuration = () => ({
     redisUrl: process.env.BULL_REDIS_URL ?? process.env.REDIS_URL,
   },
 
-    security: {
-        bcryptRounds: Number(process.env.BCRYPT_ROUNDS),
-        rateLimitTtl: Number(process.env.RATE_LIMIT_TTL),
-        rateLimitMax: Number(process.env.RATE_LIMIT_MAX),
-        corsOrigin: process.env.CORS_ORIGIN,
+  security: {
+    bcryptRounds: Number(process.env.BCRYPT_ROUNDS) || 12,
+    rateLimitTtl: Number(process.env.RATE_LIMIT_TTL) || 60,
+    rateLimitMax: Number(process.env.RATE_LIMIT_MAX) || 100,
+    corsOrigin: process.env.CORS_ORIGIN,
 
-        helmet: {
-            contentSecurityPolicy: {
-                defaultSrc: process.env.CSP_DEFAULT_SRC ?? "'self'",
-                styleSrc: process.env.CSP_STYLE_SRC ?? "'self','unsafe-inline'",
-                imgSrc: process.env.CSP_IMG_SRC ?? "'self',data:",
-                scriptSrc: process.env.CSP_SCRIPT_SRC ?? "'self'",
-            },
-            crossOriginEmbedderPolicy: false,
-        },
-
-        cors: {
-            methods: process.env.CORS_METHODS ?? 'GET,HEAD,PUT,PATCH,POST,DELETE',
-            headers: process.env.CORS_HEADERS ?? 'Content-Type,Authorization',
-            credentials: true,
-        },
+    helmet: {
+      contentSecurityPolicy: {
+        defaultSrc: process.env.CSP_DEFAULT_SRC ?? "'self'",
+        styleSrc: process.env.CSP_STYLE_SRC ?? "'self','unsafe-inline'",
+        imgSrc: process.env.CSP_IMG_SRC ?? "'self',data:",
+        scriptSrc: process.env.CSP_SCRIPT_SRC ?? "'self'",
+      },
+      crossOriginEmbedderPolicy: false,
     },
+
+    cors: {
+      methods: process.env.CORS_METHODS ?? 'GET,HEAD,PUT,PATCH,POST,DELETE',
+      headers: process.env.CORS_HEADERS ?? 'Content-Type,Authorization',
+      credentials: true,
+    },
+  },
 
   // Configuración de bloqueo progresivo por intentos fallidos
   lockout: {
     level1: {
-      attempts: Number(process.env.LOCKOUT_LEVEL1_ATTEMPTS),
-      durationMinutes: Number(process.env.LOCKOUT_LEVEL1_MINUTES),
+      attempts: Number(process.env.LOCKOUT_LEVEL1_ATTEMPTS) || 5,
+      durationMinutes: Number(process.env.LOCKOUT_LEVEL1_MINUTES) || 15,
     },
     level2: {
-      attempts: Number(process.env.LOCKOUT_LEVEL2_ATTEMPTS),
-      durationMinutes: Number(process.env.LOCKOUT_LEVEL2_MINUTES),
+      attempts: Number(process.env.LOCKOUT_LEVEL2_ATTEMPTS) || 10,
+      durationMinutes: Number(process.env.LOCKOUT_LEVEL2_MINUTES) || 60,
     },
     level3: {
-      attempts: Number(process.env.LOCKOUT_LEVEL3_ATTEMPTS),
-      durationMinutes: Number(process.env.LOCKOUT_LEVEL3_MINUTES),
+      attempts: Number(process.env.LOCKOUT_LEVEL3_ATTEMPTS) || 15,
+      durationMinutes: Number(process.env.LOCKOUT_LEVEL3_MINUTES) || 1440,
     },
-    permanentLockoutAttempts: Number(process.env.LOCKOUT_PERMANENT_ATTEMPTS),
+    permanentLockoutAttempts: Number(process.env.LOCKOUT_PERMANENT_ATTEMPTS) || 20,
   },
 
   business: {
-    costoPercibidoTrabix: Number(process.env.COSTO_PERCIBIDO_TRABIX),
-    aporteFondoPorTrabix: Number(process.env.APORTE_FONDO_POR_TRABIX),
-    precioUnidadLicor: Number(process.env.PRECIO_UNIDAD_LICOR),
-    precioPromoLicor: Number(process.env.PRECIO_PROMO_LICOR),
-    precioUnidadSinLicor: Number(process.env.PRECIO_UNIDAD_SIN_LICOR),
-    precioMayor20Licor: Number(process.env.PRECIO_MAYOR_20_LICOR),
-    precioMayor50Licor: Number(process.env.PRECIO_MAYOR_50_LICOR),
-    precioMayor100Licor: Number(process.env.PRECIO_MAYOR_100_LICOR),
-    precioMayor20SinLicor: Number(process.env.PRECIO_MAYOR_20_SIN_LICOR),
-    precioMayor50SinLicor: Number(process.env.PRECIO_MAYOR_50_SIN_LICOR),
-    precioMayor100SinLicor: Number(process.env.PRECIO_MAYOR_100_SIN_LICOR),
+    costoPercibidoTrabix: Number(process.env.COSTO_PERCIBIDO_TRABIX) || 2400,
+    aporteFondoPorTrabix: Number(process.env.APORTE_FONDO_POR_TRABIX) || 200,
+    precioUnidadLicor: Number(process.env.PRECIO_UNIDAD_LICOR) || 8000,
+    precioPromoLicor: Number(process.env.PRECIO_PROMO_LICOR) || 12000,
+    precioUnidadSinLicor: Number(process.env.PRECIO_UNIDAD_SIN_LICOR) || 7000,
+    precioMayor20Licor: Number(process.env.PRECIO_MAYOR_20_LICOR) || 4900,
+    precioMayor50Licor: Number(process.env.PRECIO_MAYOR_50_LICOR) || 4700,
+    precioMayor100Licor: Number(process.env.PRECIO_MAYOR_100_LICOR) || 4500,
+    precioMayor20SinLicor: Number(process.env.PRECIO_MAYOR_20_SIN_LICOR) || 4800,
+    precioMayor50SinLicor: Number(process.env.PRECIO_MAYOR_50_SIN_LICOR) || 4500,
+    precioMayor100SinLicor: Number(process.env.PRECIO_MAYOR_100_SIN_LICOR) || 4200,
   },
 
   equipamiento: {
-    mensualidadConDeposito: Number(process.env.MENSUALIDAD_CON_DEPOSITO),
-    mensualidadSinDeposito: Number(process.env.MENSUALIDAD_SIN_DEPOSITO),
-    deposito: Number(process.env.DEPOSITO_EQUIPAMIENTO),
-    costoDanoNevera: Number(process.env.COSTO_DANO_NEVERA),
-    costoDanoPijama: Number(process.env.COSTO_DANO_PIJAMA),
+    mensualidadConDeposito: Number(process.env.MENSUALIDAD_CON_DEPOSITO) || 9990,
+    mensualidadSinDeposito: Number(process.env.MENSUALIDAD_SIN_DEPOSITO) || 19990,
+    deposito: Number(process.env.DEPOSITO_EQUIPAMIENTO) || 49990,
+    costoDanoNevera: Number(process.env.COSTO_DANO_NEVERA) || 30000,
+    costoDanoPijama: Number(process.env.COSTO_DANO_PIJAMA) || 60000,
   },
 
   porcentajes: {
-    vendedor6040: Number(process.env.PORCENTAJE_GANANCIA_VENDEDOR_60_40),
-    admin6040: Number(process.env.PORCENTAJE_GANANCIA_ADMIN_60_40),
-    vendedor5050: Number(process.env.PORCENTAJE_GANANCIA_VENDEDOR_50_50),
-    inversion: Number(process.env.PORCENTAJE_INVERSION_VENDEDOR),
-    limiteRegalos: Number(process.env.LIMITE_REGALOS),
-    triggerCuadreT2: Number(process.env.TRIGGER_CUADRE_T2),
-    triggerCuadreT3: Number(process.env.TRIGGER_CUADRE_T3),
-    triggerCuadreT1_2Tandas: Number(process.env.TRIGGER_CUADRE_T1_2TANDAS),
-    triggerCuadreT2_2Tandas: Number(process.env.TRIGGER_CUADRE_T2_2TANDAS),
+    vendedor6040: Number(process.env.PORCENTAJE_GANANCIA_VENDEDOR_60_40) || 60,
+    admin6040: Number(process.env.PORCENTAJE_GANANCIA_ADMIN_60_40) || 40,
+    vendedor5050: Number(process.env.PORCENTAJE_GANANCIA_VENDEDOR_50_50) || 50,
+    inversion: Number(process.env.PORCENTAJE_INVERSION_VENDEDOR) || 50,
+    limiteRegalos: Number(process.env.LIMITE_REGALOS) || 8,
+    triggerCuadreT2: Number(process.env.TRIGGER_CUADRE_T2) || 10,
+    triggerCuadreT3: Number(process.env.TRIGGER_CUADRE_T3) || 20,
+    triggerCuadreT1_2Tandas: Number(process.env.TRIGGER_CUADRE_T1_2TANDAS) || 10,
+    triggerCuadreT2_2Tandas: Number(process.env.TRIGGER_CUADRE_T2_2TANDAS) || 20,
   },
 
   lotes: {
-    maxLotesCreadosPorVendedor: Number(process.env.MAX_LOTES_CREADOS_POR_VENDEDOR),
-    inversionMinimaVendedor: Number(process.env.INVERSION_MINIMA_VENDEDOR),
-    umbralTandasTres: Number(process.env.UMBRAL_TANDAS_TRES),
+    maxLotesCreadosPorVendedor: Number(process.env.MAX_LOTES_CREADOS_POR_VENDEDOR) || 3,
+    inversionMinimaVendedor: Number(process.env.INVERSION_MINIMA_VENDEDOR) || 0,
+    umbralTandasTres: Number(process.env.UMBRAL_TANDAS_TRES) || 50,
   },
 
   tiempos: {
-    autoTransitoHoras: Number(process.env.TIEMPO_AUTO_TRANSITO_HORAS),
+    autoTransitoHoras: Number(process.env.TIEMPO_AUTO_TRANSITO_HORAS) || 2,
   },
 
   logging: {
@@ -114,8 +114,8 @@ const configuration = () => ({
   },
 
   outbox: {
-    pollInterval: Number(process.env.OUTBOX_POLL_INTERVAL),
-    maxRetries: Number(process.env.OUTBOX_MAX_RETRIES),
+    pollInterval: Number(process.env.OUTBOX_POLL_INTERVAL) || 5000,
+    maxRetries: Number(process.env.OUTBOX_MAX_RETRIES) || 3,
   },
 });
 export default configuration;

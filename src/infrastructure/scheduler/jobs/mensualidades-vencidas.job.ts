@@ -37,47 +37,56 @@ export class MensualidadesVencidasJob {
     this.logger.log('Iniciando verificación de mensualidades vencidas...');
 
     try {
-      // 1. Obtener todos los equipamientos activos
-      const resultado = await this.equipamientoRepository.findAll({
-        where: { estado: 'ACTIVO' },
-        take: 1000, // Límite razonable
-      });
-
-      const equipamientosActivos = resultado.data;
-      this.logger.log(`Equipamientos activos encontrados: ${equipamientosActivos.length}`);
-
       let vendedoresActualizados = 0;
       let errores = 0;
+      let skip = 0;
+      const take = 100;
+      let hasMore = true;
 
-      // 2. Verificar cada equipamiento
-      for (const equipamiento of equipamientosActivos) {
-        try {
-          const diasDesdeUltimoPago = this.calcularDiasDesdeUltimoPago(
-            equipamiento.ultimaMensualidadPagada,
-            equipamiento.fechaEntrega,
-          );
+      // 1. Paginar equipamientos activos para no imponer un límite fijo
+      while (hasMore) {
+        const resultado = await this.equipamientoRepository.findAll({
+          where: { estado: 'ACTIVO' },
+          take,
+          skip,
+        });
 
-          // Si han pasado más de 30 días, hay mensualidad(es) pendiente(s)
-          if (diasDesdeUltimoPago > 30) {
-            const mensualidadesPendientes = Math.floor(diasDesdeUltimoPago / 30);
+        const equipamientosActivos = resultado.data;
+        this.logger.log(`Equipamientos activos (skip=${skip}): ${equipamientosActivos.length}`);
 
-            this.logger.log(
-              `Equipamiento ${equipamiento.id} (vendedor ${equipamiento.vendedorId}): ` +
-                `${mensualidadesPendientes} mensualidad(es) pendiente(s) ` +
-                `(${diasDesdeUltimoPago} días desde último pago)`,
+        skip += take;
+        hasMore = resultado.hasMore;
+
+        // 2. Verificar cada equipamiento de la página actual
+        for (const equipamiento of equipamientosActivos) {
+          try {
+            const diasDesdeUltimoPago = this.calcularDiasDesdeUltimoPago(
+              equipamiento.ultimaMensualidadPagada,
+              equipamiento.fechaEntrega,
             );
 
-            // Actualizar cuadres del vendedor
-            await this.actualizadorCuadres.actualizarPorCambioDeudaEquipamiento(
-              equipamiento.vendedorId,
-              `Mensualidad vencida detectada (${mensualidadesPendientes} pendientes)`,
-            );
+            // Si han pasado más de 30 días, hay mensualidad(es) pendiente(s)
+            if (diasDesdeUltimoPago > 30) {
+              const mensualidadesPendientes = Math.floor(diasDesdeUltimoPago / 30);
 
-            vendedoresActualizados++;
+              this.logger.log(
+                `Equipamiento ${equipamiento.id} (vendedor ${equipamiento.vendedorId}): ` +
+                  `${mensualidadesPendientes} mensualidad(es) pendiente(s) ` +
+                  `(${diasDesdeUltimoPago} días desde último pago)`,
+              );
+
+              // Actualizar cuadres del vendedor
+              await this.actualizadorCuadres.actualizarPorCambioDeudaEquipamiento(
+                equipamiento.vendedorId,
+                `Mensualidad vencida detectada (${mensualidadesPendientes} pendientes)`,
+              );
+
+              vendedoresActualizados++;
+            }
+          } catch (error) {
+            this.logger.error(`Error procesando equipamiento ${equipamiento.id}: ${error}`);
+            errores++;
           }
-        } catch (error) {
-          this.logger.error(`Error procesando equipamiento ${equipamiento.id}: ${error}`);
-          errores++;
         }
       }
 

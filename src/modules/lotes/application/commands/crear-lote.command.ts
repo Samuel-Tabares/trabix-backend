@@ -5,7 +5,7 @@ import {
   ILoteRepository,
   LOTE_REPOSITORY,
   LoteConTandas,
-} from '../../../lotes/domain/lote.repository.interface';
+} from '../../domain/lote.repository.interface';
 import {
   IUsuarioRepository,
   USUARIO_REPOSITORY,

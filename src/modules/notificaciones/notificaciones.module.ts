@@ -47,9 +47,9 @@ import { NotificacionQueryHandlers } from './application/queries';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.accessSecret'),
+        secret: configService.get<string>('jwt.secret'),
         signOptions: {
-          expiresIn: configService.get<string>('jwt.accessExpiresIn'),
+          expiresIn: configService.get<string>('jwt.accessExpiration'),
         },
       }),
     }),

@@ -113,13 +113,15 @@ async function bootstrap() {
   /**
    * ===============================
    * Filters globales
-   * (orden: específico → general)
+   * NestJS aplica filtros en orden INVERSO al registro:
+   * el último registrado se ejecuta primero.
+   * Orden de ejecución: DomainException → Http → All (específico → general)
    * ===============================
    */
   app.useGlobalFilters(
-    new DomainExceptionFilter(),
-    new HttpExceptionFilter(),
     new AllExceptionsFilter(),
+    new HttpExceptionFilter(),
+    new DomainExceptionFilter(),
   );
 
   /**

@@ -5,12 +5,17 @@ import { OutboxService } from './outbox.service';
 import { EventStoreService, DomainEvent } from '../event-store/event-store.service';
 
 /**
- * Mapeo de tipos de evento a clases de evento
- * Se debe extender según los eventos del dominio
+ * Mapeo de tipos de evento a clases de evento.
+ *
+ * TODO: Registrar aquí cada clase de evento de dominio que se almacene en el Outbox,
+ * de lo contrario los manejadores (@EventsHandler) no serán invocados y
+ * el evento solo quedará auditado en el EventStore (no se ejecutará at-least-once delivery).
+ *
+ * Ejemplo:
+ *   import { LoteActivadoEvent } from '../../../modules/lotes/domain/events/lote-activado.event';
+ *   'LoteActivado': LoteActivadoEvent,
  */
-const EVENT_MAPPINGS: Record<string, any> = {
-  // Los eventos se registran dinámicamente o se mapean aquí
-};
+const EVENT_MAPPINGS: Record<string, new (...args: any[]) => any> = {};
 
 /**
  * Outbox Processor
@@ -106,11 +111,10 @@ export class OutboxProcessor implements OnModuleInit {
       // Log del error con mensaje seguro
       this.logger.error(`Error procesando mensaje ${message.id}: ${errorMessage}`);
 
-      // Aplicar backoff exponencial
-      const backoffMs = Math.pow(2, message.retries) * 1000;
-      await this.delay(backoffMs);
-
-      // Marcar el mensaje como fallido con el mensaje de error seguro
+      // Marcar el mensaje como fallido antes de continuar procesando otros mensajes.
+      // El backoff exponencial (1s, 2s, 4s...) debe aplicarse en el momento del *siguiente intento*
+      // comparando message.retries contra un nextRetryAt calculado por markAsFailed,
+      // no bloqueando el procesador aquí con un delay que detendría todos los mensajes pendientes.
       await this.outboxService.markAsFailed(message.id, errorMessage);
     }
   }
@@ -135,10 +139,4 @@ export class OutboxProcessor implements OnModuleInit {
     }
   }
 
-  /**
-   * Utilidad para delay
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
 }
