@@ -20,7 +20,7 @@ export class PrismaVentaMayorRepository implements IVentaMayorRepository {
     vendedor: {
       select: {
         id: true,
-        nombres: true,
+        nombre: true,
         apellidos: true,
         email: true,
       },

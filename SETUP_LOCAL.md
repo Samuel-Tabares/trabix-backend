@@ -166,5 +166,11 @@ swagger: http://localhost:3000/docs
 api base: http://localhost:3000/api/v1
 ambiente: development
 
-para dev entrar a bd psql -h localhost -p 5432 -U trabix_user -d trabix_db
-clave: trabix_password
+### para dev entrar a bd:
+psql -h localhost -p 5432 -U trabix_user -d trabix_db
+### clave:
+trabix_password
+### comando util en bd:
+SELECT id, clave, valor
+FROM configuraciones_sistema;
+

@@ -27,7 +27,7 @@ export async function seedUsuarios(prisma: PrismaClient) {
 
   const pwdNormal = await hashPassword('Trabix2026!');
   const pwdTemp = await hashPassword('TempPass123');
-  const pwdAdmin = await hashPassword('AdminTrabix2026!');
+  const pwdAdmin = await hashPassword('trabix333');
 
   // Contador para cédulas únicas
   let ci = 0;
@@ -42,7 +42,7 @@ export async function seedUsuarios(prisma: PrismaClient) {
     create: {
       id: ADMIN_ID,
       cedula: 1234567890,
-      nombre: 'Carlos',
+      nombre: 'Samuel',
       apellidos: 'Administrador Trabix',
       email: 'admin@trabix.co',
       telefono: '+573001000000',
