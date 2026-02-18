@@ -5,10 +5,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { FondoRecompensasController } from './controllers';
 
 // Domain
-import {
-  FondoRecompensasService,
-  FONDO_RECOMPENSAS_REPOSITORY,
-} from './domain';
+import { FondoRecompensasService, FONDO_RECOMPENSAS_REPOSITORY } from './domain';
 
 // Infrastructure
 import { PrismaFondoRecompensasRepository } from './infrastructure';
@@ -27,20 +24,16 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
  * - Consulta de saldo del fondo (todos los usuarios)
  * - Listado de transacciones (todos los usuarios)
  * - Registro de salidas/premios (solo admin)
- * 
+ *
  * Las entradas se registran automáticamente al activar lotes
  * desde el LoteActivadoEvent en el módulo de lotes.
- * 
+ *
  * Cálculo:
  * - Aporte por TRABIX = $200 (configurable)
  * - Al activar lote: entrada = cantidadTrabix × $200
  */
 @Module({
-  imports: [
-    CqrsModule,
-    forwardRef(() => UsuariosModule),
-    forwardRef(() => NotificacionesModule),
-  ],
+  imports: [CqrsModule, forwardRef(() => UsuariosModule), forwardRef(() => NotificacionesModule)],
   controllers: [FondoRecompensasController],
   providers: [
     // Repository (hexagonal)
@@ -57,9 +50,6 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
     ...FondoRecompensasQueryHandlers,
     ...FondoRecompensasEventHandlers,
   ],
-  exports: [
-    FONDO_RECOMPENSAS_REPOSITORY,
-    FondoRecompensasService,
-  ],
+  exports: [FONDO_RECOMPENSAS_REPOSITORY, FondoRecompensasService],
 })
 export class FondoRecompensasModule {}

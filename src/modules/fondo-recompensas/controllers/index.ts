@@ -1,18 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Decimal } from 'decimal.js';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -31,20 +18,17 @@ import {
 import { RegistrarSalidaFondoCommand } from '../application/commands';
 
 // Queries
-import {
-  ObtenerSaldoFondoQuery,
-  ListarTransaccionesFondoQuery,
-} from '../application/queries';
+import { ObtenerSaldoFondoQuery, ListarTransaccionesFondoQuery } from '../application/queries';
 
 /**
  * Controlador del Fondo de Recompensas
  * Según sección 12 del documento
- * 
+ *
  * Endpoints:
  * - GET /saldo           - Obtener saldo actual (todos autenticados)
  * - GET /transacciones   - Listar transacciones (todos autenticados)
  * - POST /salida         - Registrar salida/premio (solo admin)
- * 
+ *
  * El fondo se alimenta automáticamente al activar lotes.
  * Las salidas son premios/bonos que el admin otorga a vendedores destacados.
  */
@@ -86,7 +70,8 @@ export class FondoRecompensasController {
   })
   @ApiResponse({ status: 200, type: TransaccionesPaginadasDto })
   async listarTransacciones(
-    @Query() queryDto: QueryTransaccionesDto): Promise<TransaccionesPaginadasDto> {
+    @Query() queryDto: QueryTransaccionesDto,
+  ): Promise<TransaccionesPaginadasDto> {
     return this.queryBus.execute(new ListarTransaccionesFondoQuery(queryDto));
   }
 

@@ -2,9 +2,9 @@ import { CommandHandler, ICommandHandler, ICommand, EventBus } from '@nestjs/cqr
 import { Inject, Logger } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import {
-    IVentaRepository,
-    VENTA_REPOSITORY,
-    VentaConDetalles,
+  IVentaRepository,
+  VENTA_REPOSITORY,
+  VentaConDetalles,
 } from '../../domain/venta.repository.interface';
 import { VentaEntity } from '../../domain/venta.entity';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
@@ -23,9 +23,9 @@ export class AprobarVentaCommand implements ICommand {
 /**
  * Handler del comando AprobarVenta
  * Según sección 6 del documento
- * 
+ *
  * Si APRUEBA: stock se reduce definitivamente, venta genera recaudo
- * 
+ *
  * Acciones (VentaAprobadaEvent):
  * 1. Actualizar stock de tanda (ya reducido temporalmente)
  * 2. Actualizar dinero recaudado del lote
@@ -34,9 +34,7 @@ export class AprobarVentaCommand implements ICommand {
  * 5. Si inversión recuperada: Enviar notificación
  */
 @CommandHandler(AprobarVentaCommand)
-export class AprobarVentaHandler
-  implements ICommandHandler<AprobarVentaCommand, VentaConDetalles>
-{
+export class AprobarVentaHandler implements ICommandHandler<AprobarVentaCommand, VentaConDetalles> {
   private readonly logger = new Logger(AprobarVentaHandler.name);
 
   constructor(
@@ -51,11 +49,7 @@ export class AprobarVentaHandler
     // Buscar la venta
     const venta = await this.ventaRepository.findById(ventaId);
     if (!venta) {
-      throw new DomainException(
-        'VNT_003',
-        'Venta no encontrada',
-        { ventaId },
-      );
+      throw new DomainException('VNT_003', 'Venta no encontrada', { ventaId });
     }
 
     // Validar que se puede aprobar
@@ -69,9 +63,7 @@ export class AprobarVentaHandler
     // Aprobar la venta
     const ventaAprobada = await this.ventaRepository.aprobar(ventaId);
 
-    this.logger.log(
-      `Venta aprobada: ${ventaId} por admin ${adminId}`,
-    );
+    this.logger.log(`Venta aprobada: ${ventaId} por admin ${adminId}`);
 
     // Publicar evento VentaAprobadaEvent
     this.eventBus.publish(

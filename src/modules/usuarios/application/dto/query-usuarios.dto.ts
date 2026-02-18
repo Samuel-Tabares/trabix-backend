@@ -1,14 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-  IsEnum,
-  IsInt,
-  Min,
-  Max,
-  IsUUID,
-  IsBoolean,
-} from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, Min, Max, IsUUID, IsBoolean } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { Rol, EstadoUsuario } from '@prisma/client';
 

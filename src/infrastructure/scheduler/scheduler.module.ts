@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
 import {
-    CleanupExpiredTokensJob,
-    CleanupProcessedOutboxJob,
-    CleanupExpiredIdempotencyKeysJob,
+  CleanupExpiredTokensJob,
+  CleanupProcessedOutboxJob,
+  CleanupExpiredIdempotencyKeysJob,
 } from './jobs/cleanup.jobs';
-import {
-    TandaAutoTransitJob,
-} from './jobs/tanda-auto-transit.job';
+import { TandaAutoTransitJob } from './jobs/tanda-auto-transit.job';
 import { MensualidadesVencidasJob } from './jobs/mensualidades-vencidas.job';
 import { EventsModule } from '../events/events.module';
 import { EquipamientoModule } from '../../modules/equipamiento/equipamiento.module';
@@ -44,21 +42,14 @@ import { CuadresModule } from '../../modules/cuadres/cuadres.module';
  * evitar race conditions en ambientes con múltiples instancias.
  */
 @Module({
-    imports: [
-        EventsModule,
-        EquipamientoModule,
-        CuadresModule,
-    ],
-    providers: [
-        TandaAutoTransitJob,
-        CleanupExpiredTokensJob,
-        CleanupProcessedOutboxJob,
-        CleanupExpiredIdempotencyKeysJob,
-        MensualidadesVencidasJob,
-    ],
-    exports: [
-        TandaAutoTransitJob,
-        MensualidadesVencidasJob,
-    ],
+  imports: [EventsModule, EquipamientoModule, CuadresModule],
+  providers: [
+    TandaAutoTransitJob,
+    CleanupExpiredTokensJob,
+    CleanupProcessedOutboxJob,
+    CleanupExpiredIdempotencyKeysJob,
+    MensualidadesVencidasJob,
+  ],
+  exports: [TandaAutoTransitJob, MensualidadesVencidasJob],
 })
 export class SchedulerModule {}

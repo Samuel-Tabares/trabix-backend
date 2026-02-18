@@ -1,12 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  ValidateNested,
-  IsEnum,
-  IsInt,
-  Min,
-  ArrayMinSize,
-} from 'class-validator';
+import { IsArray, ValidateNested, IsEnum, IsInt, Min, ArrayMinSize } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TipoVenta } from '@prisma/client';
 
@@ -37,7 +30,7 @@ export class DetalleVentaDto {
 /**
  * DTO para registrar una venta
  * Según sección 6 del documento
- * 
+ *
  * Vendedor registra venta colectiva (ej: 3 promos, 5 unidades, 1 regalo, 1 sin licor)
  */
 export class CreateVentaDto {

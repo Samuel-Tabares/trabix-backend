@@ -4,9 +4,9 @@ import { Decimal } from 'decimal.js';
  * Ganancia de reclutador en el cuadre al mayor
  */
 export interface GananciaReclutadorMayor {
-    reclutadorId: string;
-    nivel: number;
-    monto: Decimal;
+  reclutadorId: string;
+  nivel: number;
+  monto: Decimal;
 }
 
 /**
@@ -14,10 +14,10 @@ export interface GananciaReclutadorMayor {
  * Incluye información adicional para procesamiento
  */
 export interface TandaAfectada {
-    tandaId: string;
-    cantidadStockConsumido: number;
-    numeroTanda: number;
-    loteId: string;
+  tandaId: string;
+  cantidadStockConsumido: number;
+  numeroTanda: number;
+  loteId: string;
 }
 
 /**
@@ -25,36 +25,36 @@ export interface TandaAfectada {
  * Según sección 8.3 del documento
  */
 export interface EvaluacionFinanciera {
-    dineroRecaudadoDetal: Decimal;
-    dineroVentaMayor: Decimal;
-    dineroTotalDisponible: Decimal;
-    inversionAdminTotal: Decimal;
-    inversionVendedorTotal: Decimal;
-    inversionAdminCubierta: Decimal;
-    inversionVendedorCubierta: Decimal;
-    gananciaNeta: Decimal;
-    gananciaAdmin: Decimal;
-    gananciaVendedor: Decimal;
-    deudasSaldadas: Decimal;
-    gananciasReclutadores: GananciaReclutadorMayor[];
+  dineroRecaudadoDetal: Decimal;
+  dineroVentaMayor: Decimal;
+  dineroTotalDisponible: Decimal;
+  inversionAdminTotal: Decimal;
+  inversionVendedorTotal: Decimal;
+  inversionAdminCubierta: Decimal;
+  inversionVendedorCubierta: Decimal;
+  gananciaNeta: Decimal;
+  gananciaAdmin: Decimal;
+  gananciaVendedor: Decimal;
+  deudasSaldadas: Decimal;
+  gananciasReclutadores: GananciaReclutadorMayor[];
 }
 
 /**
  * Helper para parsear montos Decimal desde valores almacenados
  */
 export function parseDecimalValue(value: unknown): Decimal {
-    if (value instanceof Decimal) {
-        return value;
-    }
-    if (typeof value === 'string' || typeof value === 'number') {
-        return new Decimal(value);
-    }
-    return new Decimal(0);
+  if (value instanceof Decimal) {
+    return value;
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return new Decimal(value);
+  }
+  return new Decimal(0);
 }
 
 /**
  * Helper para formatear Decimal a string con 2 decimales
  */
 export function formatDecimal(value: Decimal): string {
-    return value.toFixed(2);
+  return value.toFixed(2);
 }

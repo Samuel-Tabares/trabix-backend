@@ -23,9 +23,10 @@ export class EnviarNotificacionCommand implements ICommand {
 }
 
 @CommandHandler(EnviarNotificacionCommand)
-export class EnviarNotificacionHandler
-  implements ICommandHandler<EnviarNotificacionCommand, NotificacionEntity>
-{
+export class EnviarNotificacionHandler implements ICommandHandler<
+  EnviarNotificacionCommand,
+  NotificacionEntity
+> {
   private readonly logger = new Logger(EnviarNotificacionHandler.name);
 
   constructor(
@@ -36,15 +37,10 @@ export class EnviarNotificacionHandler
   ) {}
 
   async execute(command: EnviarNotificacionCommand): Promise<NotificacionEntity> {
-    this.logger.debug(
-      `Enviando notificación ${command.tipo} a usuario ${command.usuarioId}`,
-    );
+    this.logger.debug(`Enviando notificación ${command.tipo} a usuario ${command.usuarioId}`);
 
     // Crear contenido usando factory
-    const content = this.contentFactory.create(
-      command.tipo,
-      command.datos || {},
-    );
+    const content = this.contentFactory.create(command.tipo, command.datos || {});
 
     // Guardar en base de datos
     const notificacion = await this.notificacionRepository.create({
@@ -93,9 +89,10 @@ export class EnviarNotificacionARolCommand implements ICommand {
 }
 
 @CommandHandler(EnviarNotificacionARolCommand)
-export class EnviarNotificacionARolHandler
-  implements ICommandHandler<EnviarNotificacionARolCommand, number>
-{
+export class EnviarNotificacionARolHandler implements ICommandHandler<
+  EnviarNotificacionARolCommand,
+  number
+> {
   private readonly logger = new Logger(EnviarNotificacionARolHandler.name);
 
   constructor(
@@ -109,7 +106,7 @@ export class EnviarNotificacionARolHandler
   async execute(command: EnviarNotificacionARolCommand): Promise<number> {
     this.logger.debug(
       `Enviando notificación ${command.tipo} a rol ${command.rol}` +
-      (command.excluirUsuarioId ? ` (excluyendo ${command.excluirUsuarioId})` : ''),
+        (command.excluirUsuarioId ? ` (excluyendo ${command.excluirUsuarioId})` : ''),
     );
 
     // Buscar usuarios activos del rol especificado
@@ -118,9 +115,7 @@ export class EnviarNotificacionARolHandler
         rol: command.rol,
         estado: 'ACTIVO',
         eliminado: false,
-        ...(command.excluirUsuarioId
-          ? { id: { not: command.excluirUsuarioId } }
-          : {}),
+        ...(command.excluirUsuarioId ? { id: { not: command.excluirUsuarioId } } : {}),
       },
       select: { id: true },
     });
@@ -131,10 +126,7 @@ export class EnviarNotificacionARolHandler
     }
 
     // Crear contenido una sola vez (es el mismo para todos)
-    const content = this.contentFactory.create(
-      command.tipo,
-      command.datos || {},
-    );
+    const content = this.contentFactory.create(command.tipo, command.datos || {});
 
     let enviadas = 0;
 
@@ -152,9 +144,7 @@ export class EnviarNotificacionARolHandler
         await this.dispatcher.dispatch(notificacion);
         enviadas++;
       } catch (error) {
-        this.logger.warn(
-          `Error enviando notificación a usuario ${usuario.id}: ${error}`,
-        );
+        this.logger.warn(`Error enviando notificación a usuario ${usuario.id}: ${error}`);
         // Continuar con los demás usuarios
       }
     }
@@ -177,9 +167,10 @@ export class MarcarNotificacionLeidaCommand implements ICommand {
 }
 
 @CommandHandler(MarcarNotificacionLeidaCommand)
-export class MarcarNotificacionLeidaHandler
-  implements ICommandHandler<MarcarNotificacionLeidaCommand, NotificacionEntity>
-{
+export class MarcarNotificacionLeidaHandler implements ICommandHandler<
+  MarcarNotificacionLeidaCommand,
+  NotificacionEntity
+> {
   private readonly logger = new Logger(MarcarNotificacionLeidaHandler.name);
 
   constructor(
@@ -187,12 +178,8 @@ export class MarcarNotificacionLeidaHandler
     private readonly notificacionRepository: INotificacionRepository,
   ) {}
 
-  async execute(
-    command: MarcarNotificacionLeidaCommand,
-  ): Promise<NotificacionEntity> {
-    const notificacion = await this.notificacionRepository.findById(
-      command.notificacionId,
-    );
+  async execute(command: MarcarNotificacionLeidaCommand): Promise<NotificacionEntity> {
+    const notificacion = await this.notificacionRepository.findById(command.notificacionId);
 
     if (!notificacion) {
       throw new DomainException('NOT_002', 'Notificación no encontrada');
@@ -200,22 +187,15 @@ export class MarcarNotificacionLeidaHandler
 
     // Verificar que pertenece al usuario
     if (notificacion.usuarioId !== command.usuarioId) {
-      throw new DomainException(
-        'NOT_003',
-        'No tienes permiso para esta notificación',
-      );
+      throw new DomainException('NOT_003', 'No tienes permiso para esta notificación');
     }
 
     // Validar que no esté leída
     notificacion.validarMarcarLeida();
 
-    const actualizada = await this.notificacionRepository.marcarComoLeida(
-      command.notificacionId,
-    );
+    const actualizada = await this.notificacionRepository.marcarComoLeida(command.notificacionId);
 
-    this.logger.log(
-      `Notificación marcada como leída: ${command.notificacionId}`,
-    );
+    this.logger.log(`Notificación marcada como leída: ${command.notificacionId}`);
 
     return actualizada;
   }
@@ -231,9 +211,7 @@ export class MarcarTodasLeidasCommand implements ICommand {
 }
 
 @CommandHandler(MarcarTodasLeidasCommand)
-export class MarcarTodasLeidasHandler
-  implements ICommandHandler<MarcarTodasLeidasCommand, number>
-{
+export class MarcarTodasLeidasHandler implements ICommandHandler<MarcarTodasLeidasCommand, number> {
   private readonly logger = new Logger(MarcarTodasLeidasHandler.name);
 
   constructor(

@@ -6,7 +6,4 @@ export { ConfirmarCuadreCommand, ConfirmarCuadreHandler } from './confirmar-cuad
 import { ActivarCuadreHandler } from './activar-cuadre.command';
 import { ConfirmarCuadreHandler } from './confirmar-cuadre.command';
 
-export const CuadreCommandHandlers = [
-    ActivarCuadreHandler,
-    ConfirmarCuadreHandler,
-];
+export const CuadreCommandHandlers = [ActivarCuadreHandler, ConfirmarCuadreHandler];

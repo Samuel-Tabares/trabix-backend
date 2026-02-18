@@ -13,9 +13,7 @@ import { EnviarNotificacionCommand } from '../../../notificaciones/application/c
  * para no marcar el evento como fallido si solo falla la notificación.
  */
 @EventsHandler(CuadreMayorExitosoEvent)
-export class CuadreMayorExitosoHandler
-  implements IEventHandler<CuadreMayorExitosoEvent>
-{
+export class CuadreMayorExitosoHandler implements IEventHandler<CuadreMayorExitosoEvent> {
   private readonly logger = new Logger(CuadreMayorExitosoHandler.name);
 
   constructor(private readonly commandBus: CommandBus) {}
@@ -23,24 +21,20 @@ export class CuadreMayorExitosoHandler
   async handle(event: CuadreMayorExitosoEvent): Promise<void> {
     this.logger.log(
       `Procesando CuadreMayorExitosoEvent: ${event.cuadreMayorId} - ` +
-      `Vendedor: ${event.vendedorId} - ` +
-      `Lotes: ${event.lotesInvolucradosIds.length} - ` +
-      `Cuadres cerrados: ${event.cuadresCerradosIds.length}`,
+        `Vendedor: ${event.vendedorId} - ` +
+        `Lotes: ${event.lotesInvolucradosIds.length} - ` +
+        `Cuadres cerrados: ${event.cuadresCerradosIds.length}`,
     );
 
     // Enviar notificación al vendedor sobre el cuadre al mayor exitoso
     try {
       await this.commandBus.execute(
-        new EnviarNotificacionCommand(
-          event.vendedorId,
-          'CUADRE_EXITOSO',
-          {
-            cuadreMayorId: event.cuadreMayorId,
-            lotesInvolucrados: event.lotesInvolucradosIds.length,
-            cuadresCerrados: event.cuadresCerradosIds.length,
-            esVentaAlMayor: true,
-          },
-        ),
+        new EnviarNotificacionCommand(event.vendedorId, 'CUADRE_EXITOSO', {
+          cuadreMayorId: event.cuadreMayorId,
+          lotesInvolucrados: event.lotesInvolucradosIds.length,
+          cuadresCerrados: event.cuadresCerradosIds.length,
+          esVentaAlMayor: true,
+        }),
       );
     } catch (error) {
       // FIX: No re-lanzar el error; solo loguear
@@ -49,8 +43,6 @@ export class CuadreMayorExitosoHandler
       );
     }
 
-    this.logger.log(
-      `CuadreMayorExitosoEvent procesado: ${event.cuadreMayorId}`,
-    );
+    this.logger.log(`CuadreMayorExitosoEvent procesado: ${event.cuadreMayorId}`);
   }
 }

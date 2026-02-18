@@ -27,11 +27,7 @@ import { BullHealthIndicator } from './bull.health';
     ),
   ],
   controllers: [HealthController],
-  providers: [
-    RedisHealthIndicator,
-    BullHealthIndicator,
-    PrismaHealthIndicator,
-  ],
+  providers: [RedisHealthIndicator, BullHealthIndicator, PrismaHealthIndicator],
   exports: [RedisHealthIndicator, BullHealthIndicator],
 })
 export class HealthModule {}

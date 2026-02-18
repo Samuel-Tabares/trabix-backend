@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma/prisma.service';
-import {ConfigService} from "@nestjs/config";
+import { ConfigService } from '@nestjs/config';
 
 /**
  * TandaAutoTransitJob
  * Según sección 23 del documento:
- * 
+ *
  * - Frecuencia: cada 5 minutos
  * - Acción: transiciona tandas LIBERADA → EN_TRÁNSITO después de 2 horas
- * 
+ *
  * IDEMPOTENCIA:
  * Solo transiciona si:
  * - tanda.estado = LIBERADA
@@ -19,12 +19,13 @@ import {ConfigService} from "@nestjs/config";
 @Injectable()
 export class TandaAutoTransitJob {
   private readonly logger = new Logger(TandaAutoTransitJob.name);
-  private readonly TIEMPO_AUTO_TRANSITO_HORAS = this.configService.get<number>('tiempos.autoTransitoHoras') ?? 2;
+  private readonly TIEMPO_AUTO_TRANSITO_HORAS =
+    this.configService.get<number>('tiempos.autoTransitoHoras') ?? 2;
 
   constructor(
-      private readonly prisma: PrismaService,
-      private readonly configService: ConfigService,
-) {}
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Se ejecuta cada 5 minutos

@@ -37,9 +37,7 @@ export class SolicitarEquipamientoCommand implements ICommand {
 }
 
 @CommandHandler(SolicitarEquipamientoCommand)
-export class SolicitarEquipamientoHandler
-  implements ICommandHandler<SolicitarEquipamientoCommand>
-{
+export class SolicitarEquipamientoHandler implements ICommandHandler<SolicitarEquipamientoCommand> {
   private readonly logger = new Logger(SolicitarEquipamientoHandler.name);
 
   constructor(
@@ -60,11 +58,9 @@ export class SolicitarEquipamientoHandler
 
     // Verificar que el usuario sea VENDEDOR
     if (vendedor.rol !== 'VENDEDOR') {
-      throw new DomainException(
-        'EQU_011',
-        'Solo los vendedores pueden solicitar equipamiento',
-        { rolActual: vendedor.rol },
-      );
+      throw new DomainException('EQU_011', 'Solo los vendedores pueden solicitar equipamiento', {
+        rolActual: vendedor.rol,
+      });
     }
 
     // Verificar que no tenga equipamiento activo/solicitado
@@ -91,23 +87,19 @@ export class SolicitarEquipamientoHandler
 
     this.logger.log(
       `Equipamiento solicitado: ${equipamiento.id} - ` +
-      `Vendedor: ${command.vendedorId} - ` +
-      `Con depósito: ${command.tieneDeposito} - ` +
-      `Mensualidad: $${mensualidad.toFixed(0)}`,
+        `Vendedor: ${command.vendedorId} - ` +
+        `Con depósito: ${command.tieneDeposito} - ` +
+        `Mensualidad: $${mensualidad.toFixed(0)}`,
     );
 
     // Notificar al vendedor (confirmación de solicitud)
     try {
       await this.commandBus.execute(
-        new EnviarNotificacionCommand(
-          command.vendedorId,
-          'EQUIPAMIENTO_SOLICITADO',
-          {
-            equipamientoId: equipamiento.id,
-            tieneDeposito: command.tieneDeposito,
-            esParaAdmin: false,
-          },
-        ),
+        new EnviarNotificacionCommand(command.vendedorId, 'EQUIPAMIENTO_SOLICITADO', {
+          equipamientoId: equipamiento.id,
+          tieneDeposito: command.tieneDeposito,
+          esParaAdmin: false,
+        }),
       );
     } catch (error) {
       this.logger.warn(`Error enviando notificación al vendedor: ${error}`);
@@ -117,17 +109,13 @@ export class SolicitarEquipamientoHandler
     try {
       const vendedorNombre = `${vendedor.nombre} ${vendedor.apellidos}`;
       await this.commandBus.execute(
-        new EnviarNotificacionARolCommand(
-          'ADMIN',
-          'EQUIPAMIENTO_SOLICITADO',
-          {
-            equipamientoId: equipamiento.id,
-            vendedorId: command.vendedorId,
-            vendedorNombre,
-            tieneDeposito: command.tieneDeposito,
-            esParaAdmin: true,
-          },
-        ),
+        new EnviarNotificacionARolCommand('ADMIN', 'EQUIPAMIENTO_SOLICITADO', {
+          equipamientoId: equipamiento.id,
+          vendedorId: command.vendedorId,
+          vendedorNombre,
+          tieneDeposito: command.tieneDeposito,
+          esParaAdmin: true,
+        }),
       );
     } catch (error) {
       this.logger.warn(`Error enviando notificación a admins: ${error}`);
@@ -149,9 +137,7 @@ export class ActivarEquipamientoCommand implements ICommand {
 }
 
 @CommandHandler(ActivarEquipamientoCommand)
-export class ActivarEquipamientoHandler
-  implements ICommandHandler<ActivarEquipamientoCommand>
-{
+export class ActivarEquipamientoHandler implements ICommandHandler<ActivarEquipamientoCommand> {
   private readonly logger = new Logger(ActivarEquipamientoHandler.name);
 
   constructor(
@@ -177,20 +163,16 @@ export class ActivarEquipamientoHandler
 
     this.logger.log(
       `Equipamiento activado: ${command.equipamientoId} - ` +
-      `Admin: ${command.adminId} - ` +
-      `Vendedor: ${equipamiento.vendedorId}`,
+        `Admin: ${command.adminId} - ` +
+        `Vendedor: ${equipamiento.vendedorId}`,
     );
 
     // Notificar al vendedor que su equipamiento fue entregado
     try {
       await this.commandBus.execute(
-        new EnviarNotificacionCommand(
-          equipamiento.vendedorId,
-          'EQUIPAMIENTO_ENTREGADO',
-          {
-            equipamientoId: command.equipamientoId,
-          },
-        ),
+        new EnviarNotificacionCommand(equipamiento.vendedorId, 'EQUIPAMIENTO_ENTREGADO', {
+          equipamientoId: command.equipamientoId,
+        }),
       );
     } catch (error) {
       this.logger.warn(`Error enviando notificación EQUIPAMIENTO_ENTREGADO: ${error}`);
@@ -249,9 +231,9 @@ export class ReportarDanoHandler implements ICommandHandler<ReportarDanoCommand>
 
     this.logger.log(
       `Daño reportado: ${command.equipamientoId} - ` +
-      `Tipo: ${command.tipoDano} - ` +
-      `Monto: $${monto.toFixed(0)} - ` +
-      `Admin: ${command.adminId}`,
+        `Tipo: ${command.tipoDano} - ` +
+        `Monto: $${monto.toFixed(0)} - ` +
+        `Admin: ${command.adminId}`,
     );
 
     // Intentar actualizar cuadres del vendedor
@@ -264,9 +246,7 @@ export class ReportarDanoHandler implements ICommandHandler<ReportarDanoCommand>
     } catch (error) {
       // PUNTO 8: No silenciar, registrar y advertir al admin
       const errorMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Error actualizando cuadres después de reportar daño: ${errorMsg}`,
-      );
+      this.logger.error(`Error actualizando cuadres después de reportar daño: ${errorMsg}`);
       advertenciaCuadres =
         `El daño fue registrado correctamente, pero hubo un error al actualizar los cuadres del vendedor. ` +
         `Es posible que los cuadres no reflejen esta deuda. Error: ${errorMsg}`;
@@ -325,8 +305,8 @@ export class ReportarPerdidaHandler implements ICommandHandler<ReportarPerdidaCo
 
     this.logger.log(
       `Pérdida reportada: ${command.equipamientoId} - ` +
-      `Monto: $${monto.toFixed(0)} - ` +
-      `Admin: ${command.adminId}`,
+        `Monto: $${monto.toFixed(0)} - ` +
+        `Admin: ${command.adminId}`,
     );
 
     // Intentar actualizar cuadres del vendedor
@@ -339,9 +319,7 @@ export class ReportarPerdidaHandler implements ICommandHandler<ReportarPerdidaCo
     } catch (error) {
       // PUNTO 8: No silenciar, registrar y advertir al admin
       const errorMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Error actualizando cuadres después de reportar pérdida: ${errorMsg}`,
-      );
+      this.logger.error(`Error actualizando cuadres después de reportar pérdida: ${errorMsg}`);
       advertenciaCuadres =
         `La pérdida fue registrada correctamente, pero hubo un error al actualizar los cuadres del vendedor. ` +
         `Es posible que los cuadres no reflejen esta deuda. Error: ${errorMsg}`;
@@ -366,9 +344,7 @@ export class DevolverEquipamientoCommand implements ICommand {
 }
 
 @CommandHandler(DevolverEquipamientoCommand)
-export class DevolverEquipamientoHandler
-  implements ICommandHandler<DevolverEquipamientoCommand>
-{
+export class DevolverEquipamientoHandler implements ICommandHandler<DevolverEquipamientoCommand> {
   private readonly logger = new Logger(DevolverEquipamientoHandler.name);
 
   constructor(
@@ -399,8 +375,7 @@ export class DevolverEquipamientoHandler
     }
 
     this.logger.log(
-      `Equipamiento devuelto: ${command.equipamientoId} - ` +
-      `Admin: ${command.adminId}`,
+      `Equipamiento devuelto: ${command.equipamientoId} - ` + `Admin: ${command.adminId}`,
     );
 
     return devuelto;
@@ -453,14 +428,10 @@ export class PagarMensualidadHandler implements ICommandHandler<PagarMensualidad
 
     // Verificar que haya mensualidad pendiente
     if (entity.mensualidadAlDia()) {
-      throw new DomainException(
-        'EQU_013',
-        'La mensualidad ya está al día',
-        {
-          ultimaMensualidadPagada: equipamiento.ultimaMensualidadPagada,
-          diasMora: entity.diasMoraMensualidad(),
-        },
-      );
+      throw new DomainException('EQU_013', 'La mensualidad ya está al día', {
+        ultimaMensualidadPagada: equipamiento.ultimaMensualidadPagada,
+        diasMora: entity.diasMoraMensualidad(),
+      });
     }
 
     const actualizado = await this.equipamientoRepository.registrarPagoMensualidad(
@@ -469,8 +440,8 @@ export class PagarMensualidadHandler implements ICommandHandler<PagarMensualidad
 
     this.logger.log(
       `Mensualidad pagada: ${command.equipamientoId} - ` +
-      `Vendedor: ${equipamiento.vendedorId} - ` +
-      `Admin: ${command.adminId}`,
+        `Vendedor: ${equipamiento.vendedorId} - ` +
+        `Admin: ${command.adminId}`,
     );
 
     // Intentar actualizar cuadres
@@ -528,29 +499,20 @@ export class PagarDeudaDanoHandler implements ICommandHandler<PagarDeudaDanoComm
 
     // Validaciones
     if (montoAbono.lessThanOrEqualTo(0)) {
-      throw new DomainException(
-        'EQU_014',
-        'El monto a pagar debe ser mayor a cero',
-      );
+      throw new DomainException('EQU_014', 'El monto a pagar debe ser mayor a cero');
     }
 
     if (deudaActual.lessThanOrEqualTo(0)) {
-      throw new DomainException(
-        'EQU_015',
-        'No hay deuda por daño pendiente',
-        { deudaDano: deudaActual.toFixed(2) },
-      );
+      throw new DomainException('EQU_015', 'No hay deuda por daño pendiente', {
+        deudaDano: deudaActual.toFixed(2),
+      });
     }
 
     if (montoAbono.greaterThan(deudaActual)) {
-      throw new DomainException(
-        'EQU_016',
-        'El monto a pagar excede la deuda pendiente',
-        {
-          deudaPendiente: deudaActual.toFixed(2),
-          montoIntentado: montoAbono.toFixed(2),
-        },
-      );
+      throw new DomainException('EQU_016', 'El monto a pagar excede la deuda pendiente', {
+        deudaPendiente: deudaActual.toFixed(2),
+        montoIntentado: montoAbono.toFixed(2),
+      });
     }
 
     const actualizado = await this.equipamientoRepository.reducirDeudaDano(
@@ -560,10 +522,10 @@ export class PagarDeudaDanoHandler implements ICommandHandler<PagarDeudaDanoComm
 
     this.logger.log(
       `Deuda daño reducida: ${command.equipamientoId} - ` +
-      `Monto: $${montoAbono.toFixed(0)} - ` +
-      `Deuda anterior: $${deudaActual.toFixed(0)} - ` +
-      `Deuda nueva: $${deudaActual.minus(montoAbono).toFixed(0)} - ` +
-      `Admin: ${command.adminId}`,
+        `Monto: $${montoAbono.toFixed(0)} - ` +
+        `Deuda anterior: $${deudaActual.toFixed(0)} - ` +
+        `Deuda nueva: $${deudaActual.minus(montoAbono).toFixed(0)} - ` +
+        `Admin: ${command.adminId}`,
     );
 
     // Intentar actualizar cuadres
@@ -621,29 +583,20 @@ export class PagarDeudaPerdidaHandler implements ICommandHandler<PagarDeudaPerdi
 
     // Validaciones
     if (montoAbono.lessThanOrEqualTo(0)) {
-      throw new DomainException(
-        'EQU_014',
-        'El monto a pagar debe ser mayor a cero',
-      );
+      throw new DomainException('EQU_014', 'El monto a pagar debe ser mayor a cero');
     }
 
     if (deudaActual.lessThanOrEqualTo(0)) {
-      throw new DomainException(
-        'EQU_017',
-        'No hay deuda por pérdida pendiente',
-        { deudaPerdida: deudaActual.toFixed(2) },
-      );
+      throw new DomainException('EQU_017', 'No hay deuda por pérdida pendiente', {
+        deudaPerdida: deudaActual.toFixed(2),
+      });
     }
 
     if (montoAbono.greaterThan(deudaActual)) {
-      throw new DomainException(
-        'EQU_016',
-        'El monto a pagar excede la deuda pendiente',
-        {
-          deudaPendiente: deudaActual.toFixed(2),
-          montoIntentado: montoAbono.toFixed(2),
-        },
-      );
+      throw new DomainException('EQU_016', 'El monto a pagar excede la deuda pendiente', {
+        deudaPendiente: deudaActual.toFixed(2),
+        montoIntentado: montoAbono.toFixed(2),
+      });
     }
 
     const actualizado = await this.equipamientoRepository.reducirDeudaPerdida(
@@ -653,10 +606,10 @@ export class PagarDeudaPerdidaHandler implements ICommandHandler<PagarDeudaPerdi
 
     this.logger.log(
       `Deuda pérdida reducida: ${command.equipamientoId} - ` +
-      `Monto: $${montoAbono.toFixed(0)} - ` +
-      `Deuda anterior: $${deudaActual.toFixed(0)} - ` +
-      `Deuda nueva: $${deudaActual.minus(montoAbono).toFixed(0)} - ` +
-      `Admin: ${command.adminId}`,
+        `Monto: $${montoAbono.toFixed(0)} - ` +
+        `Deuda anterior: $${deudaActual.toFixed(0)} - ` +
+        `Deuda nueva: $${deudaActual.minus(montoAbono).toFixed(0)} - ` +
+        `Admin: ${command.adminId}`,
     );
 
     // Intentar actualizar cuadres

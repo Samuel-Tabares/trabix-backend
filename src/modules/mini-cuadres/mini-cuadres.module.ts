@@ -32,11 +32,7 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
  * - EXITOSO → consolidación confirmada
  */
 @Module({
-  imports: [
-    CqrsModule,
-    forwardRef(() => LotesModule),
-    forwardRef(() => NotificacionesModule),
-  ],
+  imports: [CqrsModule, forwardRef(() => LotesModule), forwardRef(() => NotificacionesModule)],
   controllers: [MiniCuadresController],
   providers: [
     {
@@ -50,9 +46,6 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
     ...MiniCuadreQueryHandlers,
     ...MiniCuadreEventHandlers,
   ],
-  exports: [
-    MINI_CUADRE_REPOSITORY,
-    CierreLoteService,
-  ],
+  exports: [MINI_CUADRE_REPOSITORY, CierreLoteService],
 })
 export class MiniCuadresModule {}

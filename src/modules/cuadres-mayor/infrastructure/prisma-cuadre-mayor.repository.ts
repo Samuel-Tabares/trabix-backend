@@ -248,7 +248,7 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
           where: { id: cuadre.cuadreId },
           data: {
             estado: 'EXITOSO',
-            montoCubiertoPorMayor: cuadre.montoEsperado,  // FIX: montoEsperado del cuadre, no montoTotalAdmin global
+            montoCubiertoPorMayor: cuadre.montoEsperado, // FIX: montoEsperado del cuadre, no montoTotalAdmin global
             cerradoPorCuadreMayorId: data.cuadreMayorId,
             montoFaltante: '0',
             fechaExitoso: new Date(),
@@ -315,9 +315,9 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
 
         this.logger.debug(
           `Lote ${distribucion.loteId} actualizado: ` +
-          `+${distribucion.montoRecaudado.toFixed(2)} recaudado, ` +
-          `+${distribucion.montoTransferido.toFixed(2)} transferido ` +
-          `(${distribucion.stockConsumido} unidades)`,
+            `+${distribucion.montoRecaudado.toFixed(2)} recaudado, ` +
+            `+${distribucion.montoTransferido.toFixed(2)} transferido ` +
+            `(${distribucion.stockConsumido} unidades)`,
         );
       }
 
@@ -333,9 +333,9 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
 
       this.logger.log(
         `Transacción completada para cuadre al mayor ${data.cuadreMayorId}: ` +
-        `${cuadresCerradosIds.length} cuadres cerrados, ` +
-        `${tandasFinalizadasIds.length} tandas finalizadas, ` +
-        `${data.distribucionPorLote.length} lotes actualizados`,
+          `${cuadresCerradosIds.length} cuadres cerrados, ` +
+          `${tandasFinalizadasIds.length} tandas finalizadas, ` +
+          `${data.distribucionPorLote.length} lotes actualizados`,
       );
 
       return {

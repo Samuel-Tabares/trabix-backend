@@ -3,6 +3,4 @@ export * from './cuadre-mayor-exitoso.handler';
 
 import { CuadreMayorExitosoHandler } from './cuadre-mayor-exitoso.handler';
 
-export const CuadreMayorEventHandlers = [
-  CuadreMayorExitosoHandler,
-];
+export const CuadreMayorEventHandlers = [CuadreMayorExitosoHandler];

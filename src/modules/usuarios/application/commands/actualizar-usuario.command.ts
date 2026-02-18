@@ -1,10 +1,7 @@
 import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { Usuario } from '@prisma/client';
-import {
-  IUsuarioRepository,
-  USUARIO_REPOSITORY,
-} from '../../domain/usuario.repository.interface';
+import { IUsuarioRepository, USUARIO_REPOSITORY } from '../../domain/usuario.repository.interface';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
 import { UpdateUsuarioDto } from '../dto/update-usuario.dto';
 
@@ -23,9 +20,10 @@ export class ActualizarUsuarioCommand implements ICommand {
  * Handler del comando ActualizarUsuario
  */
 @CommandHandler(ActualizarUsuarioCommand)
-export class ActualizarUsuarioHandler
-  implements ICommandHandler<ActualizarUsuarioCommand, Usuario>
-{
+export class ActualizarUsuarioHandler implements ICommandHandler<
+  ActualizarUsuarioCommand,
+  Usuario
+> {
   private readonly logger = new Logger(ActualizarUsuarioHandler.name);
 
   constructor(
@@ -45,25 +43,18 @@ export class ActualizarUsuarioHandler
     }
 
     if (usuario.eliminado) {
-      throw new DomainException(
-        'USR_001',
-        'No se puede actualizar un usuario eliminado',
-        { usuarioId },
-      );
+      throw new DomainException('USR_001', 'No se puede actualizar un usuario eliminado', {
+        usuarioId,
+      });
     }
 
     // Validar email único si se está actualizando
     if (data.email && data.email.toLowerCase() !== usuario.email.toLowerCase()) {
-      const existeEmail = await this.usuarioRepository.existsByEmail(
-        data.email,
-        usuarioId,
-      );
+      const existeEmail = await this.usuarioRepository.existsByEmail(data.email, usuarioId);
       if (existeEmail) {
-        throw new DomainException(
-          'USR_003',
-          'Ya existe un usuario con este correo electrónico',
-          { email: data.email },
-        );
+        throw new DomainException('USR_003', 'Ya existe un usuario con este correo electrónico', {
+          email: data.email,
+        });
       }
     }
 
@@ -74,11 +65,9 @@ export class ActualizarUsuarioHandler
         usuarioId,
       );
       if (existeTelefono) {
-        throw new DomainException(
-          'USR_004',
-          'Ya existe un usuario con este número de teléfono',
-          { telefono: data.telefono },
-        );
+        throw new DomainException('USR_004', 'Ya existe un usuario con este número de teléfono', {
+          telefono: data.telefono,
+        });
       }
     }
 

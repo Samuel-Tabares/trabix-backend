@@ -5,7 +5,7 @@ import {
   CallHandler,
   ConflictException,
 } from '@nestjs/common';
-import {catchError, from, mergeMap, Observable, of} from 'rxjs';
+import { catchError, from, mergeMap, Observable, of } from 'rxjs';
 import { Reflector } from '@nestjs/core';
 import { RedisService } from '../../../infrastructure/cache/redis.service';
 
@@ -25,10 +25,10 @@ interface CachedResponse {
 /**
  * Interceptor de idempotencia
  * Según sección 18.4.2 del documento
- * 
+ *
  * Previene procesamiento duplicado de operaciones críticas
  * usando el header X-Idempotency-Key
- * 
+ *
  * TTL de 24 horas para las claves
  */
 @Injectable()
@@ -41,15 +41,12 @@ export class IdempotencyInterceptor implements NestInterceptor {
     private readonly redis: RedisService,
   ) {}
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<unknown>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
     // Verificar si el endpoint requiere idempotencia
-    const requiresIdempotency = this.reflector.getAllAndOverride<boolean>(
-      IDEMPOTENT_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiresIdempotency = this.reflector.getAllAndOverride<boolean>(IDEMPOTENT_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (!requiresIdempotency) {
       return next.handle();
@@ -86,28 +83,27 @@ export class IdempotencyInterceptor implements NestInterceptor {
     }
 
     // Procesar la solicitud y cachear la respuesta
-      return next.handle().pipe(
-          mergeMap((data) =>
-              from(
-                  (async () => {
-                      const responseToCache: CachedResponse = {
-                          statusCode: response.statusCode,
-                          body: data,
-                      };
+    return next.handle().pipe(
+      mergeMap((data) =>
+        from(
+          (async () => {
+            const responseToCache: CachedResponse = {
+              statusCode: response.statusCode,
+              body: data,
+            };
 
-                      await this.redis.setJson(cacheKey, responseToCache, this.TTL_SECONDS);
-                      await this.releaseLock(lockKey);
+            await this.redis.setJson(cacheKey, responseToCache, this.TTL_SECONDS);
+            await this.releaseLock(lockKey);
 
-                      return data;
-                  })(),
-              ),
-          ),
-          catchError(async (err) => {
-              await this.releaseLock(lockKey);
-              throw err;
-          }),
-      );
-
+            return data;
+          })(),
+        ),
+      ),
+      catchError(async (err) => {
+        await this.releaseLock(lockKey);
+        throw err;
+      }),
+    );
   }
 
   private getCacheKey(idempotencyKey: string, endpoint: string): string {

@@ -7,7 +7,4 @@ import { ListarVentasHandler } from './listar-ventas.query';
 /**
  * Array de todos los query handlers del módulo ventas
  */
-export const VentaQueryHandlers = [
-  ObtenerVentaHandler,
-  ListarVentasHandler,
-];
+export const VentaQueryHandlers = [ObtenerVentaHandler, ListarVentasHandler];

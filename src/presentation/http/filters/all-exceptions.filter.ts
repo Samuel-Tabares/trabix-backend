@@ -1,17 +1,11 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ErrorResponse } from './http-exception.filter';
 
 /**
  * Filtro global para todas las excepciones no manejadas
  * Según sección 22.7 del documento
- * 
+ *
  * Captura cualquier error que no haya sido manejado por otros filtros
  * y retorna una respuesta genérica de error interno
  */

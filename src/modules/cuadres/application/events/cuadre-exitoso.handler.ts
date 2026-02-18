@@ -1,10 +1,7 @@
 import { EventsHandler, IEventHandler, CommandBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { CuadreExitosoEvent } from './cuadre-exitoso.event';
-import {
-  ILoteRepository,
-  LOTE_REPOSITORY,
-} from '../../../lotes/domain/lote.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY } from '../../../lotes/domain/lote.repository.interface';
 import {
   ITandaRepository,
   TANDA_REPOSITORY,
@@ -38,19 +35,14 @@ export class CuadreExitosoHandler implements IEventHandler<CuadreExitosoEvent> {
   async handle(event: CuadreExitosoEvent): Promise<void> {
     this.logger.log(
       `Procesando CuadreExitosoEvent: Cuadre ${event.cuadreId}, ` +
-      `Tanda ${event.numeroTanda}, Lote ${event.loteId}`,
+        `Tanda ${event.numeroTanda}, Lote ${event.loteId}`,
     );
 
     // ========== 1. LÓGICA DE NEGOCIO (puede lanzar errores) ==========
 
     // 1.1 Actualizar dinero transferido del lote
-    await this.loteRepository.actualizarTransferido(
-      event.loteId,
-      event.montoRecibido,
-    );
-    this.logger.log(
-      `Dinero transferido actualizado: $${event.montoRecibido.toFixed(2)}`,
-    );
+    await this.loteRepository.actualizarTransferido(event.loteId, event.montoRecibido);
+    this.logger.log(`Dinero transferido actualizado: $${event.montoRecibido.toFixed(2)}`);
 
     // 1.2 Liberar siguiente tanda (si existe)
     const lote = await this.loteRepository.findById(event.loteId);
@@ -61,28 +53,22 @@ export class CuadreExitosoHandler implements IEventHandler<CuadreExitosoEvent> {
 
     const siguienteNumeroTanda = event.numeroTanda + 1;
     const siguienteTanda = lote.tandas.find(
-      t => t.numero === siguienteNumeroTanda && t.estado === 'INACTIVA',
+      (t) => t.numero === siguienteNumeroTanda && t.estado === 'INACTIVA',
     );
 
     if (siguienteTanda) {
       // Liberar la siguiente tanda
       await this.tandaRepository.liberar(siguienteTanda.id);
-      this.logger.log(
-        `Tanda ${siguienteNumeroTanda} liberada: ${siguienteTanda.id}`,
-      );
+      this.logger.log(`Tanda ${siguienteNumeroTanda} liberada: ${siguienteTanda.id}`);
 
       // Enviar notificación TandaLiberada (no interrumpe flujo)
       try {
         await this.commandBus.execute(
-          new EnviarNotificacionCommand(
-            event.vendedorId,
-            'TANDA_LIBERADA',
-            {
-              loteId: event.loteId,
-              numeroTanda: siguienteNumeroTanda,
-              cantidad: siguienteTanda.stockInicial,
-            },
-          ),
+          new EnviarNotificacionCommand(event.vendedorId, 'TANDA_LIBERADA', {
+            loteId: event.loteId,
+            numeroTanda: siguienteNumeroTanda,
+            cantidad: siguienteTanda.stockInicial,
+          }),
         );
       } catch (error) {
         this.logger.warn(
@@ -100,15 +86,11 @@ export class CuadreExitosoHandler implements IEventHandler<CuadreExitosoEvent> {
     // 2.1 Enviar notificación de cuadre exitoso al vendedor
     try {
       await this.commandBus.execute(
-        new EnviarNotificacionCommand(
-          event.vendedorId,
-          'CUADRE_EXITOSO',
-          {
-            cuadreId: event.cuadreId,
-            tandaId: event.tandaId,
-            montoTransferido: Number.parseFloat(event.montoRecibido.toFixed(2)),
-          },
-        ),
+        new EnviarNotificacionCommand(event.vendedorId, 'CUADRE_EXITOSO', {
+          cuadreId: event.cuadreId,
+          tandaId: event.tandaId,
+          montoTransferido: Number.parseFloat(event.montoRecibido.toFixed(2)),
+        }),
       );
     } catch (error) {
       this.logger.warn(

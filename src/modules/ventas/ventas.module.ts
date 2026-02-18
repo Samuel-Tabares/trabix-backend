@@ -43,33 +43,31 @@ import { CuadresModule } from '../cuadres/cuadres.module';
  * - REGALO: $0
  */
 @Module({
-    imports: [
-        CqrsModule,
-        ConfigModule,
-        forwardRef(() => LotesModule),
-        forwardRef(() => NotificacionesModule),
-        forwardRef(() => CuadresModule),
-        forwardRef(() => UsuariosModule),
-    ],
-    controllers: [VentasController],
-    providers: [
-        // Repository
-        {
-            provide: VENTA_REPOSITORY,
-            useClass: PrismaVentaRepository,
-        },
-      VendedorPuedeVenderSpecification,
-      RegaloPermitidoSpecification,
-      CalculadoraPreciosVentaService,
-        // Command Handlers
-        ...VentaCommandHandlers,
-        // Query Handlers
-        ...VentaQueryHandlers,
-        // Event Handlers
-        ...VentaEventHandlers,
-    ],
-    exports: [
-        VENTA_REPOSITORY,
-    ],
+  imports: [
+    CqrsModule,
+    ConfigModule,
+    forwardRef(() => LotesModule),
+    forwardRef(() => NotificacionesModule),
+    forwardRef(() => CuadresModule),
+    forwardRef(() => UsuariosModule),
+  ],
+  controllers: [VentasController],
+  providers: [
+    // Repository
+    {
+      provide: VENTA_REPOSITORY,
+      useClass: PrismaVentaRepository,
+    },
+    VendedorPuedeVenderSpecification,
+    RegaloPermitidoSpecification,
+    CalculadoraPreciosVentaService,
+    // Command Handlers
+    ...VentaCommandHandlers,
+    // Query Handlers
+    ...VentaQueryHandlers,
+    // Event Handlers
+    ...VentaEventHandlers,
+  ],
+  exports: [VENTA_REPOSITORY],
 })
 export class VentasModule {}

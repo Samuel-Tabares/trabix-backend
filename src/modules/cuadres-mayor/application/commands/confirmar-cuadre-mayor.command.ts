@@ -13,10 +13,7 @@ import {
   ICuadreRepository,
   CUADRE_REPOSITORY,
 } from '../../../cuadres/domain/cuadre.repository.interface';
-import {
-  ILoteRepository,
-  LOTE_REPOSITORY,
-} from '../../../lotes/domain/lote.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY } from '../../../lotes/domain/lote.repository.interface';
 import {
   ITandaRepository,
   TANDA_REPOSITORY,
@@ -54,9 +51,7 @@ export class ConfirmarCuadreMayorCommand implements ICommand {
  * 4. Emitir eventos post-transacción
  */
 @CommandHandler(ConfirmarCuadreMayorCommand)
-export class ConfirmarCuadreMayorHandler
-  implements ICommandHandler<ConfirmarCuadreMayorCommand>
-{
+export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCuadreMayorCommand> {
   private readonly logger = new Logger(ConfirmarCuadreMayorHandler.name);
 
   constructor(
@@ -83,11 +78,9 @@ export class ConfirmarCuadreMayorHandler
     }
 
     if (cuadreMayor.estado !== 'PENDIENTE') {
-      throw new DomainException(
-        'CMA_001',
-        'Solo se pueden confirmar cuadres en estado PENDIENTE',
-        { estadoActual: cuadreMayor.estado },
-      );
+      throw new DomainException('CMA_001', 'Solo se pueden confirmar cuadres en estado PENDIENTE', {
+        estadoActual: cuadreMayor.estado,
+      });
     }
 
     // Parsear valores del cuadre mayor
@@ -144,16 +137,15 @@ export class ConfirmarCuadreMayorHandler
       loteForzado: loteForzadoData,
     };
 
-    const resultado = await this.cuadreMayorRepository.confirmarExitosoTransaccional(
-      transactionData,
-    );
+    const resultado =
+      await this.cuadreMayorRepository.confirmarExitosoTransaccional(transactionData);
 
     this.logger.log(
       `Cuadre al mayor confirmado: ${cuadreMayorId} - ` +
-      `Admin: $${montoTotalAdmin.toFixed(2)} - ` +
-      `Cuadres cerrados: ${resultado.cuadresCerradosIds.length} - ` +
-      `Tandas completamente consumidas: ${tandasCompletamenteConsumidas.size} - ` +
-      `Lotes actualizados: ${distribucionPorLote.length}`,
+        `Admin: $${montoTotalAdmin.toFixed(2)} - ` +
+        `Cuadres cerrados: ${resultado.cuadresCerradosIds.length} - ` +
+        `Tandas completamente consumidas: ${tandasCompletamenteConsumidas.size} - ` +
+        `Lotes actualizados: ${distribucionPorLote.length}`,
     );
 
     // ========== 4. ACCIONES POST-TRANSACCIÓN (eventos y comandos) ==========
@@ -220,9 +212,7 @@ export class ConfirmarCuadreMayorHandler
 
       // Obtener lote para saber si es última tanda
       const lote = await this.loteRepository.findById(tanda.loteId);
-      const esUltimaTanda = lote
-        ? tanda.numeroTanda === lote.tandas.length
-        : false;
+      const esUltimaTanda = lote ? tanda.numeroTanda === lote.tandas.length : false;
 
       tandasParaProcesar.push({
         tandaId: tanda.tandaId,
@@ -276,7 +266,7 @@ export class ConfirmarCuadreMayorHandler
 
     this.logger.log(
       `Cuadres a cerrar: ${cuadresParaCerrar.length} ` +
-      `(de ${tandasCompletamenteConsumidas.size} tandas completamente consumidas)`,
+        `(de ${tandasCompletamenteConsumidas.size} tandas completamente consumidas)`,
     );
 
     return cuadresParaCerrar;
@@ -322,7 +312,7 @@ export class ConfirmarCuadreMayorHandler
 
       this.logger.debug(
         `Prorrateo para lote ${loteId}: ` +
-        `${stockConsumido}/${stockTotal} unidades = ${proporcion.mul(100).toFixed(2)}%`,
+          `${stockConsumido}/${stockTotal} unidades = ${proporcion.mul(100).toFixed(2)}%`,
       );
     }
 

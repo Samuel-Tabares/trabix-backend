@@ -1,10 +1,7 @@
 import { QueryHandler, IQueryHandler, IQuery } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import {
-  ILoteRepository,
-  LOTE_REPOSITORY,
-} from '../../domain/lote.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY } from '../../domain/lote.repository.interface';
 import { CalculadoraInversionService } from '../../domain/calculadora-inversion.service';
 import { QueryLotesDto, LotesPaginadosDto, LoteResponseDto, TandaResponseDto } from '../dto';
 
@@ -22,9 +19,10 @@ export class ListarMisLotesQuery implements IQuery {
  * Handler de la query ListarMisLotes
  */
 @QueryHandler(ListarMisLotesQuery)
-export class ListarMisLotesHandler
-  implements IQueryHandler<ListarMisLotesQuery, LotesPaginadosDto>
-{
+export class ListarMisLotesHandler implements IQueryHandler<
+  ListarMisLotesQuery,
+  LotesPaginadosDto
+> {
   constructor(
     @Inject(LOTE_REPOSITORY)
     private readonly loteRepository: ILoteRepository,
@@ -49,9 +47,7 @@ export class ListarMisLotesHandler
       },
     });
 
-    const data: LoteResponseDto[] = resultado.data.map((lote) =>
-      this.mapToDto(lote),
-    );
+    const data: LoteResponseDto[] = resultado.data.map((lote) => this.mapToDto(lote));
 
     return {
       data,
@@ -74,9 +70,8 @@ export class ListarMisLotesHandler
       stockInicial: tanda.stockInicial,
       stockActual: tanda.stockActual,
       stockConsumidoPorMayor: tanda.stockConsumidoPorMayor,
-      porcentajeStockRestante: tanda.stockInicial > 0
-        ? (tanda.stockActual / tanda.stockInicial) * 100
-        : 0,
+      porcentajeStockRestante:
+        tanda.stockInicial > 0 ? (tanda.stockActual / tanda.stockInicial) * 100 : 0,
       fechaLiberacion: tanda.fechaLiberacion,
       fechaEnTransito: tanda.fechaEnTransito,
       fechaEnCasa: tanda.fechaEnCasa,

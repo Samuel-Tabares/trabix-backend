@@ -7,34 +7,34 @@ import { Decimal } from 'decimal.js';
  * Interface para estrategias de cálculo de ganancias
  */
 export interface IGananciaStrategy {
-    calcular(gananciaTotal: Decimal, jerarquia?: JerarquiaReclutador[]): ResultadoGanancias;
+  calcular(gananciaTotal: Decimal, jerarquia?: JerarquiaReclutador[]): ResultadoGanancias;
 }
 
 /**
  * Representa un reclutador en la jerarquía
  */
 export interface JerarquiaReclutador {
-    id: string;
-    nivel: number; // N-1, N-2, etc. donde N es el vendedor
-    nombre?: string;
+  id: string;
+  nivel: number; // N-1, N-2, etc. donde N es el vendedor
+  nombre?: string;
 }
 
 /**
  * Resultado del cálculo de ganancias
  */
 export interface ResultadoGanancias {
-    gananciaVendedor: Decimal;
-    gananciaAdmin: Decimal;
-    gananciasReclutadores: GananciaReclutador[];
+  gananciaVendedor: Decimal;
+  gananciaAdmin: Decimal;
+  gananciasReclutadores: GananciaReclutador[];
 }
 
 /**
  * Ganancia de un reclutador específico
  */
 export interface GananciaReclutador {
-    reclutadorId: string;
-    nivel: number;
-    monto: Decimal;
+  reclutadorId: string;
+  nivel: number;
+  monto: Decimal;
 }
 
 /**
@@ -48,29 +48,29 @@ export interface GananciaReclutador {
  */
 @Injectable()
 export class Modelo6040Strategy implements IGananciaStrategy {
-    private readonly porcentajeVendedor: Decimal;
-    private readonly porcentajeAdmin: Decimal;
+  private readonly porcentajeVendedor: Decimal;
+  private readonly porcentajeAdmin: Decimal;
 
-    constructor(private readonly configService: ConfigService) {
-        // Cargar porcentajes desde configuración (vienen como 60, 40, etc.)
-        const vendedorPct = this.configService.get<number>('porcentajes.vendedor6040') ?? 60;
-        const adminPct = this.configService.get<number>('porcentajes.admin6040') ?? 40;
+  constructor(private readonly configService: ConfigService) {
+    // Cargar porcentajes desde configuración (vienen como 60, 40, etc.)
+    const vendedorPct = this.configService.get<number>('porcentajes.vendedor6040') ?? 60;
+    const adminPct = this.configService.get<number>('porcentajes.admin6040') ?? 40;
 
-        // Convertir a decimal (0.6, 0.4)
-        this.porcentajeVendedor = new Decimal(vendedorPct).dividedBy(100);
-        this.porcentajeAdmin = new Decimal(adminPct).dividedBy(100);
-    }
+    // Convertir a decimal (0.6, 0.4)
+    this.porcentajeVendedor = new Decimal(vendedorPct).dividedBy(100);
+    this.porcentajeAdmin = new Decimal(adminPct).dividedBy(100);
+  }
 
-    calcular(gananciaTotal: Decimal): ResultadoGanancias {
-        const gananciaVendedor = gananciaTotal.times(this.porcentajeVendedor);
-        const gananciaAdmin = gananciaTotal.times(this.porcentajeAdmin);
+  calcular(gananciaTotal: Decimal): ResultadoGanancias {
+    const gananciaVendedor = gananciaTotal.times(this.porcentajeVendedor);
+    const gananciaAdmin = gananciaTotal.times(this.porcentajeAdmin);
 
-        return {
-            gananciaVendedor,
-            gananciaAdmin,
-            gananciasReclutadores: [],
-        };
-    }
+    return {
+      gananciaVendedor,
+      gananciaAdmin,
+      gananciasReclutadores: [],
+    };
+  }
 }
 
 /**
@@ -94,52 +94,53 @@ export class Modelo6040Strategy implements IGananciaStrategy {
  */
 @Injectable()
 export class Modelo5050CascadaStrategy implements IGananciaStrategy {
-    private readonly porcentajeVendedor: Decimal;
-    private readonly divisorCascada: Decimal;
+  private readonly porcentajeVendedor: Decimal;
+  private readonly divisorCascada: Decimal;
 
-    constructor(private readonly configService: ConfigService) {
-        // Cargar porcentaje inicial del vendedor desde configuración
-        const vendedorPct = this.configService.get<number>('porcentajes.vendedor5050') ?? 50;
-        this.porcentajeVendedor = new Decimal(vendedorPct).dividedBy(100);
+  constructor(private readonly configService: ConfigService) {
+    // Cargar porcentaje inicial del vendedor desde configuración
+    const vendedorPct = this.configService.get<number>('porcentajes.vendedor5050') ?? 50;
+    this.porcentajeVendedor = new Decimal(vendedorPct).dividedBy(100);
 
-        // La cascada SIEMPRE divide por 2 (50/50 fijo según regla de negocio)
-        this.divisorCascada = new Decimal(0.5);
+    // La cascada SIEMPRE divide por 2 (50/50 fijo según regla de negocio)
+    this.divisorCascada = new Decimal(0.5);
+  }
+
+  calcular(gananciaTotal: Decimal, jerarquia: JerarquiaReclutador[] = []): ResultadoGanancias {
+    // Ganancia del vendedor: porcentaje configurado del total
+    const gananciaVendedor = gananciaTotal.times(this.porcentajeVendedor);
+
+    const gananciasReclutadores: GananciaReclutador[] = [];
+    let gananciaActual = gananciaVendedor;
+
+    // Ordenar jerarquía por nivel (N-1, N-2, etc.)
+    const jerarquiaOrdenada = [...jerarquia].sort((a, b) => a.nivel - b.nivel);
+
+    // Calcular ganancia para cada reclutador en la cascada
+    // Cada nivel recibe 50% del nivel anterior (división fija)
+    for (const reclutador of jerarquiaOrdenada) {
+      const gananciaReclutador = gananciaActual.times(this.divisorCascada);
+      gananciasReclutadores.push({
+        reclutadorId: reclutador.id,
+        nivel: reclutador.nivel,
+        monto: gananciaReclutador,
+      });
+      gananciaActual = gananciaReclutador;
     }
 
-    calcular(gananciaTotal: Decimal, jerarquia: JerarquiaReclutador[] = []): ResultadoGanancias {
-        // Ganancia del vendedor: porcentaje configurado del total
-        const gananciaVendedor = gananciaTotal.times(this.porcentajeVendedor);
+    // Según documento: ganancia_admin = ganancia_ultimo_reclutador
+    // Si no hay reclutadores, 50/50 directo con vendedor
+    const gananciaAdmin =
+      jerarquiaOrdenada.length > 0
+        ? gananciaActual // Admin recibe igual que el último nivel calculado
+        : gananciaTotal.times(this.divisorCascada);
 
-        const gananciasReclutadores: GananciaReclutador[] = [];
-        let gananciaActual = gananciaVendedor;
-
-        // Ordenar jerarquía por nivel (N-1, N-2, etc.)
-        const jerarquiaOrdenada = [...jerarquia].sort((a, b) => a.nivel - b.nivel);
-
-        // Calcular ganancia para cada reclutador en la cascada
-        // Cada nivel recibe 50% del nivel anterior (división fija)
-        for (const reclutador of jerarquiaOrdenada) {
-            const gananciaReclutador = gananciaActual.times(this.divisorCascada);
-            gananciasReclutadores.push({
-                reclutadorId: reclutador.id,
-                nivel: reclutador.nivel,
-                monto: gananciaReclutador,
-            });
-            gananciaActual = gananciaReclutador;
-        }
-
-        // Según documento: ganancia_admin = ganancia_ultimo_reclutador
-        // Si no hay reclutadores, 50/50 directo con vendedor
-        const gananciaAdmin = jerarquiaOrdenada.length > 0
-            ? gananciaActual  // Admin recibe igual que el último nivel calculado
-            : gananciaTotal.times(this.divisorCascada);
-
-        return {
-            gananciaVendedor,
-            gananciaAdmin,
-            gananciasReclutadores,
-        };
-    }
+    return {
+      gananciaVendedor,
+      gananciaAdmin,
+      gananciasReclutadores,
+    };
+  }
 }
 
 /**
@@ -152,68 +153,68 @@ export class Modelo5050CascadaStrategy implements IGananciaStrategy {
  */
 @Injectable()
 export class CalculadoraGananciasService {
-    private readonly strategies: Map<ModeloNegocio, IGananciaStrategy>;
+  private readonly strategies: Map<ModeloNegocio, IGananciaStrategy>;
 
-    constructor(
-        private readonly modelo6040: Modelo6040Strategy,
-        private readonly modelo5050: Modelo5050CascadaStrategy,
-    ) {
-        this.strategies = new Map<ModeloNegocio, IGananciaStrategy>([
-            ['MODELO_60_40', this.modelo6040],
-            ['MODELO_50_50', this.modelo5050],
-        ]);
+  constructor(
+    private readonly modelo6040: Modelo6040Strategy,
+    private readonly modelo5050: Modelo5050CascadaStrategy,
+  ) {
+    this.strategies = new Map<ModeloNegocio, IGananciaStrategy>([
+      ['MODELO_60_40', this.modelo6040],
+      ['MODELO_50_50', this.modelo5050],
+    ]);
+  }
+
+  /**
+   * Calcula las ganancias según el modelo de negocio
+   *
+   * @param dineroRecaudado Dinero total recaudado
+   * @param inversionTotal Inversión total del lote
+   * @param modelo Modelo de negocio (60/40 o 50/50)
+   * @param jerarquia Jerarquía de reclutadores (solo para 50/50)
+   */
+  calcularGanancias(
+    dineroRecaudado: Decimal,
+    inversionTotal: Decimal,
+    modelo: ModeloNegocio,
+    jerarquia?: JerarquiaReclutador[],
+  ): ResultadoCalculoGanancias {
+    // ganancia_total = dinero_recaudado - inversion_total
+    // Condición: ganancia_total solo existe cuando dinero_recaudado > inversion_total
+    const gananciaTotal = dineroRecaudado.minus(inversionTotal);
+
+    if (gananciaTotal.lessThanOrEqualTo(0)) {
+      return {
+        hayGanancias: false,
+        gananciaTotal: new Decimal(0),
+        gananciaVendedor: new Decimal(0),
+        gananciaAdmin: new Decimal(0),
+        gananciasReclutadores: [],
+      };
     }
 
-    /**
-     * Calcula las ganancias según el modelo de negocio
-     *
-     * @param dineroRecaudado Dinero total recaudado
-     * @param inversionTotal Inversión total del lote
-     * @param modelo Modelo de negocio (60/40 o 50/50)
-     * @param jerarquia Jerarquía de reclutadores (solo para 50/50)
-     */
-    calcularGanancias(
-        dineroRecaudado: Decimal,
-        inversionTotal: Decimal,
-        modelo: ModeloNegocio,
-        jerarquia?: JerarquiaReclutador[],
-    ): ResultadoCalculoGanancias {
-        // ganancia_total = dinero_recaudado - inversion_total
-        // Condición: ganancia_total solo existe cuando dinero_recaudado > inversion_total
-        const gananciaTotal = dineroRecaudado.minus(inversionTotal);
-
-        if (gananciaTotal.lessThanOrEqualTo(0)) {
-            return {
-                hayGanancias: false,
-                gananciaTotal: new Decimal(0),
-                gananciaVendedor: new Decimal(0),
-                gananciaAdmin: new Decimal(0),
-                gananciasReclutadores: [],
-            };
-        }
-
-        const strategy = this.strategies.get(modelo);
-        if (!strategy) {
-            throw new Error(`Modelo de negocio no soportado: ${modelo}`);
-        }
-
-        const resultado = strategy.calcular(gananciaTotal, jerarquia);
-
-        return {
-            hayGanancias: true,
-            gananciaTotal,
-            ...resultado,
-        };
+    const strategy = this.strategies.get(modelo);
+    if (!strategy) {
+      throw new Error(`Modelo de negocio no soportado: ${modelo}`);
     }
+
+    const resultado = strategy.calcular(gananciaTotal, jerarquia);
+
+    return {
+      hayGanancias: true,
+      gananciaTotal,
+      ...resultado,
+    };
+  }
 }
 
 /**
  * Resultado completo del cálculo de ganancias
  */
 export interface ResultadoCalculoGanancias {
-    hayGanancias: boolean;
-    gananciaTotal: Decimal;
-    gananciaVendedor: Decimal;
-    gananciaAdmin: Decimal;
-    gananciasReclutadores: GananciaReclutador[];
+  hayGanancias: boolean;
+  gananciaTotal: Decimal;
+  gananciaVendedor: Decimal;
+  gananciaAdmin: Decimal;
+  gananciasReclutadores: GananciaReclutador[];
 }

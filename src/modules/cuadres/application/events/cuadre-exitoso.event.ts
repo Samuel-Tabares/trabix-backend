@@ -4,9 +4,9 @@ import { Decimal } from 'decimal.js';
 /**
  * Evento: Cuadre Exitoso
  * Según sección 23 del documento
- * 
+ *
  * Trigger: Admin confirma cuadre
- * 
+ *
  * Acciones:
  * 1. Actualizar dinero transferido del lote
  * 2. Liberar siguiente tanda

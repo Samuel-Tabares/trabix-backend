@@ -69,17 +69,13 @@ export class EquipamientoConfigService {
    * Calcula la mensualidad según si tiene depósito
    */
   calcularMensualidad(tieneDeposito: boolean): Decimal {
-    return tieneDeposito
-      ? this.mensualidadConDeposito
-      : this.mensualidadSinDeposito;
+    return tieneDeposito ? this.mensualidadConDeposito : this.mensualidadSinDeposito;
   }
 
   /**
    * Obtiene el costo de daño según el tipo
    */
   getCostoDano(tipoDano: 'NEVERA' | 'PIJAMA'): Decimal {
-    return tipoDano === 'NEVERA'
-      ? this.costoDanoNevera
-      : this.costoDanoPijama;
+    return tipoDano === 'NEVERA' ? this.costoDanoNevera : this.costoDanoPijama;
   }
 }

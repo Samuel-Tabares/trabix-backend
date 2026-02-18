@@ -68,9 +68,7 @@ export class CuadreMayorMapper {
   /**
    * Mapea las tandas afectadas al DTO
    */
-  private static mapTandasAfectadas(
-    tandasAfectadas: unknown,
-  ): TandaAfectadaResponseDto[] {
+  private static mapTandasAfectadas(tandasAfectadas: unknown): TandaAfectadaResponseDto[] {
     if (!Array.isArray(tandasAfectadas)) {
       return [];
     }

@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Decimal } from 'decimal.js';
 import { ModeloNegocio, ConceptoCuadre } from '@prisma/client';
-import {
-  CalculadoraGananciasService,
-  JerarquiaReclutador,
-} from './calculadora-ganancias.service';
+import { CalculadoraGananciasService, JerarquiaReclutador } from './calculadora-ganancias.service';
 import { ObtenerDeudaEquipamientoQuery } from '../../equipamiento/application/queries';
 
 /**
@@ -128,9 +125,7 @@ export class CalculadoraMontoEsperadoService {
    */
   async obtenerDeudaEquipamiento(vendedorId: string): Promise<DeudaEquipamientoDetalle> {
     try {
-      const deuda = await this.queryBus.execute(
-        new ObtenerDeudaEquipamientoQuery(vendedorId),
-      );
+      const deuda = await this.queryBus.execute(new ObtenerDeudaEquipamientoQuery(vendedorId));
 
       if (!deuda) {
         return {

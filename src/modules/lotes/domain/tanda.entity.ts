@@ -4,13 +4,13 @@ import { DomainException } from '@domain/exceptions/domain.exception';
 /**
  * Entidad de dominio Tanda
  * Según secciones 4.1-4.4 del documento
- * 
+ *
  * Una TANDA es simultáneamente:
  * - Unidad de liberación de stock
  * - Unidad de bloqueo / desbloqueo
  * - Unidad de riesgo financiero
  * - Unidad de control de progresión del lote
- * 
+ *
  * Estados: INACTIVA → LIBERADA → EN_TRÁNSITO → EN_CASA → FINALIZADA
  * Las tandas nunca retroceden de estado.
  */
@@ -44,8 +44,8 @@ export class TandaEntity {
     this.fechaEnCasa = props.fechaEnCasa;
     this.fechaFinalizada = props.fechaFinalizada;
   }
-    /**
-     * Valida si se puede confirmar entrega (EN_TRÁNSITO → EN_CASA)
+  /**
+   * Valida si se puede confirmar entrega (EN_TRÁNSITO → EN_CASA)
    */
   validarConfirmacionEntrega(): void {
     if (this.estado !== 'EN_TRANSITO') {

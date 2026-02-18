@@ -118,7 +118,7 @@ export class LotesPaginadosDto {
   data!: LoteResponseDto[];
 
   @ApiProperty()
-  total: any
+  total: any;
   @ApiProperty()
   hasMore!: boolean;
 

@@ -73,11 +73,7 @@ import { NotificacionQueryHandlers } from './application/queries';
     ...NotificacionCommandHandlers,
     ...NotificacionQueryHandlers,
   ],
-  exports: [
-    NOTIFICACION_REPOSITORY,
-    NotificationContentFactory,
-    NotificationDispatcher,
-  ],
+  exports: [NOTIFICACION_REPOSITORY, NotificationContentFactory, NotificationDispatcher],
 })
 export class NotificacionesModule implements OnModuleInit {
   constructor(

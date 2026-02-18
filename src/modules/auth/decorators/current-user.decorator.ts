@@ -16,13 +16,13 @@ export interface AuthenticatedUser {
 
 /**
  * Decorador para obtener el usuario autenticado actual
- * 
+ *
  * @example
  * @Get('profile')
  * getProfile(@CurrentUser() user: AuthenticatedUser) {
  *   return user;
  * }
- * 
+ *
  * @example
  * @Get('my-id')
  * getMyId(@CurrentUser('id') userId: string) {

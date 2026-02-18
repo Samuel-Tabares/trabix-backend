@@ -7,7 +7,7 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 /**
  * Guard de autenticación JWT
  * Verifica que el usuario esté autenticado
- * 
+ *
  * Usa el decorador @Public() para marcar endpoints públicos
  */
 @Injectable()
@@ -16,9 +16,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     super();
   }
 
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
+  canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
     // Verificar si el endpoint es público
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),

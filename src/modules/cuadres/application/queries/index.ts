@@ -7,7 +7,4 @@ import { ListarCuadresHandler } from './listar-cuadres.query';
 /**
  * Array de todos los query handlers del módulo cuadres
  */
-export const CuadreQueryHandlers = [
-    ObtenerCuadreHandler,
-    ListarCuadresHandler,
-];
+export const CuadreQueryHandlers = [ObtenerCuadreHandler, ListarCuadresHandler];

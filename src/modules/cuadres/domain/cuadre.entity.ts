@@ -5,13 +5,13 @@ import { DomainException } from '../../../domain/exceptions/domain.exception';
 /**
  * Entidad de dominio Cuadre
  * Según sección 8 del documento
- * 
+ *
  * Un CUADRE NORMAL agrupa el dinero que el vendedor debe transferir al Admin:
  * - Inversión de admin (si aplica)
  * - Ganancias de admin (si aplica)
  * - Mensualidad de equipamiento (si aplica)
  * - Pago por daño o pérdida de equipamiento (si aplica)
- * 
+ *
  * Estados:
  * - INACTIVO: aún no se cumple el trigger
  * - PENDIENTE: trigger cumplido, esperando transferencia
@@ -52,16 +52,14 @@ export class CuadreEntity {
   get montoEsperadoAjustado(): Decimal {
     return this.montoEsperado.minus(this.montoCubiertoPorMayor);
   }
-    /**
-     * Valida si el cuadre puede ser activado (INACTIVO → PENDIENTE)
+  /**
+   * Valida si el cuadre puede ser activado (INACTIVO → PENDIENTE)
    */
   validarActivacion(): void {
     if (this.estado !== 'INACTIVO') {
-      throw new DomainException(
-        'CUA_001',
-        'Solo se pueden activar cuadres en estado INACTIVO',
-        { estadoActual: this.estado },
-      );
+      throw new DomainException('CUA_001', 'Solo se pueden activar cuadres en estado INACTIVO', {
+        estadoActual: this.estado,
+      });
     }
   }
 
@@ -71,24 +69,18 @@ export class CuadreEntity {
    */
   validarConfirmacion(montoRecibido: Decimal): void {
     if (this.estado !== 'PENDIENTE') {
-      throw new DomainException(
-        'CUA_002',
-        'Solo se pueden confirmar cuadres en estado PENDIENTE',
-        { estadoActual: this.estado },
-      );
+      throw new DomainException('CUA_002', 'Solo se pueden confirmar cuadres en estado PENDIENTE', {
+        estadoActual: this.estado,
+      });
     }
 
     const montoRequerido = this.montoEsperadoAjustado;
     if (montoRecibido.lessThan(montoRequerido)) {
-      throw new DomainException(
-        'CUA_003',
-        'El monto recibido es insuficiente',
-        {
-          montoEsperado: montoRequerido.toFixed(2),
-          montoRecibido: montoRecibido.toFixed(2),
-          montoFaltante: montoRequerido.minus(montoRecibido).toFixed(2),
-        },
-      );
+      throw new DomainException('CUA_003', 'El monto recibido es insuficiente', {
+        montoEsperado: montoRequerido.toFixed(2),
+        montoRecibido: montoRecibido.toFixed(2),
+        montoFaltante: montoRequerido.minus(montoRecibido).toFixed(2),
+      });
     }
   }
 }

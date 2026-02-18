@@ -1,10 +1,4 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpStatus, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 import { ErrorResponse } from './http-exception.filter';
@@ -12,7 +6,7 @@ import { ErrorResponse } from './http-exception.filter';
 /**
  * Filtro para excepciones de dominio
  * Según sección 22.7 del documento
- * 
+ *
  * Transforma excepciones de dominio en respuestas HTTP apropiadas
  * usando el formato estándar del documento
  */
@@ -117,9 +111,7 @@ export class DomainExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
     };
 
-    this.logger.warn(
-      `Domain Exception: ${exception.code} - ${exception.message}`,
-    );
+    this.logger.warn(`Domain Exception: ${exception.code} - ${exception.message}`);
 
     response.status(status).json(errorResponse);
   }

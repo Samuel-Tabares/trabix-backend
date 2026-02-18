@@ -1,10 +1,7 @@
 import { QueryHandler, IQueryHandler, IQuery } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import {
-    ILoteRepository,
-    LOTE_REPOSITORY,
-} from '../../domain/lote.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY } from '../../domain/lote.repository.interface';
 import { CalculadoraInversionService } from '../../domain/calculadora-inversion.service';
 import { DomainException } from '@domain/exceptions/domain.exception';
 import { LoteResponseDto, TandaResponseDto } from '../dto';
@@ -20,9 +17,7 @@ export class ObtenerLoteQuery implements IQuery {
  * Handler de la query ObtenerLote
  */
 @QueryHandler(ObtenerLoteQuery)
-export class ObtenerLoteHandler
-  implements IQueryHandler<ObtenerLoteQuery, LoteResponseDto>
-{
+export class ObtenerLoteHandler implements IQueryHandler<ObtenerLoteQuery, LoteResponseDto> {
   constructor(
     @Inject(LOTE_REPOSITORY)
     private readonly loteRepository: ILoteRepository,
@@ -34,11 +29,7 @@ export class ObtenerLoteHandler
 
     const lote = await this.loteRepository.findById(loteId);
     if (!lote) {
-      throw new DomainException(
-        'LOTE_003',
-        'Lote no encontrado',
-        { loteId },
-      );
+      throw new DomainException('LOTE_003', 'Lote no encontrado', { loteId });
     }
 
     return this.mapToDto(lote);
@@ -48,7 +39,7 @@ export class ObtenerLoteHandler
     const inversionTotal = new Decimal(lote.inversionTotal);
     const dineroRecaudado = new Decimal(lote.dineroRecaudado);
     const gananciaTotal = dineroRecaudado.minus(inversionTotal);
-    
+
     const tandas: TandaResponseDto[] = lote.tandas.map((tanda: any) => ({
       id: tanda.id,
       loteId: tanda.loteId,
@@ -57,9 +48,8 @@ export class ObtenerLoteHandler
       stockInicial: tanda.stockInicial,
       stockActual: tanda.stockActual,
       stockConsumidoPorMayor: tanda.stockConsumidoPorMayor,
-      porcentajeStockRestante: tanda.stockInicial > 0 
-        ? (tanda.stockActual / tanda.stockInicial) * 100 
-        : 0,
+      porcentajeStockRestante:
+        tanda.stockInicial > 0 ? (tanda.stockActual / tanda.stockInicial) * 100 : 0,
       fechaLiberacion: tanda.fechaLiberacion,
       fechaEnTransito: tanda.fechaEnTransito,
       fechaEnCasa: tanda.fechaEnCasa,
@@ -81,8 +71,8 @@ export class ObtenerLoteHandler
       dineroRecaudado: Number.parseFloat(lote.dineroRecaudado),
       dineroTransferido: Number.parseFloat(lote.dineroTransferido),
       gananciaTotal: gananciaTotal.greaterThan(0) ? Number.parseFloat(gananciaTotal.toFixed(2)) : 0,
-      porcentajeRecaudo: inversionTotal.isZero() 
-        ? 0 
+      porcentajeRecaudo: inversionTotal.isZero()
+        ? 0
         : Number.parseFloat(dineroRecaudado.dividedBy(inversionTotal).times(100).toFixed(2)),
       inversionRecuperada: dineroRecaudado.greaterThanOrEqualTo(inversionTotal),
       esLoteForzado: lote.esLoteForzado,

@@ -1,8 +1,8 @@
 import { QueryHandler, IQueryHandler, IQuery } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
-    IMiniCuadreRepository,
-    MINI_CUADRE_REPOSITORY,
+  IMiniCuadreRepository,
+  MINI_CUADRE_REPOSITORY,
 } from '../../domain/mini-cuadre.repository.interface';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
 import { MiniCuadreResponseDto } from '../dto';
@@ -14,9 +14,10 @@ export class ObtenerMiniCuadrePorLoteQuery implements IQuery {
 }
 
 @QueryHandler(ObtenerMiniCuadrePorLoteQuery)
-export class ObtenerMiniCuadrePorLoteHandler
-  implements IQueryHandler<ObtenerMiniCuadrePorLoteQuery, MiniCuadreResponseDto>
-{
+export class ObtenerMiniCuadrePorLoteHandler implements IQueryHandler<
+  ObtenerMiniCuadrePorLoteQuery,
+  MiniCuadreResponseDto
+> {
   constructor(
     @Inject(MINI_CUADRE_REPOSITORY)
     private readonly miniCuadreRepository: IMiniCuadreRepository,
@@ -24,7 +25,7 @@ export class ObtenerMiniCuadrePorLoteHandler
 
   async execute(query: ObtenerMiniCuadrePorLoteQuery): Promise<MiniCuadreResponseDto> {
     const miniCuadre = await this.miniCuadreRepository.findByLoteId(query.loteId);
-    
+
     if (!miniCuadre) {
       throw new DomainException('MCU_004', 'Mini-cuadre no encontrado para el lote', {
         loteId: query.loteId,
@@ -51,9 +52,10 @@ export class ObtenerMiniCuadreQuery implements IQuery {
 }
 
 @QueryHandler(ObtenerMiniCuadreQuery)
-export class ObtenerMiniCuadreHandler
-  implements IQueryHandler<ObtenerMiniCuadreQuery, MiniCuadreResponseDto>
-{
+export class ObtenerMiniCuadreHandler implements IQueryHandler<
+  ObtenerMiniCuadreQuery,
+  MiniCuadreResponseDto
+> {
   constructor(
     @Inject(MINI_CUADRE_REPOSITORY)
     private readonly miniCuadreRepository: IMiniCuadreRepository,
@@ -61,7 +63,7 @@ export class ObtenerMiniCuadreHandler
 
   async execute(query: ObtenerMiniCuadreQuery): Promise<MiniCuadreResponseDto> {
     const miniCuadre = await this.miniCuadreRepository.findById(query.miniCuadreId);
-    
+
     if (!miniCuadre) {
       throw new DomainException('MCU_003', 'Mini-cuadre no encontrado', {
         miniCuadreId: query.miniCuadreId,
@@ -82,7 +84,4 @@ export class ObtenerMiniCuadreHandler
 }
 
 // Export handlers array
-export const MiniCuadreQueryHandlers = [
-  ObtenerMiniCuadrePorLoteHandler,
-  ObtenerMiniCuadreHandler,
-];
+export const MiniCuadreQueryHandlers = [ObtenerMiniCuadrePorLoteHandler, ObtenerMiniCuadreHandler];

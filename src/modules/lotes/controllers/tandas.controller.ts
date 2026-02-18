@@ -8,25 +8,13 @@ import {
   ParseUUIDPipe,
   UnauthorizedException,
   ForbiddenException,
-    Inject
+  Inject,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
-import {
-  ITandaRepository,
-  TANDA_REPOSITORY,
-} from '../domain/tanda.repository.interface';
-import {
-  ILoteRepository,
-  LOTE_REPOSITORY,
-} from '../domain/lote.repository.interface';
+import { ITandaRepository, TANDA_REPOSITORY } from '../domain/tanda.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY } from '../domain/lote.repository.interface';
 import { TandaEntity } from '../domain/tanda.entity';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 import { TandaResponseDto } from '../application/dto';
@@ -59,7 +47,8 @@ export class TandasController {
   @Get('lote/:loteId')
   @ApiOperation({
     summary: 'Listar tandas de lote',
-    description: 'Lista todas las tandas de un lote. Admin ve cualquiera, vendedor solo de sus lotes.',
+    description:
+      'Lista todas las tandas de un lote. Admin ve cualquiera, vendedor solo de sus lotes.',
   })
   @ApiParam({ name: 'loteId', description: 'ID del lote' })
   @ApiResponse({
@@ -76,11 +65,7 @@ export class TandasController {
     // Verificar que el lote existe y el usuario tiene permisos
     const lote = await this.loteRepository.findById(loteId);
     if (!lote) {
-      throw new DomainException(
-        'LOTE_003',
-        'Lote no encontrado',
-        { loteId },
-      );
+      throw new DomainException('LOTE_003', 'Lote no encontrado', { loteId });
     }
 
     // Verificar permisos: admin puede ver cualquiera, vendedor solo los suyos
@@ -116,21 +101,13 @@ export class TandasController {
   ): Promise<TandaResponseDto> {
     const tanda = await this.tandaRepository.findById(id);
     if (!tanda) {
-      throw new DomainException(
-        'TND_001',
-        'Tanda no encontrada',
-        { tandaId: id },
-      );
+      throw new DomainException('TND_001', 'Tanda no encontrada', { tandaId: id });
     }
 
     // Verificar permisos a través del lote
     const lote = await this.loteRepository.findById(tanda.loteId);
     if (!lote) {
-      throw new DomainException(
-        'LOTE_003',
-        'Lote no encontrado',
-        { loteId: tanda.loteId },
-      );
+      throw new DomainException('LOTE_003', 'Lote no encontrado', { loteId: tanda.loteId });
     }
 
     if (user.rol !== 'ADMIN' && lote.vendedorId !== user.id) {
@@ -168,11 +145,7 @@ export class TandasController {
 
     const tanda = await this.tandaRepository.findById(id);
     if (!tanda) {
-      throw new DomainException(
-        'TND_001',
-        'Tanda no encontrada',
-        { tandaId: id },
-      );
+      throw new DomainException('TND_001', 'Tanda no encontrada', { tandaId: id });
     }
 
     // Validar transición usando la entidad de dominio
@@ -198,9 +171,7 @@ export class TandasController {
       stockActual: tanda.stockActual,
       stockConsumidoPorMayor: tanda.stockConsumidoPorMayor,
       porcentajeStockRestante:
-        tanda.stockInicial > 0
-          ? (tanda.stockActual / tanda.stockInicial) * 100
-          : 0,
+        tanda.stockInicial > 0 ? (tanda.stockActual / tanda.stockInicial) * 100 : 0,
       fechaLiberacion: tanda.fechaLiberacion,
       fechaEnTransito: tanda.fechaEnTransito,
       fechaEnCasa: tanda.fechaEnCasa,

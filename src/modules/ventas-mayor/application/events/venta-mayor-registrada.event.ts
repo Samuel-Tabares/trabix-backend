@@ -4,7 +4,7 @@ import { Decimal } from 'decimal.js';
 
 /**
  * Evento: Venta al Mayor Registrada
- * 
+ *
  * Se dispara cuando se registra una venta al mayor.
  * Genera automáticamente el cuadre al mayor.
  */

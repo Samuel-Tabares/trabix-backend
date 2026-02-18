@@ -1,10 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsUUID,
-  IsInt,
-  Min,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsUUID, IsInt, Min, IsNotEmpty } from 'class-validator';
 
 /**
  * DTO para crear un nuevo lote (Admin)

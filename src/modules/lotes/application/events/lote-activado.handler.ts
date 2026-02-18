@@ -8,10 +8,7 @@ import {
   ICuadreRepository,
   CUADRE_REPOSITORY,
 } from '../../../cuadres/domain/cuadre.repository.interface';
-import {
-  ILoteRepository,
-  LOTE_REPOSITORY,
-} from '../../../lotes/domain/lote.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY } from '../../../lotes/domain/lote.repository.interface';
 import {
   IMiniCuadreRepository,
   MINI_CUADRE_REPOSITORY,
@@ -54,7 +51,7 @@ export class LoteActivadoHandler implements IEventHandler<LoteActivadoEvent> {
   async handle(event: LoteActivadoEvent): Promise<void> {
     this.logger.log(
       `Procesando LoteActivadoEvent: Lote ${event.loteId}, ` +
-      `Vendedor ${event.vendedorId}, ${event.cantidadTrabix} TRABIX`,
+        `Vendedor ${event.vendedorId}, ${event.cantidadTrabix} TRABIX`,
     );
 
     try {
@@ -65,9 +62,7 @@ export class LoteActivadoHandler implements IEventHandler<LoteActivadoEvent> {
       }
 
       // Calcular aporte al fondo de recompensas
-      const aporteFondo = this.calculadoraInversion.calcularAporteFondo(
-        event.cantidadTrabix,
-      );
+      const aporteFondo = this.calculadoraInversion.calcularAporteFondo(event.cantidadTrabix);
 
       this.logger.log(
         `Lote ${event.loteId}: Aporte a fondo de recompensas = $${aporteFondo.toFixed(2)}`,
@@ -99,10 +94,10 @@ export class LoteActivadoHandler implements IEventHandler<LoteActivadoEvent> {
         if (resultado.deudaEquipamiento && resultado.deudaEquipamiento.total.greaterThan(0)) {
           this.logger.log(
             `Cuadre T${tanda.numero} incluye deuda equipamiento: ` +
-            `$${resultado.deudaEquipamiento.total.toFixed(2)} ` +
-            `(daño: $${resultado.deudaEquipamiento.deudaDano.toFixed(2)}, ` +
-            `pérdida: $${resultado.deudaEquipamiento.deudaPerdida.toFixed(2)}, ` +
-            `mensualidades: ${resultado.deudaEquipamiento.mensualidadesPendientes} = $${resultado.deudaEquipamiento.montoMensualidades.toFixed(2)})`,
+              `$${resultado.deudaEquipamiento.total.toFixed(2)} ` +
+              `(daño: $${resultado.deudaEquipamiento.deudaDano.toFixed(2)}, ` +
+              `pérdida: $${resultado.deudaEquipamiento.deudaPerdida.toFixed(2)}, ` +
+              `mensualidades: ${resultado.deudaEquipamiento.mensualidadesPendientes} = $${resultado.deudaEquipamiento.montoMensualidades.toFixed(2)})`,
           );
         }
 
@@ -133,37 +128,26 @@ export class LoteActivadoHandler implements IEventHandler<LoteActivadoEvent> {
           event.loteId,
         ),
       );
-      this.logger.log(
-        `Entrada registrada en fondo de recompensas: $${aporteFondo.toFixed(2)}`,
-      );
+      this.logger.log(`Entrada registrada en fondo de recompensas: $${aporteFondo.toFixed(2)}`);
 
       // Enviar notificación LOTE_ACTIVADO al vendedor
       try {
         await this.commandBus.execute(
-          new EnviarNotificacionCommand(
-            event.vendedorId,
-            'LOTE_ACTIVADO',
-            {
-              loteId: event.loteId,
-              cantidadTrabix: event.cantidadTrabix,
-              numeroTandas,
-              modeloNegocio: event.modeloNegocio,
-            },
-          ),
+          new EnviarNotificacionCommand(event.vendedorId, 'LOTE_ACTIVADO', {
+            loteId: event.loteId,
+            cantidadTrabix: event.cantidadTrabix,
+            numeroTandas,
+            modeloNegocio: event.modeloNegocio,
+          }),
         );
       } catch (notifError) {
         // No fallar el flujo principal si la notificación falla
-        this.logger.warn(
-          `Error enviando notificación LOTE_ACTIVADO: ${notifError}`,
-        );
+        this.logger.warn(`Error enviando notificación LOTE_ACTIVADO: ${notifError}`);
       }
 
       this.logger.log(`LoteActivadoEvent procesado exitosamente: ${event.loteId}`);
     } catch (error) {
-      this.logger.error(
-        `Error procesando LoteActivadoEvent: ${event.loteId}`,
-        error,
-      );
+      this.logger.error(`Error procesando LoteActivadoEvent: ${event.loteId}`, error);
       throw error;
     }
   }
@@ -172,10 +156,7 @@ export class LoteActivadoHandler implements IEventHandler<LoteActivadoEvent> {
    * Determina el concepto del cuadre según número de tanda y total de tandas
    * Según sección 8.9 del documento
    */
-  private determinarConceptoCuadre(
-    numeroTanda: number,
-    totalTandas: number,
-  ): ConceptoCuadre {
+  private determinarConceptoCuadre(numeroTanda: number, totalTandas: number): ConceptoCuadre {
     if (totalTandas === 3) {
       // Lote 3 tandas: T1=INVERSION_ADMIN, T2=GANANCIAS, T3=GANANCIAS
       return numeroTanda === 1 ? 'INVERSION_ADMIN' : 'GANANCIAS';

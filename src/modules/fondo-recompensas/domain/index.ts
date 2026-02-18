@@ -28,7 +28,7 @@ export interface MovimientoFondo {
 /**
  * Domain Service: Fondo de Recompensas
  * Según sección 12 del documento
- * 
+ *
  * Es un fondo global administrado por Admin para premiar vendedores destacados.
  * - Se alimenta automáticamente al activar lotes ($200 por TRABIX)
  * - Admin registra retiros manualmente indicando el beneficiario
@@ -37,27 +37,20 @@ export interface MovimientoFondo {
  */
 @Injectable()
 export class FondoRecompensasService {
-    /**
-     * Valida que se puede realizar una salida
+  /**
+   * Valida que se puede realizar una salida
    */
   validarSalida(saldoActual: Decimal, montoSalida: Decimal): void {
     if (montoSalida.lessThanOrEqualTo(0)) {
-      throw new DomainException(
-        'FND_001',
-        'El monto de salida debe ser mayor a 0',
-      );
+      throw new DomainException('FND_001', 'El monto de salida debe ser mayor a 0');
     }
 
     if (saldoActual.minus(montoSalida).lessThan(0)) {
-      throw new DomainException(
-        'FND_002',
-        'El fondo no puede quedar en negativo',
-        {
-          saldoActual: saldoActual.toFixed(2),
-          montoSalida: montoSalida.toFixed(2),
-          disponible: saldoActual.toFixed(2),
-        },
-      );
+      throw new DomainException('FND_002', 'El fondo no puede quedar en negativo', {
+        saldoActual: saldoActual.toFixed(2),
+        montoSalida: montoSalida.toFixed(2),
+        disponible: saldoActual.toFixed(2),
+      });
     }
   }
 }

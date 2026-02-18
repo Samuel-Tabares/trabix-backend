@@ -4,9 +4,9 @@ import { Decimal } from 'decimal.js';
 /**
  * Evento: Venta Aprobada
  * Según sección 23 del documento
- * 
+ *
  * Trigger: Admin aprueba venta
- * 
+ *
  * Acciones:
  * 1. Actualizar stock de tanda (ya reducido, confirmar)
  * 2. Actualizar dinero recaudado del lote

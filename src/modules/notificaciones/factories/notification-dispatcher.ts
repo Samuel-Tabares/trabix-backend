@@ -127,8 +127,7 @@ export class WhatsAppChannel implements INotificationChannel {
 @Injectable()
 export class NotificationDispatcher {
   private readonly logger = new Logger(NotificationDispatcher.name);
-  private readonly channels: Map<CanalNotificacion, INotificationChannel> =
-    new Map();
+  private readonly channels: Map<CanalNotificacion, INotificationChannel> = new Map();
 
   constructor(
     private readonly webSocketChannel: WebSocketChannel,
@@ -140,9 +139,7 @@ export class NotificationDispatcher {
     //this.channels.set('PUSH', pushChannel);
     //this.channels.set('WHATSAPP', whatsAppChannel);
 
-    this.logger.log(
-      `Canales registrados: ${Array.from(this.channels.keys()).join(', ')}`,
-    );
+    this.logger.log(`Canales registrados: ${Array.from(this.channels.keys()).join(', ')}`);
   }
 
   /**

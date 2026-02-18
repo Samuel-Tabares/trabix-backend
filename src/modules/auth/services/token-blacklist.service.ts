@@ -4,7 +4,7 @@ import { RedisService } from '../../../infrastructure/cache/redis.service';
 /**
  * Servicio para gestionar token blacklist
  * Según sección 22.1 del documento
- * 
+ *
  * Los tokens se almacenan en Redis con TTL igual al tiempo restante de expiración
  */
 @Injectable()
@@ -37,10 +37,10 @@ export class TokenBlacklistService {
    */
   async isBlacklisted(tokenId: string): Promise<boolean> {
     const key = this.getKey(tokenId);
-      return await this.redis.exists(key);
+    return await this.redis.exists(key);
   }
-    /**
-     * Genera la clave de Redis para un token
+  /**
+   * Genera la clave de Redis para un token
    */
   private getKey(tokenId: string): string {
     return `${this.PREFIX}${tokenId}`;

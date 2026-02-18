@@ -15,13 +15,13 @@ const EVENT_MAPPINGS: Record<string, any> = {
 /**
  * Outbox Processor
  * Según sección 23 del documento: Outbox Processor con Bull
- * 
+ *
  * Responsabilidades:
  * 1. Lee eventos pendientes del outbox
  * 2. Publica eventos en el EventBus
  * 3. Persiste eventos en EventStore para auditoría
  * 4. Maneja reintentos con backoff exponencial
- * 
+ *
  * GARANTÍAS:
  * - At-least-once delivery
  * - Backoff exponencial: 1s, 2s, 4s (máx 3 reintentos)
@@ -76,57 +76,52 @@ export class OutboxProcessor implements OnModuleInit {
    * Procesa un mensaje individual del outbox
    */
   private async processMessage(message: any): Promise<void> {
-      try {
-          const { id, eventType, payload } = message;
+    try {
+      const { id, eventType, payload } = message;
 
-          // 1. Publicar evento en EventBus (si hay handler registrado)
-          await this.publishEvent(eventType, payload);
+      // 1. Publicar evento en EventBus (si hay handler registrado)
+      await this.publishEvent(eventType, payload);
 
-          // 2. Persistir en EventStore para auditoría
-          const domainEvent: DomainEvent = {
-              eventName: eventType,
-              aggregateType: payload.aggregateType || 'Unknown',
-              aggregateId: payload.aggregateId || payload.id || 'unknown',
-              payload,
-              metadata: {
-                  outboxId: id,
-                  processedAt: new Date().toISOString(),
-              },
-          };
-          await this.eventStoreService.persist(domainEvent);
+      // 2. Persistir en EventStore para auditoría
+      const domainEvent: DomainEvent = {
+        eventName: eventType,
+        aggregateType: payload.aggregateType || 'Unknown',
+        aggregateId: payload.aggregateId || payload.id || 'unknown',
+        payload,
+        metadata: {
+          outboxId: id,
+          processedAt: new Date().toISOString(),
+        },
+      };
+      await this.eventStoreService.persist(domainEvent);
 
-          // 3. Marcar como procesado
-          await this.outboxService.markAsProcessed(id);
+      // 3. Marcar como procesado
+      await this.outboxService.markAsProcessed(id);
 
-          this.logger.debug(`Evento procesado: ${eventType} (${id})`);
-      } catch (error: unknown) {
-          // Narrowing del error unknown para acceder de forma segura al mensaje
-          const errorMessage =
-              error instanceof Error ? error.message : 'Unknown error';
+      this.logger.debug(`Evento procesado: ${eventType} (${id})`);
+    } catch (error: unknown) {
+      // Narrowing del error unknown para acceder de forma segura al mensaje
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          // Log del error con mensaje seguro
-          this.logger.error(
-              `Error procesando mensaje ${message.id}: ${errorMessage}`,
-          );
+      // Log del error con mensaje seguro
+      this.logger.error(`Error procesando mensaje ${message.id}: ${errorMessage}`);
 
-          // Aplicar backoff exponencial
-          const backoffMs = Math.pow(2, message.retries) * 1000;
-          await this.delay(backoffMs);
+      // Aplicar backoff exponencial
+      const backoffMs = Math.pow(2, message.retries) * 1000;
+      await this.delay(backoffMs);
 
-          // Marcar el mensaje como fallido con el mensaje de error seguro
-          await this.outboxService.markAsFailed(message.id, errorMessage);
-      }
+      // Marcar el mensaje como fallido con el mensaje de error seguro
+      await this.outboxService.markAsFailed(message.id, errorMessage);
+    }
   }
 
-
-
-    /**
+  /**
    * Publica un evento en el EventBus
    */
   private async publishEvent(eventType: string, payload: any): Promise<void> {
     // Crear evento genérico si no hay mapeo específico
     const EventClass = EVENT_MAPPINGS[eventType];
-    
+
     if (EventClass) {
       const event = new EventClass(payload);
       await this.eventBus.publish(event);

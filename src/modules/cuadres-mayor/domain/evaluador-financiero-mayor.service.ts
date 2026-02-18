@@ -1,13 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ModeloNegocio } from '@prisma/client';
 import { Decimal } from 'decimal.js';
+import { EvaluacionFinanciera, GananciaReclutadorMayor } from './cuadre-mayor.entity';
 import {
-    EvaluacionFinanciera,
-    GananciaReclutadorMayor,
-} from './cuadre-mayor.entity';
-import {
-    CalculadoraGananciasService,
-    JerarquiaReclutador,
+  CalculadoraGananciasService,
+  JerarquiaReclutador,
 } from '../../cuadres/domain/calculadora-ganancias.service';
 
 /**
@@ -63,7 +60,7 @@ export interface DatosEvaluacionFinanciera {
 /**
  * Domain Service: Evaluador Financiero para Cuadre al Mayor
  * Según secciones 7.5, 7.6 y 8.10 del documento
- * 
+ *
  * Orden estricto de asignación del dinero total disponible:
  * 1. Saldar deudas pendientes → Admin
  * 2. Cubrir inversión admin de lotes existentes → Admin
@@ -74,20 +71,14 @@ export interface DatosEvaluacionFinanciera {
  */
 @Injectable()
 export class EvaluadorFinancieroMayorService {
-  constructor(
-    private readonly calculadoraGanancias: CalculadoraGananciasService,
-  ) {}
+  constructor(private readonly calculadoraGanancias: CalculadoraGananciasService) {}
 
   /**
    * Genera la evaluación financiera completa
    * Según sección 8.3
    */
-  generarEvaluacionFinanciera(
-    datos: DatosEvaluacionFinanciera,
-  ): EvaluacionFinanciera {
-    const dineroTotalDisponible = datos.ingresoBrutoMayor.plus(
-      datos.dineroRecaudadoDetal,
-    );
+  generarEvaluacionFinanciera(datos: DatosEvaluacionFinanciera): EvaluacionFinanciera {
+    const dineroTotalDisponible = datos.ingresoBrutoMayor.plus(datos.dineroRecaudadoDetal);
 
     // Calcular inversiones totales
     let inversionAdminTotal = new Decimal(0);
@@ -106,9 +97,7 @@ export class EvaluadorFinancieroMayorService {
     const inversionTotal = inversionAdminTotal.plus(inversionVendedorTotal);
 
     // Calcular ganancia neta
-    let gananciaNeta = dineroTotalDisponible
-      .minus(datos.deudas.total)
-      .minus(inversionTotal);
+    let gananciaNeta = dineroTotalDisponible.minus(datos.deudas.total).minus(inversionTotal);
 
     if (gananciaNeta.lessThan(0)) {
       gananciaNeta = new Decimal(0);

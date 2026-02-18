@@ -3,12 +3,12 @@ import { Cuadre, Prisma } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import { PrismaService } from '../../../infrastructure/database/prisma/prisma.service';
 import {
-    ICuadreRepository,
-    CuadreConTanda,
-    FindCuadresOptions,
-    PaginatedCuadres,
-    CreateCuadreData,
-    CountCuadresOptions,
+  ICuadreRepository,
+  CuadreConTanda,
+  FindCuadresOptions,
+  PaginatedCuadres,
+  CreateCuadreData,
+  CountCuadresOptions,
 } from '../domain/cuadre.repository.interface';
 
 /**
@@ -41,13 +41,7 @@ export class PrismaCuadreRepository implements ICuadreRepository {
   }
 
   async findAll(options?: FindCuadresOptions): Promise<PaginatedCuadres> {
-    const {
-      skip = 0,
-      take = 20,
-      cursor,
-      where = {},
-      orderBy,
-    } = options || {};
+    const { skip = 0, take = 20, cursor, where = {}, orderBy } = options || {};
 
     const whereCondition: Prisma.CuadreWhereInput = {};
 
@@ -58,7 +52,7 @@ export class PrismaCuadreRepository implements ICuadreRepository {
     }
     if (where.vendedorId) {
       whereCondition.tanda = {
-        ...whereCondition.tanda as any,
+        ...(whereCondition.tanda as any),
         lote: { vendedorId: where.vendedorId },
       };
     }
@@ -170,11 +164,7 @@ export class PrismaCuadreRepository implements ICuadreRepository {
     });
   }
 
-  async cerrarPorMayor(
-    id: string,
-    cuadreMayorId: string,
-    montoCubierto: Decimal,
-  ): Promise<Cuadre> {
+  async cerrarPorMayor(id: string, cuadreMayorId: string, montoCubierto: Decimal): Promise<Cuadre> {
     return this.prisma.cuadre.update({
       where: { id },
       data: {
@@ -227,7 +217,7 @@ export class PrismaCuadreRepository implements ICuadreRepository {
     }
     if (options?.vendedorId) {
       where.tanda = {
-        ...where.tanda as any,
+        ...(where.tanda as any),
         lote: { vendedorId: options.vendedorId },
       };
     }

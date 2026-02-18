@@ -5,12 +5,12 @@ export const ROLES_KEY = 'roles';
 
 /**
  * Decorador para definir roles permitidos en un endpoint
- * 
+ *
  * @example
  * @Roles(Rol.ADMIN)
  * @Get('admin-only')
  * adminOnly() { ... }
- * 
+ *
  * @example
  * @Roles(Rol.ADMIN, Rol.RECLUTADOR)
  * @Get('admin-or-recruiter')

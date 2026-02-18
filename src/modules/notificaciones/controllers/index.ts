@@ -11,19 +11,10 @@ import {
   ParseUUIDPipe,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Roles } from '../../auth/decorators/roles.decorator';
-import {
-  CurrentUser,
-  AuthenticatedUser,
-} from '../../auth/decorators/current-user.decorator';
+import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 
 // DTOs
 import {
@@ -77,9 +68,7 @@ export class NotificacionesController {
     @Query() queryDto: QueryNotificacionesDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<NotificacionesPaginadasDto> {
-    return this.queryBus.execute(
-      new ListarMisNotificacionesQuery(user.id, queryDto),
-    );
+    return this.queryBus.execute(new ListarMisNotificacionesQuery(user.id, queryDto));
   }
 
   /**
@@ -91,12 +80,8 @@ export class NotificacionesController {
   @Get('contador')
   @ApiOperation({ summary: 'Obtener contador de notificaciones no leídas' })
   @ApiResponse({ status: 200, type: ContadorNotificacionesDto })
-  async contarNoLeidas(
-    @CurrentUser() user: AuthenticatedUser,
-  ): Promise<ContadorNotificacionesDto> {
-    const noLeidas = await this.queryBus.execute(
-      new ContarNoLeidasQuery(user.id),
-    );
+  async contarNoLeidas(@CurrentUser() user: AuthenticatedUser): Promise<ContadorNotificacionesDto> {
+    const noLeidas = await this.queryBus.execute(new ContarNoLeidasQuery(user.id));
     return { noLeidas };
   }
 
@@ -114,9 +99,7 @@ export class NotificacionesController {
     @Body() dto: MarcarTodasLeidasDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<MarcarTodasLeidasResponseDto> {
-    const marcadas = await this.commandBus.execute(
-      new MarcarTodasLeidasCommand(user.id, dto.tipo),
-    );
+    const marcadas = await this.commandBus.execute(new MarcarTodasLeidasCommand(user.id, dto.tipo));
 
     return { marcadas };
   }
@@ -132,9 +115,7 @@ export class NotificacionesController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Enviar notificación (solo admin)' })
   @ApiResponse({ status: 201, type: NotificacionResponseDto })
-  async enviar(
-    @Body() dto: EnviarNotificacionDto,
-  ): Promise<NotificacionResponseDto> {
+  async enviar(@Body() dto: EnviarNotificacionDto): Promise<NotificacionResponseDto> {
     const notificacion = await this.commandBus.execute(
       new EnviarNotificacionCommand(
         dto.usuarioId,
@@ -173,9 +154,7 @@ export class NotificacionesController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<NotificacionResponseDto> {
-    const notificacion = await this.queryBus.execute(
-      new ObtenerNotificacionQuery(id, user.id),
-    );
+    const notificacion = await this.queryBus.execute(new ObtenerNotificacionQuery(id, user.id));
 
     if (!notificacion) {
       throw new NotFoundException('Notificación no encontrada');

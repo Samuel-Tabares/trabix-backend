@@ -5,7 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 /**
  * Módulo de colas Bull para procesamiento asíncrono
  * Según sección 18.1 del documento
- * 
+ *
  * Colas disponibles:
  * - notifications: Procesamiento de notificaciones
  * - tanda-transitions: Transiciones automáticas de tandas

@@ -3,13 +3,13 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 /**
  * Outbox Service
  * Según sección 23 del documento: Outbox Pattern para eventos confiables
- * 
+ *
  * FLUJO:
  * 1. Use case ejecuta lógica de negocio en transacción
  * 2. Eventos se guardan en tabla Outbox dentro de la misma transacción
  * 3. Outbox Processor lee eventos pendientes y los publica
  * 4. Event Handlers procesan los eventos
- * 
+ *
  * GARANTÍAS:
  * - At-least-once delivery
  * - Handlers deben ser idempotentes
@@ -21,8 +21,8 @@ export class OutboxService {
   private readonly MAX_RETRIES = 3;
 
   constructor(private readonly prisma: PrismaService) {}
-    /**
-     * Obtiene mensajes pendientes de procesar
+  /**
+   * Obtiene mensajes pendientes de procesar
    */
   async getPendingMessages(limit: number = 100): Promise<any[]> {
     return this.prisma.outbox.findMany({

@@ -1,24 +1,18 @@
 import { QueryHandler, IQueryHandler, IQuery } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
-    IVentaMayorRepository,
-    VENTA_MAYOR_REPOSITORY,
+  IVentaMayorRepository,
+  VENTA_MAYOR_REPOSITORY,
 } from '../../domain/venta-mayor.repository.interface';
-import {
-    ILoteRepository,
-    LOTE_REPOSITORY,
-} from '../../../lotes/domain/lote.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY } from '../../../lotes/domain/lote.repository.interface';
 import { ConsumidorStockMayorService } from '../../domain/consumidor-stock-mayor.service';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
+import { QueryVentasMayorDto } from '../dto/query-ventas-mayor.dto';
 import {
-    QueryVentasMayorDto,
-
-} from '../dto/query-ventas-mayor.dto';
-import{
-    VentaMayorResponseDto,
-    VentasMayorPaginadasDto,
-    StockDisponibleResponseDto,
-}from '../dto/venta-mayor-response.dto';
+  VentaMayorResponseDto,
+  VentasMayorPaginadasDto,
+  StockDisponibleResponseDto,
+} from '../dto/venta-mayor-response.dto';
 // ========== ObtenerVentaMayorQuery ==========
 
 export class ObtenerVentaMayorQuery implements IQuery {
@@ -26,9 +20,10 @@ export class ObtenerVentaMayorQuery implements IQuery {
 }
 
 @QueryHandler(ObtenerVentaMayorQuery)
-export class ObtenerVentaMayorHandler
-  implements IQueryHandler<ObtenerVentaMayorQuery, VentaMayorResponseDto>
-{
+export class ObtenerVentaMayorHandler implements IQueryHandler<
+  ObtenerVentaMayorQuery,
+  VentaMayorResponseDto
+> {
   constructor(
     @Inject(VENTA_MAYOR_REPOSITORY)
     private readonly ventaMayorRepository: IVentaMayorRepository,
@@ -54,11 +49,12 @@ export class ObtenerVentaMayorHandler
       conLicor: venta.conLicor,
       modalidad: venta.modalidad,
       estado: venta.estado,
-      fuentesStock: venta.fuentesStock?.map((f: any) => ({
-        tandaId: f.tandaId,
-        cantidadConsumida: f.cantidadConsumida,
-        tipoStock: f.tipoStock,
-      })) || [],
+      fuentesStock:
+        venta.fuentesStock?.map((f: any) => ({
+          tandaId: f.tandaId,
+          cantidadConsumida: f.cantidadConsumida,
+          tipoStock: f.tipoStock,
+        })) || [],
       lotesInvolucradosIds: venta.lotesInvolucrados?.map((l: any) => l.loteId) || [],
       loteForzadoId: null,
       cuadreMayorId: venta.cuadreMayor?.id || null,
@@ -75,9 +71,10 @@ export class ListarVentasMayorQuery implements IQuery {
 }
 
 @QueryHandler(ListarVentasMayorQuery)
-export class ListarVentasMayorHandler
-  implements IQueryHandler<ListarVentasMayorQuery, VentasMayorPaginadasDto>
-{
+export class ListarVentasMayorHandler implements IQueryHandler<
+  ListarVentasMayorQuery,
+  VentasMayorPaginadasDto
+> {
   constructor(
     @Inject(VENTA_MAYOR_REPOSITORY)
     private readonly ventaMayorRepository: IVentaMayorRepository,
@@ -113,11 +110,12 @@ export class ListarVentasMayorHandler
       conLicor: venta.conLicor,
       modalidad: venta.modalidad,
       estado: venta.estado,
-      fuentesStock: venta.fuentesStock?.map((f: any) => ({
-        tandaId: f.tandaId,
-        cantidadConsumida: f.cantidadConsumida,
-        tipoStock: f.tipoStock,
-      })) || [],
+      fuentesStock:
+        venta.fuentesStock?.map((f: any) => ({
+          tandaId: f.tandaId,
+          cantidadConsumida: f.cantidadConsumida,
+          tipoStock: f.tipoStock,
+        })) || [],
       lotesInvolucradosIds: venta.lotesInvolucrados?.map((l: any) => l.loteId) || [],
       loteForzadoId: null,
       cuadreMayorId: venta.cuadreMayor?.id || null,
@@ -134,20 +132,19 @@ export class CalcularStockDisponibleQuery implements IQuery {
 }
 
 @QueryHandler(CalcularStockDisponibleQuery)
-export class CalcularStockDisponibleHandler
-  implements IQueryHandler<CalcularStockDisponibleQuery, StockDisponibleResponseDto>
-{
+export class CalcularStockDisponibleHandler implements IQueryHandler<
+  CalcularStockDisponibleQuery,
+  StockDisponibleResponseDto
+> {
   constructor(
     @Inject(LOTE_REPOSITORY)
     private readonly loteRepository: ILoteRepository,
     private readonly consumidorStock: ConsumidorStockMayorService,
   ) {}
 
-  async execute(
-    query: CalcularStockDisponibleQuery,
-  ): Promise<StockDisponibleResponseDto> {
+  async execute(query: CalcularStockDisponibleQuery): Promise<StockDisponibleResponseDto> {
     const lotes = await this.loteRepository.findByVendedor(query.vendedorId);
-      const lotesActivos = lotes.data.filter((l: any) => l.estado === 'ACTIVO');
+    const lotesActivos = lotes.data.filter((l: any) => l.estado === 'ACTIVO');
 
     const stockDisponible = this.consumidorStock.calcularStockDisponible(
       lotesActivos.map((l: any) => ({

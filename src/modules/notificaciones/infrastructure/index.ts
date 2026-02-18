@@ -23,21 +23,19 @@ export class PrismaNotificacionRepository implements INotificacionRepository {
     return this.mapToEntity(notificacion);
   }
 
-  async findByUsuarioId(
-    options: FindNotificacionesOptions,
-  ): Promise<PaginatedNotificaciones> {
+  async findByUsuarioId(options: FindNotificacionesOptions): Promise<PaginatedNotificaciones> {
     const {
       usuarioId,
       skip = 0,
       take = 20,
       soloNoLeidas = false,
-      tipo,                    // FIX #2: extraer tipo de las opciones
+      tipo, // FIX #2: extraer tipo de las opciones
     } = options;
 
     const where: Prisma.NotificacionWhereInput = {
       usuarioId,
       ...(soloNoLeidas ? { leida: false } : {}),
-      ...(tipo ? { tipo } : {}),  // FIX #2: aplicar filtro por tipo
+      ...(tipo ? { tipo } : {}), // FIX #2: aplicar filtro por tipo
     };
 
     const [data, total, noLeidas] = await Promise.all([
@@ -91,10 +89,7 @@ export class PrismaNotificacionRepository implements INotificacionRepository {
     return this.mapToEntity(notificacion);
   }
 
-  async marcarTodasComoLeidas(
-    usuarioId: string,
-    tipo?: TipoNotificacion,
-  ): Promise<number> {
+  async marcarTodasComoLeidas(usuarioId: string, tipo?: TipoNotificacion): Promise<number> {
     const where: Prisma.NotificacionWhereInput = {
       usuarioId,
       leida: false,
@@ -121,9 +116,7 @@ export class PrismaNotificacionRepository implements INotificacionRepository {
   /**
    * Mapea un registro de Prisma a la entidad de dominio
    */
-  private mapToEntity(
-    notificacion: Prisma.NotificacionGetPayload<object>,
-  ): NotificacionEntity {
+  private mapToEntity(notificacion: Prisma.NotificacionGetPayload<object>): NotificacionEntity {
     return new NotificacionEntity({
       id: notificacion.id,
       usuarioId: notificacion.usuarioId,

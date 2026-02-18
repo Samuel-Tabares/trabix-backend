@@ -87,24 +87,24 @@ export class HealthController {
   @ApiResponse({ status: 200, description: 'Aplicación lista para recibir tráfico' })
   @ApiResponse({ status: 503, description: 'Aplicación no lista' })
   async readiness(): Promise<HealthCheckResult> {
-      return this.health.check([
-          // Dependencia crítica → si falla, NO recibimos tráfico
-          () => this.prismaHealth.pingCheck('database', this.prisma),
+    return this.health.check([
+      // Dependencia crítica → si falla, NO recibimos tráfico
+      () => this.prismaHealth.pingCheck('database', this.prisma),
 
-          // Dependencia best-effort → nunca rompe readiness
-          async () => {
-          try {
-              return await this.redisHealth.isHealthy('redis');
-          } catch {
-              return {
-                  redis: {
-                      status: 'up',
-                      info: { degraded: true },
-                  },
-              };
-            }
-          },
-      ]);
+      // Dependencia best-effort → nunca rompe readiness
+      async () => {
+        try {
+          return await this.redisHealth.isHealthy('redis');
+        } catch {
+          return {
+            redis: {
+              status: 'up',
+              info: { degraded: true },
+            },
+          };
+        }
+      },
+    ]);
   }
 
   /**
@@ -117,9 +117,7 @@ export class HealthController {
   @ApiResponse({ status: 200, description: 'Base de datos saludable' })
   @ApiResponse({ status: 503, description: 'Base de datos no saludable' })
   async checkDatabase(): Promise<HealthCheckResult> {
-    return this.health.check([
-      () => this.prismaHealth.pingCheck('database', this.prisma),
-    ]);
+    return this.health.check([() => this.prismaHealth.pingCheck('database', this.prisma)]);
   }
 
   /**

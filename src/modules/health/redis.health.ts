@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-    HealthIndicator,
-    HealthIndicatorResult,
-    HealthCheckError,
-} from '@nestjs/terminus';
+import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus';
 import { RedisService } from '../../infrastructure/cache/redis.service';
 
 /**
@@ -19,7 +15,7 @@ export class RedisHealthIndicator extends HealthIndicator {
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
     try {
       const isHealthy = await this.redis.ping();
-      
+
       if (isHealthy) {
         return this.getStatus(key, true, {
           message: 'Redis is reachable',

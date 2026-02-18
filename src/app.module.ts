@@ -42,10 +42,7 @@ import { AdminModule } from './modules/admin/admin.module';
         allowUnknown: true,
         abortEarly: false,
       },
-      envFilePath: [
-        `.env.${process.env.NODE_ENV || 'development'}`,
-        '.env',
-      ],
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
     }),
 
     WinstonModule.forRoot(winstonConfig),

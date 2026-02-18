@@ -5,12 +5,12 @@ import { DomainException } from '@domain/exceptions/domain.exception';
 /**
  * Entidad de dominio Lote
  * Según secciones 3.1-3.4 del documento
- * 
+ *
  * Un LOTE es una compra de x cantidad de TRABIX que:
  * - Tiene un costo
  * - Se divide en tandas (2 si ≤50, 3 si >50)
  * - Produce ventas y recaudo
- * 
+ *
  * Estados: CREADO → ACTIVO → FINALIZADO
  */
 export class LoteEntity {
@@ -49,16 +49,14 @@ export class LoteEntity {
     this.fechaActivacion = props.fechaActivacion;
     this.fechaFinalizacion = props.fechaFinalizacion;
   }
-    /**
-     * Valida si el lote puede ser activado
+  /**
+   * Valida si el lote puede ser activado
    */
   validarActivacion(): void {
     if (this.estado !== 'CREADO') {
-      throw new DomainException(
-        'LOTE_004',
-        'Solo se pueden activar lotes en estado CREADO',
-        { estadoActual: this.estado },
-      );
+      throw new DomainException('LOTE_004', 'Solo se pueden activar lotes en estado CREADO', {
+        estadoActual: this.estado,
+      });
     }
   }
 }
@@ -79,7 +77,7 @@ export interface LoteEntityProps {
   cantidadTrabix: number;
   modeloNegocio: ModeloNegocio;
   estado: EstadoLote;
-    inversionTotal: InversionTotal;
+  inversionTotal: InversionTotal;
   inversionAdmin: InversionAdmin;
   inversionVendedor: InversionVendedor;
   dineroRecaudado: DineroRecaudado;

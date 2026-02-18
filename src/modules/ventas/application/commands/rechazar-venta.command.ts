@@ -1,12 +1,9 @@
 import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
+import { IVentaRepository, VENTA_REPOSITORY } from '../../domain/venta.repository.interface';
 import {
-    IVentaRepository,
-    VENTA_REPOSITORY,
-} from '../../domain/venta.repository.interface';
-import {
-    ITandaRepository,
-    TANDA_REPOSITORY,
+  ITandaRepository,
+  TANDA_REPOSITORY,
 } from '../../../lotes/domain/tanda.repository.interface';
 import { VentaEntity } from '../../domain/venta.entity';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
@@ -31,9 +28,10 @@ export class RechazarVentaCommand implements ICommand {
  * - No genera efectos contables
  */
 @CommandHandler(RechazarVentaCommand)
-export class RechazarVentaHandler
-  implements ICommandHandler<RechazarVentaCommand, { message: string }>
-{
+export class RechazarVentaHandler implements ICommandHandler<
+  RechazarVentaCommand,
+  { message: string }
+> {
   private readonly logger = new Logger(RechazarVentaHandler.name);
 
   constructor(
@@ -49,11 +47,7 @@ export class RechazarVentaHandler
     // Buscar la venta
     const venta = await this.ventaRepository.findById(ventaId);
     if (!venta) {
-      throw new DomainException(
-        'VNT_004',
-        'Venta no encontrada',
-        { ventaId },
-      );
+      throw new DomainException('VNT_004', 'Venta no encontrada', { ventaId });
     }
 
     // Validar que se puede rechazar

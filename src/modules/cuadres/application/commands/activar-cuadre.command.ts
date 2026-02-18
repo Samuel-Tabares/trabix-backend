@@ -1,9 +1,6 @@
 import { CommandHandler, ICommandHandler, ICommand, CommandBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
-import {
-  ICuadreRepository,
-  CUADRE_REPOSITORY,
-} from '../../domain/cuadre.repository.interface';
+import { ICuadreRepository, CUADRE_REPOSITORY } from '../../domain/cuadre.repository.interface';
 import { CuadreEntity } from '../../domain/cuadre.entity';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
 import { EnviarNotificacionCommand } from '../../../notificaciones/application/commands';
@@ -25,9 +22,7 @@ export class ActivarCuadreCommand implements ICommand {
  * - Trigger cumplido (verificado antes de llamar al comando)
  */
 @CommandHandler(ActivarCuadreCommand)
-export class ActivarCuadreHandler
-  implements ICommandHandler<ActivarCuadreCommand>
-{
+export class ActivarCuadreHandler implements ICommandHandler<ActivarCuadreCommand> {
   private readonly logger = new Logger(ActivarCuadreHandler.name);
 
   constructor(
@@ -42,11 +37,7 @@ export class ActivarCuadreHandler
     // Buscar el cuadre
     const cuadre = await this.cuadreRepository.findById(cuadreId);
     if (!cuadre) {
-      throw new DomainException(
-        'CUA_001',
-        'Cuadre no encontrado',
-        { cuadreId },
-      );
+      throw new DomainException('CUA_001', 'Cuadre no encontrado', { cuadreId });
     }
 
     // Crear entidad de dominio para validaciones
@@ -72,16 +63,12 @@ export class ActivarCuadreHandler
       const vendedorId = cuadre.tanda.lote?.vendedorId;
       if (vendedorId) {
         await this.commandBus.execute(
-          new EnviarNotificacionCommand(
-            vendedorId,
-            'CUADRE_PENDIENTE',
-            {
-              cuadreId: cuadreId,
-              tandaId: cuadre.tandaId,
-              numeroTanda: cuadre.tanda.numero,
-              montoEsperado: Number.parseFloat(cuadre.montoEsperado.toString()),
-            },
-          ),
+          new EnviarNotificacionCommand(vendedorId, 'CUADRE_PENDIENTE', {
+            cuadreId: cuadreId,
+            tandaId: cuadre.tandaId,
+            numeroTanda: cuadre.tanda.numero,
+            montoEsperado: Number.parseFloat(cuadre.montoEsperado.toString()),
+          }),
         );
       } else {
         this.logger.warn(

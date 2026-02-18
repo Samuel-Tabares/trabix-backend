@@ -1,10 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsInt,
-  Min,
-  IsBoolean,
-  IsEnum,
-} from 'class-validator';
+import { IsInt, Min, IsBoolean, IsEnum } from 'class-validator';
 import { ModalidadVentaMayor } from '@prisma/client';
 
 /**

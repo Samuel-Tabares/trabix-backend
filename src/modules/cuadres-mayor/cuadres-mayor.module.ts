@@ -62,9 +62,6 @@ import { FondoRecompensasModule } from '../fondo-recompensas/fondo-recompensas.m
     ...CuadreMayorQueryHandlers,
     ...CuadreMayorEventHandlers,
   ],
-  exports: [
-    CUADRE_MAYOR_REPOSITORY,
-    EvaluadorFinancieroMayorService,
-  ],
+  exports: [CUADRE_MAYOR_REPOSITORY, EvaluadorFinancieroMayorService],
 })
 export class CuadresMayorModule {}

@@ -6,7 +6,7 @@ import { OutboxService } from '../../events/outbox/outbox.service';
 /**
  * CleanupExpiredTokensJob
  * Según sección 23 del documento:
- * 
+ *
  * - Frecuencia: cada 1 hora
  * - Acción: elimina tokens expirados de TokenBlacklist
  */
@@ -39,7 +39,7 @@ export class CleanupExpiredTokensJob {
 /**
  * CleanupProcessedOutboxJob
  * Según sección 23 del documento:
- * 
+ *
  * - Frecuencia: cada 24 horas
  * - Acción: elimina eventos procesados con más de 7 días
  */
@@ -53,7 +53,7 @@ export class CleanupProcessedOutboxJob {
   async execute(): Promise<void> {
     try {
       const count = await this.outboxService.cleanupProcessed(7);
-      
+
       if (count > 0) {
         this.logger.log(`CleanupProcessedOutboxJob: ${count} mensajes eliminados`);
       }
@@ -66,7 +66,7 @@ export class CleanupProcessedOutboxJob {
 /**
  * CleanupExpiredIdempotencyKeysJob
  * Según sección 23 del documento:
- * 
+ *
  * - Frecuencia: cada 1 hora
  * - Acción: elimina idempotency keys expiradas
  */
@@ -88,9 +88,7 @@ export class CleanupExpiredIdempotencyKeysJob {
       });
 
       if (result.count > 0) {
-        this.logger.log(
-          `CleanupExpiredIdempotencyKeysJob: ${result.count} keys eliminadas`,
-        );
+        this.logger.log(`CleanupExpiredIdempotencyKeysJob: ${result.count} keys eliminadas`);
       }
     } catch (error) {
       this.logger.error('Error en CleanupExpiredIdempotencyKeysJob', error);

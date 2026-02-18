@@ -5,7 +5,7 @@ export const IS_PUBLIC_KEY = 'isPublic';
 /**
  * Decorador para marcar endpoints públicos
  * Los endpoints marcados con @Public() no requieren autenticación
- * 
+ *
  * @example
  * @Public()
  * @Get('health')

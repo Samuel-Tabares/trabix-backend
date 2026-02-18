@@ -11,9 +11,9 @@ export type TipoFuenteStock = 'RESERVADO' | 'EN_CASA' | 'LOTE_FORZADO';
  * Fuente de stock para venta al mayor
  */
 export interface FuenteStock {
-    tandaId: string;
-    cantidadConsumida: number;
-    tipoStock: TipoFuenteStock;
+  tandaId: string;
+  cantidadConsumida: number;
+  tipoStock: TipoFuenteStock;
 }
 
 /**
@@ -30,78 +30,76 @@ export interface FuenteStock {
  * para mantener la entidad pura (sin dependencias de infraestructura/configuración)
  */
 export class VentaMayorEntity {
-    readonly id: string;
-    readonly vendedorId: string;
-    readonly cantidadUnidades: number;
-    readonly precioUnidad: Decimal;
-    readonly ingresoBruto: Decimal;
-    readonly conLicor: boolean;
-    readonly modalidad: ModalidadVentaMayor;
-    readonly estado: EstadoVentaMayor;
-    readonly fuentesStock: FuenteStock[];
-    readonly lotesInvolucradosIds: string[];
-    readonly loteForzadoId: string | null;
-    readonly fechaRegistro: Date;
-    readonly fechaCompletada: Date | null;
+  readonly id: string;
+  readonly vendedorId: string;
+  readonly cantidadUnidades: number;
+  readonly precioUnidad: Decimal;
+  readonly ingresoBruto: Decimal;
+  readonly conLicor: boolean;
+  readonly modalidad: ModalidadVentaMayor;
+  readonly estado: EstadoVentaMayor;
+  readonly fuentesStock: FuenteStock[];
+  readonly lotesInvolucradosIds: string[];
+  readonly loteForzadoId: string | null;
+  readonly fechaRegistro: Date;
+  readonly fechaCompletada: Date | null;
 
-    constructor(props: VentaMayorEntityProps) {
-        this.id = props.id;
-        this.vendedorId = props.vendedorId;
-        this.cantidadUnidades = props.cantidadUnidades;
-        this.precioUnidad = new Decimal(props.precioUnidad);
-        this.ingresoBruto = new Decimal(props.ingresoBruto);
-        this.conLicor = props.conLicor;
-        this.modalidad = props.modalidad;
-        this.estado = props.estado;
-        this.fuentesStock = props.fuentesStock || [];
-        this.lotesInvolucradosIds = props.lotesInvolucradosIds || [];
-        this.loteForzadoId = props.loteForzadoId;
-        this.fechaRegistro = props.fechaRegistro;
-        this.fechaCompletada = props.fechaCompletada;
-    }
+  constructor(props: VentaMayorEntityProps) {
+    this.id = props.id;
+    this.vendedorId = props.vendedorId;
+    this.cantidadUnidades = props.cantidadUnidades;
+    this.precioUnidad = new Decimal(props.precioUnidad);
+    this.ingresoBruto = new Decimal(props.ingresoBruto);
+    this.conLicor = props.conLicor;
+    this.modalidad = props.modalidad;
+    this.estado = props.estado;
+    this.fuentesStock = props.fuentesStock || [];
+    this.lotesInvolucradosIds = props.lotesInvolucradosIds || [];
+    this.loteForzadoId = props.loteForzadoId;
+    this.fechaRegistro = props.fechaRegistro;
+    this.fechaCompletada = props.fechaCompletada;
+  }
 
-    /**
-     * Valida que se puede completar la venta
-     */
-    validarCompletar(): void {
-        if (this.estado !== 'PENDIENTE') {
-            throw new DomainException(
-                'VMA_001',
-                'Solo se pueden completar ventas en estado PENDIENTE',
-                { estadoActual: this.estado },
-            );
-        }
+  /**
+   * Valida que se puede completar la venta
+   */
+  validarCompletar(): void {
+    if (this.estado !== 'PENDIENTE') {
+      throw new DomainException('VMA_001', 'Solo se pueden completar ventas en estado PENDIENTE', {
+        estadoActual: this.estado,
+      });
     }
+  }
 
-    /**
-     * Valida cantidad mínima para venta al mayor (>=20)
-     */
-    static validarCantidadMinima(cantidad: number): void {
-        if (cantidad < 20) {
-            throw new DomainException(
-                'VMA_002',
-                'La cantidad para venta al mayor debe ser mayor o igual a 20 unidades',
-                { cantidad },
-            );
-        }
+  /**
+   * Valida cantidad mínima para venta al mayor (>=20)
+   */
+  static validarCantidadMinima(cantidad: number): void {
+    if (cantidad < 20) {
+      throw new DomainException(
+        'VMA_002',
+        'La cantidad para venta al mayor debe ser mayor o igual a 20 unidades',
+        { cantidad },
+      );
     }
+  }
 }
 
 /**
  * Props para crear una entidad VentaMayor
  */
 export interface VentaMayorEntityProps {
-    id: string;
-    vendedorId: string;
-    cantidadUnidades: number;
-    precioUnidad: Decimal | string | number;
-    ingresoBruto: Decimal | string | number;
-    conLicor: boolean;
-    modalidad: ModalidadVentaMayor;
-    estado: EstadoVentaMayor;
-    fuentesStock?: FuenteStock[];
-    lotesInvolucradosIds?: string[];
-    loteForzadoId: string | null;
-    fechaRegistro: Date;
-    fechaCompletada: Date | null;
+  id: string;
+  vendedorId: string;
+  cantidadUnidades: number;
+  precioUnidad: Decimal | string | number;
+  ingresoBruto: Decimal | string | number;
+  conLicor: boolean;
+  modalidad: ModalidadVentaMayor;
+  estado: EstadoVentaMayor;
+  fuentesStock?: FuenteStock[];
+  lotesInvolucradosIds?: string[];
+  loteForzadoId: string | null;
+  fechaRegistro: Date;
+  fechaCompletada: Date | null;
 }

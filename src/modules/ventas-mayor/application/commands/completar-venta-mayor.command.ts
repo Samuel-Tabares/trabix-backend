@@ -1,8 +1,8 @@
 import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import {
-    IVentaMayorRepository,
-    VENTA_MAYOR_REPOSITORY,
+  IVentaMayorRepository,
+  VENTA_MAYOR_REPOSITORY,
 } from '../../domain/venta-mayor.repository.interface';
 import { VentaMayorEntity } from '../../domain/venta-mayor.entity';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
@@ -21,9 +21,7 @@ export class CompletarVentaMayorCommand implements ICommand {
  * Handler del comando CompletarVentaMayor
  */
 @CommandHandler(CompletarVentaMayorCommand)
-export class CompletarVentaMayorHandler
-  implements ICommandHandler<CompletarVentaMayorCommand>
-{
+export class CompletarVentaMayorHandler implements ICommandHandler<CompletarVentaMayorCommand> {
   private readonly logger = new Logger(CompletarVentaMayorHandler.name);
 
   constructor(
@@ -52,11 +50,12 @@ export class CompletarVentaMayorHandler
       conLicor: venta.conLicor,
       modalidad: venta.modalidad,
       estado: venta.estado,
-      fuentesStock: venta.fuentesStock?.map((f) => ({
-        tandaId: f.tandaId,
-        cantidadConsumida: f.cantidadConsumida,
-        tipoStock: f.tipoStock as any,
-      })) || [],
+      fuentesStock:
+        venta.fuentesStock?.map((f) => ({
+          tandaId: f.tandaId,
+          cantidadConsumida: f.cantidadConsumida,
+          tipoStock: f.tipoStock as any,
+        })) || [],
       lotesInvolucradosIds: venta.lotesInvolucrados?.map((l) => l.loteId) || [],
       loteForzadoId: null,
       fechaRegistro: venta.fechaRegistro,

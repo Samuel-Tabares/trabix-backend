@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  HealthIndicator,
-  HealthIndicatorResult,
-  HealthCheckError,
-} from '@nestjs/terminus';
+import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestjs/terminus';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 
@@ -60,9 +56,7 @@ export class BullHealthIndicator extends HealthIndicator {
       }
 
       // Verificar si alguna cola está caída
-      const hasDownQueue = Object.values(results).some(
-        (q: any) => q.status === 'down',
-      );
+      const hasDownQueue = Object.values(results).some((q: any) => q.status === 'down');
 
       if (hasDownQueue) {
         throw new HealthCheckError(

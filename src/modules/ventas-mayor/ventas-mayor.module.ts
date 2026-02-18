@@ -63,10 +63,6 @@ import { EquipamientoModule } from '../equipamiento/equipamiento.module';
     ...VentaMayorQueryHandlers,
     ...VentaMayorEventHandlers,
   ],
-  exports: [
-    VENTA_MAYOR_REPOSITORY,
-    ConsumidorStockMayorService,
-    CalculadoraPreciosMayorService,
-  ],
+  exports: [VENTA_MAYOR_REPOSITORY, ConsumidorStockMayorService, CalculadoraPreciosMayorService],
 })
 export class VentasMayorModule {}

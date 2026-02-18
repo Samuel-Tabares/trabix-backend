@@ -15,7 +15,7 @@ export interface DomainEvent {
 /**
  * EventStore Service
  * Según sección 23 del documento: Persistencia de eventos para auditoría
- * 
+ *
  * Responsabilidades:
  * - Persistir todos los eventos del dominio
  * - Proveer consultas para auditoría y replay

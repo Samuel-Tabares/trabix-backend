@@ -4,9 +4,9 @@ import { ModeloNegocio } from '@prisma/client';
 /**
  * Evento: Lote Activado
  * Según sección 23 del documento
- * 
+ *
  * Trigger: Admin confirma pago de inversión
- * 
+ *
  * Acciones:
  * 1. Liberar Tanda 1 (ya se hace en el repositorio)
  * 2. Crear cuadres para cada tanda

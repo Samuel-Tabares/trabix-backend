@@ -1,9 +1,4 @@
-import {
-    Injectable,
-    CanActivate,
-    ExecutionContext,
-    ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Rol } from '@prisma/client';
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -11,7 +6,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 /**
  * Guard de roles
  * Verifica que el usuario tenga uno de los roles requeridos
- * 
+ *
  * Usa el decorador @Roles(Rol.ADMIN, Rol.VENDEDOR) para definir roles permitidos
  */
 @Injectable()

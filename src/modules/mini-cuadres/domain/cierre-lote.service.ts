@@ -5,19 +5,19 @@ import { Decimal } from 'decimal.js';
  * Información del lote para cálculo del monto final
  */
 export interface LoteParaCierre {
-    id: string;
-    dineroRecaudado: Decimal;
-    dineroTransferido: Decimal;
-    inversionAdmin: Decimal;
-    inversionVendedor: Decimal;
+  id: string;
+  dineroRecaudado: Decimal;
+  dineroTransferido: Decimal;
+  inversionAdmin: Decimal;
+  inversionVendedor: Decimal;
 }
 
 /**
  * Resultado del cálculo del monto final
  */
 export interface MontoFinalCierre {
-    montoFinal: Decimal;
-    hayGananciasRestantes: boolean;
+  montoFinal: Decimal;
+  hayGananciasRestantes: boolean;
 }
 
 /**
@@ -36,30 +36,30 @@ export interface MontoFinalCierre {
  */
 @Injectable()
 export class CierreLoteService {
-    /**
-     * Calcula el monto final del mini-cuadre
-     *
-     * El monto final representa las ganancias restantes que no han sido
-     * transferidas a través de los cuadres normales o cuadre al mayor.
-     *
-     * Según sección 9.7: Si todoo fue cubierto por cuadre al mayor → monto_final = 0
-     */
-    calcularMontoFinal(lote: LoteParaCierre): MontoFinalCierre {
-        // Calcular lo que falta por transferir
-        const pendientePorTransferir = lote.dineroRecaudado.minus(lote.dineroTransferido);
+  /**
+   * Calcula el monto final del mini-cuadre
+   *
+   * El monto final representa las ganancias restantes que no han sido
+   * transferidas a través de los cuadres normales o cuadre al mayor.
+   *
+   * Según sección 9.7: Si todoo fue cubierto por cuadre al mayor → monto_final = 0
+   */
+  calcularMontoFinal(lote: LoteParaCierre): MontoFinalCierre {
+    // Calcular lo que falta por transferir
+    const pendientePorTransferir = lote.dineroRecaudado.minus(lote.dineroTransferido);
 
-        // Si ya se transfirió todoo o más, no hay monto final
-        if (pendientePorTransferir.lessThanOrEqualTo(0)) {
-            return {
-                montoFinal: new Decimal(0),
-                hayGananciasRestantes: false,
-            };
-        }
-
-        // Las ganancias restantes son lo pendiente por transferir
-        return {
-            montoFinal: pendientePorTransferir,
-            hayGananciasRestantes: true,
-        };
+    // Si ya se transfirió todoo o más, no hay monto final
+    if (pendientePorTransferir.lessThanOrEqualTo(0)) {
+      return {
+        montoFinal: new Decimal(0),
+        hayGananciasRestantes: false,
+      };
     }
+
+    // Las ganancias restantes son lo pendiente por transferir
+    return {
+      montoFinal: pendientePorTransferir,
+      hayGananciasRestantes: true,
+    };
+  }
 }

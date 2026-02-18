@@ -1,14 +1,14 @@
 import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
-import {ModeloNegocio } from '@prisma/client';
+import { ModeloNegocio } from '@prisma/client';
 import {
-    ILoteRepository,
-    LOTE_REPOSITORY,
-    LoteConTandas,
+  ILoteRepository,
+  LOTE_REPOSITORY,
+  LoteConTandas,
 } from '../../../lotes/domain/lote.repository.interface';
 import {
-    IUsuarioRepository,
-    USUARIO_REPOSITORY,
+  IUsuarioRepository,
+  USUARIO_REPOSITORY,
 } from '../../../usuarios/domain/usuario.repository.interface';
 import { CalculadoraInversionService } from '../../domain/calculadora-inversion.service';
 import { CalculadoraTandasService } from '../../domain/calculadora-tandas.service';
@@ -33,9 +33,7 @@ export class CrearLoteCommand implements ICommand {
  * 4. Admin valida transferencia → Tanda 1 se libera → Estado: ACTIVO
  */
 @CommandHandler(CrearLoteCommand)
-export class CrearLoteHandler
-  implements ICommandHandler<CrearLoteCommand, LoteConTandas>
-{
+export class CrearLoteHandler implements ICommandHandler<CrearLoteCommand, LoteConTandas> {
   private readonly logger = new Logger(CrearLoteHandler.name);
 
   constructor(
@@ -48,32 +46,26 @@ export class CrearLoteHandler
   ) {}
 
   async execute(command: CrearLoteCommand): Promise<LoteConTandas> {
-    const { data} = command;
+    const { data } = command;
 
     // Validar que el vendedor existe y está activo
     const vendedor = await this.usuarioRepository.findById(data.vendedorId);
     if (!vendedor) {
-      throw new DomainException(
-        'USR_001',
-        'Vendedor no encontrado',
-        { vendedorId: data.vendedorId },
-      );
+      throw new DomainException('USR_001', 'Vendedor no encontrado', {
+        vendedorId: data.vendedorId,
+      });
     }
 
     if (vendedor.eliminado) {
-      throw new DomainException(
-        'USR_001',
-        'Vendedor no encontrado',
-        { vendedorId: data.vendedorId },
-      );
+      throw new DomainException('USR_001', 'Vendedor no encontrado', {
+        vendedorId: data.vendedorId,
+      });
     }
 
     if (vendedor.estado !== 'ACTIVO') {
-      throw new DomainException(
-        'LOTE_002',
-        'El vendedor debe estar activo para crear lotes',
-        { estadoVendedor: vendedor.estado },
-      );
+      throw new DomainException('LOTE_002', 'El vendedor debe estar activo para crear lotes', {
+        estadoVendedor: vendedor.estado,
+      });
     }
 
     // Validar que el vendedor ya cambió su contraseña temporal

@@ -80,11 +80,9 @@ export class PedidoStockEntity {
    */
   validarConfirmacion(insumosObligatorios: string[]): void {
     if (this.estado !== 'BORRADOR') {
-      throw new DomainException(
-        'PED_002',
-        'Solo se pueden confirmar pedidos en estado BORRADOR',
-        { estadoActual: this.estado },
-      );
+      throw new DomainException('PED_002', 'Solo se pueden confirmar pedidos en estado BORRADOR', {
+        estadoActual: this.estado,
+      });
     }
 
     if (!this.tieneInsumosObligatorios(insumosObligatorios)) {
@@ -94,10 +92,7 @@ export class PedidoStockEntity {
     }
 
     if (this.detallesCosto.length === 0) {
-      throw new DomainException(
-        'PED_004',
-        'El pedido no tiene detalles de costo',
-      );
+      throw new DomainException('PED_004', 'El pedido no tiene detalles de costo');
     }
   }
 
@@ -106,11 +101,9 @@ export class PedidoStockEntity {
    */
   validarRecepcion(): void {
     if (this.estado !== 'CONFIRMADO') {
-      throw new DomainException(
-        'PED_005',
-        'Solo se pueden recibir pedidos en estado CONFIRMADO',
-        { estadoActual: this.estado },
-      );
+      throw new DomainException('PED_005', 'Solo se pueden recibir pedidos en estado CONFIRMADO', {
+        estadoActual: this.estado,
+      });
     }
   }
 
@@ -120,11 +113,9 @@ export class PedidoStockEntity {
    */
   validarCancelacion(): void {
     if (this.estado !== 'BORRADOR') {
-      throw new DomainException(
-        'PED_007',
-        'Solo se pueden cancelar pedidos en estado BORRADOR',
-        { estadoActual: this.estado },
-      );
+      throw new DomainException('PED_007', 'Solo se pueden cancelar pedidos en estado BORRADOR', {
+        estadoActual: this.estado,
+      });
     }
   }
 }
@@ -198,16 +189,14 @@ export class ConfiguracionSistemaEntity {
     this.ultimaModificacion = props.ultimaModificacion;
     this.modificadoPorId = props.modificadoPorId;
   }
-    /**
-     * Valida que se puede modificar
+  /**
+   * Valida que se puede modificar
    */
   validarModificacion(): void {
     if (!this.modificable) {
-      throw new DomainException(
-        'CFG_001',
-        'Esta configuración no es modificable',
-        { clave: this.clave },
-      );
+      throw new DomainException('CFG_001', 'Esta configuración no es modificable', {
+        clave: this.clave,
+      });
     }
   }
 }
@@ -246,11 +235,9 @@ export class TipoInsumoEntity {
    */
   validarDesactivacion(): void {
     if (this.esObligatorio) {
-      throw new DomainException(
-        'INS_001',
-        'No se pueden desactivar tipos de insumo obligatorios',
-        { nombre: this.nombre },
-      );
+      throw new DomainException('INS_001', 'No se pueden desactivar tipos de insumo obligatorios', {
+        nombre: this.nombre,
+      });
     }
 
     if (!this.activo) {

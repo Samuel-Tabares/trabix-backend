@@ -31,9 +31,10 @@ export class RegistrarEntradaFondoCommand implements ICommand {
 }
 
 @CommandHandler(RegistrarEntradaFondoCommand)
-export class RegistrarEntradaFondoHandler
-  implements ICommandHandler<RegistrarEntradaFondoCommand, MovimientoFondo>
-{
+export class RegistrarEntradaFondoHandler implements ICommandHandler<
+  RegistrarEntradaFondoCommand,
+  MovimientoFondo
+> {
   private readonly logger = new Logger(RegistrarEntradaFondoHandler.name);
 
   constructor(
@@ -49,9 +50,7 @@ export class RegistrarEntradaFondoHandler
       loteId: command.loteId,
     });
 
-    this.logger.log(
-      `Entrada registrada: $${command.monto.toFixed(2)} - ${command.concepto}`,
-    );
+    this.logger.log(`Entrada registrada: $${command.monto.toFixed(2)} - ${command.concepto}`);
 
     return movimiento;
   }
@@ -82,9 +81,10 @@ export class RegistrarSalidaFondoCommand implements ICommand {
 }
 
 @CommandHandler(RegistrarSalidaFondoCommand)
-export class RegistrarSalidaFondoHandler
-  implements ICommandHandler<RegistrarSalidaFondoCommand, MovimientoFondo>
-{
+export class RegistrarSalidaFondoHandler implements ICommandHandler<
+  RegistrarSalidaFondoCommand,
+  MovimientoFondo
+> {
   private readonly logger = new Logger(RegistrarSalidaFondoHandler.name);
 
   constructor(
@@ -102,27 +102,21 @@ export class RegistrarSalidaFondoHandler
     // 1. Validar que el vendedor beneficiario existe
     const vendedor = await this.usuarioRepository.findById(vendedorBeneficiarioId);
     if (!vendedor) {
-      throw new DomainException(
-        'FND_003',
-        'Vendedor beneficiario no encontrado',
-        { vendedorBeneficiarioId },
-      );
+      throw new DomainException('FND_003', 'Vendedor beneficiario no encontrado', {
+        vendedorBeneficiarioId,
+      });
     }
 
     if (vendedor.eliminado) {
-      throw new DomainException(
-        'FND_003',
-        'Vendedor beneficiario no encontrado',
-        { vendedorBeneficiarioId },
-      );
+      throw new DomainException('FND_003', 'Vendedor beneficiario no encontrado', {
+        vendedorBeneficiarioId,
+      });
     }
 
     if (vendedor.estado !== 'ACTIVO') {
-      throw new DomainException(
-        'FND_004',
-        'El vendedor beneficiario debe estar activo',
-        { estadoVendedor: vendedor.estado },
-      );
+      throw new DomainException('FND_004', 'El vendedor beneficiario debe estar activo', {
+        estadoVendedor: vendedor.estado,
+      });
     }
 
     // 2. Obtener saldo actual y validar
@@ -146,17 +140,15 @@ export class RegistrarSalidaFondoHandler
     // 4. Notificar al vendedor beneficiario (PREMIO_RECIBIDO)
     try {
       await this.commandBus.execute(
-        new EnviarNotificacionCommand(
-          vendedorBeneficiarioId,
-          'PREMIO_RECIBIDO',
-          {
-            monto: monto.toNumber(),
-            concepto: concepto,
-            fecha: movimiento.fechaTransaccion,
-          },
-        ),
+        new EnviarNotificacionCommand(vendedorBeneficiarioId, 'PREMIO_RECIBIDO', {
+          monto: monto.toNumber(),
+          concepto: concepto,
+          fecha: movimiento.fechaTransaccion,
+        }),
       );
-      this.logger.log(`Notificación PREMIO_RECIBIDO enviada al beneficiario: ${vendedorBeneficiarioId}`);
+      this.logger.log(
+        `Notificación PREMIO_RECIBIDO enviada al beneficiario: ${vendedorBeneficiarioId}`,
+      );
     } catch (error) {
       // No fallar si la notificación falla
       this.logger.warn(
@@ -181,9 +173,7 @@ export class RegistrarSalidaFondoHandler
       );
       this.logger.log(`Notificación FONDO_EGRESO enviada a vendedores activos`);
     } catch (error) {
-      this.logger.warn(
-        `Error enviando notificación FONDO_EGRESO a vendedores: ${error}`,
-      );
+      this.logger.warn(`Error enviando notificación FONDO_EGRESO a vendedores: ${error}`);
     }
 
     return movimiento;

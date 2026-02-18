@@ -5,10 +5,10 @@ import { DomainException } from '../../../domain/exceptions/domain.exception';
 /**
  * Entidad de dominio MiniCuadre
  * Según sección 9 del documento
- * 
+ *
  * El mini-cuadre es un evento distinto al cuadre normal que cierra el lote.
  * Se activa cuando el stock de la última tanda llega a 0.
- * 
+ *
  * Estados:
  * - INACTIVO: stock de última tanda > 0
  * - PENDIENTE: stock de última tanda = 0
@@ -32,8 +32,8 @@ export class MiniCuadreEntity {
     this.fechaPendiente = props.fechaPendiente;
     this.fechaExitoso = props.fechaExitoso;
   }
-    /**
-     * Valida que se puede confirmar el mini-cuadre
+  /**
+   * Valida que se puede confirmar el mini-cuadre
    */
   validarConfirmacion(): void {
     if (this.estado !== 'PENDIENTE') {

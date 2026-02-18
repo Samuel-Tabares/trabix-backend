@@ -3,14 +3,14 @@ import { IsInt, Min } from 'class-validator';
 
 /**
  * DTO para solicitar un nuevo lote (Vendedor)
- * 
+ *
  * La cantidad mínima se calcula dinámicamente basándose en:
  * - Inversión mínima del vendedor = $20,000
  * - cantidad_minima = CEIL($20,000 / (costo_percibido × 0.5))
- * 
+ *
  * Con costo_percibido = $2,400:
  * cantidad_minima = CEIL($20,000 / $1,200) = 17 TRABIX
- * 
+ *
  * NOTA: La validación del mínimo dinámico se hace en el Command Handler,
  * no en el DTO, porque depende de la configuración del sistema.
  */

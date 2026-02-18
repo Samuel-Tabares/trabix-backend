@@ -11,9 +11,7 @@ import { EnviarNotificacionCommand } from '../../../notificaciones/application/c
  * 2. Enviar notificación LOTE_FINALIZADO al vendedor
  */
 @EventsHandler(MiniCuadreExitosoEvent)
-export class MiniCuadreExitosoHandler
-  implements IEventHandler<MiniCuadreExitosoEvent>
-{
+export class MiniCuadreExitosoHandler implements IEventHandler<MiniCuadreExitosoEvent> {
   private readonly logger = new Logger(MiniCuadreExitosoHandler.name);
 
   constructor(private readonly commandBus: CommandBus) {}
@@ -24,9 +22,9 @@ export class MiniCuadreExitosoHandler
 
     this.logger.log(
       `Procesando MiniCuadreExitosoEvent: ${event.miniCuadreId} - ` +
-      `Lote: ${event.loteId} - ` +
-      `Vendedor: ${event.vendedorId} - ` +
-      `Monto final: $${montoFinalFormatted}`,
+        `Lote: ${event.loteId} - ` +
+        `Vendedor: ${event.vendedorId} - ` +
+        `Monto final: $${montoFinalFormatted}`,
     );
 
     try {
@@ -44,10 +42,7 @@ export class MiniCuadreExitosoHandler
         `MiniCuadreExitosoEvent procesado: ${event.miniCuadreId} - Lote ${event.loteId} FINALIZADO`,
       );
     } catch (error) {
-      this.logger.error(
-        `Error procesando MiniCuadreExitosoEvent: ${event.miniCuadreId}`,
-        error,
-      );
+      this.logger.error(`Error procesando MiniCuadreExitosoEvent: ${event.miniCuadreId}`, error);
       throw error;
     }
   }

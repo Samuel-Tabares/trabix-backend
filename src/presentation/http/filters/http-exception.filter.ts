@@ -23,7 +23,7 @@ export interface ErrorResponse {
 /**
  * Filtro global de excepciones HTTP
  * Según sección 22.7 del documento
- * 
+ *
  * Formato:
  * {
  *   "statusCode": 400,
@@ -57,7 +57,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const resp = exceptionResponse as Record<string, unknown>;
       message = (resp.message as string) || exception.message;
       details = resp.errors || resp.details;
-      errorCode = (resp.errorCode as string) || (resp.code as string) || this.getCodeFromStatus(status);
+      errorCode =
+        (resp.errorCode as string) || (resp.code as string) || this.getCodeFromStatus(status);
 
       // Si message es un array (validation errors), unirlo
       if (Array.isArray(message)) {
@@ -75,7 +76,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode: status,
       errorCode,
       message,
-        ...(details ? { details } : {}),
+      ...(details ? { details } : {}),
       timestamp: new Date().toISOString(),
     };
 
@@ -86,9 +87,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         exception.stack,
       );
     } else {
-      this.logger.warn(
-        `${request.method} ${request.url} - ${status} - ${message}`,
-      );
+      this.logger.warn(`${request.method} ${request.url} - ${status} - ${message}`);
     }
 
     response.status(status).json(errorResponse);

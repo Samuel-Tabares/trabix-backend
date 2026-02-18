@@ -1,10 +1,7 @@
 import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { Usuario } from '@prisma/client';
-import {
-  IUsuarioRepository,
-  USUARIO_REPOSITORY,
-} from '../../domain/usuario.repository.interface';
+import { IUsuarioRepository, USUARIO_REPOSITORY } from '../../domain/usuario.repository.interface';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
 
 /**
@@ -23,9 +20,7 @@ export class RestaurarUsuarioCommand implements ICommand {
  * Este comando permite restaurar un usuario de esa sección
  */
 @CommandHandler(RestaurarUsuarioCommand)
-export class RestaurarUsuarioHandler
-  implements ICommandHandler<RestaurarUsuarioCommand, Usuario>
-{
+export class RestaurarUsuarioHandler implements ICommandHandler<RestaurarUsuarioCommand, Usuario> {
   private readonly logger = new Logger(RestaurarUsuarioHandler.name);
 
   constructor(
@@ -54,9 +49,7 @@ export class RestaurarUsuarioHandler
     // Restaurar usuario (quedará en estado INACTIVO)
     const usuarioRestaurado = await this.usuarioRepository.restaurar(usuarioId);
 
-    this.logger.log(
-      `Usuario ${usuarioId} restaurado por admin ${adminId}. Estado: INACTIVO`,
-    );
+    this.logger.log(`Usuario ${usuarioId} restaurado por admin ${adminId}. Estado: INACTIVO`);
 
     return usuarioRestaurado;
   }

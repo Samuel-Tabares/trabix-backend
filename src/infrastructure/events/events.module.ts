@@ -7,12 +7,12 @@ import { OutboxProcessor } from './outbox/outbox.processor';
 /**
  * EventsModule
  * Según sección 23 del documento: Arquitectura de eventos
- * 
+ *
  * TECNOLOGÍAS:
  * - Eventos síncronos: @nestjs/cqrs EventBus
  * - Eventos asíncronos: Bull queues + Redis
  * - Persistencia: Outbox Pattern + EventStore
- * 
+ *
  * FLUJO DE EVENTOS:
  * 1. Use case ejecuta lógica de negocio en transacción
  * 2. Eventos se guardan en tabla Outbox dentro de la misma transacción
@@ -23,14 +23,7 @@ import { OutboxProcessor } from './outbox/outbox.processor';
 @Global()
 @Module({
   imports: [CqrsModule],
-  providers: [
-    EventStoreService,
-    OutboxService,
-    OutboxProcessor,
-  ],
-  exports: [
-    EventStoreService,
-    OutboxService,
-  ],
+  providers: [EventStoreService, OutboxService, OutboxProcessor],
+  exports: [EventStoreService, OutboxService],
 })
 export class EventsModule {}

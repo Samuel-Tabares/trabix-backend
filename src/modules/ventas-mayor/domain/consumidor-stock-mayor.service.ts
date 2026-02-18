@@ -28,8 +28,8 @@ export interface LoteParaConsumo {
  * Stock disponible para venta al mayor
  */
 export interface StockDisponible {
-  stockReservado: number;      // Tandas 2 y 3 (INACTIVAS)
-  stockEnCasa: number;         // Tandas EN_CASA
+  stockReservado: number; // Tandas 2 y 3 (INACTIVAS)
+  stockEnCasa: number; // Tandas EN_CASA
   stockTotal: number;
   necesitaLoteForzado: boolean;
   cantidadLoteForzado: number;
@@ -61,12 +61,12 @@ export interface PlanConsumoStock {
 /**
  * Domain Service: Consumidor de Stock para Venta al Mayor
  * Según sección 7.3 del documento
- * 
+ *
  * Orden estricto de consumo:
  * 1. Stock reservado (tandas 2 y 3 inactivas)
  * 2. Stock en casa (si el reservado no alcanza)
  * 3. Creación de lote forzado (si ninguno alcanza)
- * 
+ *
  * El stock reservado se descuenta en orden: tanda 2 primero, luego tanda 3
  * Los lotes se consumen en orden de antigüedad (el más antiguo primero)
  */
@@ -82,7 +82,7 @@ export class ConsumidorStockMayorService {
 
     // Ordenar lotes por antigüedad (fecha de activación más antigua primero)
     const lotesOrdenados = [...lotes]
-      .filter(l => l.estado === 'ACTIVO')
+      .filter((l) => l.estado === 'ACTIVO')
       .sort((a, b) => {
         const fechaA = a.fechaActivacion?.getTime() || 0;
         const fechaB = b.fechaActivacion?.getTime() || 0;
@@ -135,103 +135,96 @@ export class ConsumidorStockMayorService {
   /**
    * Genera un plan de consumo de stock para una cantidad específica
    */
-  generarPlanConsumo(
-      cantidadRequerida: number,
-      lotes: LoteParaConsumo[],
-  ): PlanConsumoStock {
-      const fuentesStock: FuenteStock[] = [];
-      const lotesInvolucrados = new Set<string>();
+  generarPlanConsumo(cantidadRequerida: number, lotes: LoteParaConsumo[]): PlanConsumoStock {
+    const fuentesStock: FuenteStock[] = [];
+    const lotesInvolucrados = new Set<string>();
 
-      let cantidadRestante = cantidadRequerida;
+    let cantidadRestante = cantidadRequerida;
 
-      // Ordenar lotes activos por antigüedad
-      const lotesOrdenados = this.ordenarLotesActivosPorFecha(lotes);
+    // Ordenar lotes activos por antigüedad
+    const lotesOrdenados = this.ordenarLotesActivosPorFecha(lotes);
 
-      // PASO 1: Consumir stock reservado (tandas INACTIVAS)
+    // PASO 1: Consumir stock reservado (tandas INACTIVAS)
+    cantidadRestante = this.consumirPorTipoStock({
+      lotes: lotesOrdenados,
+      cantidadRestante,
+      estadoTanda: 'INACTIVA',
+      tipoStock: 'RESERVADO',
+      fuentesStock,
+      lotesInvolucrados,
+    });
+
+    // PASO 2: Consumir stock en casa si aún falta
+    if (cantidadRestante > 0) {
       cantidadRestante = this.consumirPorTipoStock({
-          lotes: lotesOrdenados,
-          cantidadRestante,
-          estadoTanda: 'INACTIVA',
-          tipoStock: 'RESERVADO',
-          fuentesStock,
-          lotesInvolucrados,
+        lotes: lotesOrdenados,
+        cantidadRestante,
+        estadoTanda: 'EN_CASA',
+        tipoStock: 'EN_CASA',
+        fuentesStock,
+        lotesInvolucrados,
       });
+    }
 
-      // PASO 2: Consumir stock en casa si aún falta
-      if (cantidadRestante > 0) {
-          cantidadRestante = this.consumirPorTipoStock({
-              lotes: lotesOrdenados,
-              cantidadRestante,
-              estadoTanda: 'EN_CASA',
-              tipoStock: 'EN_CASA',
-              fuentesStock,
-              lotesInvolucrados,
-          });
-      }
+    // PASO 3: Determinar si se requiere lote forzado
+    const necesitaLoteForzado = cantidadRestante > 0;
 
-      // PASO 3: Determinar si se requiere lote forzado
-      const necesitaLoteForzado = cantidadRestante > 0;
-
-      return {
-          fuentesStock,
-          lotesInvolucrados: Array.from(lotesInvolucrados),
-          necesitaLoteForzado,
-          cantidadLoteForzado: necesitaLoteForzado ? cantidadRestante : 0,
-          stockTotalConsumido: cantidadRequerida - cantidadRestante,
-      };
+    return {
+      fuentesStock,
+      lotesInvolucrados: Array.from(lotesInvolucrados),
+      necesitaLoteForzado,
+      cantidadLoteForzado: necesitaLoteForzado ? cantidadRestante : 0,
+      stockTotalConsumido: cantidadRequerida - cantidadRestante,
+    };
   }
 
-    /* ===================== HELPERS ===================== */
+  /* ===================== HELPERS ===================== */
 
-// Ordena lotes activos por fecha de activación
-    private ordenarLotesActivosPorFecha(
-        lotes: LoteParaConsumo[],
-    ): LoteParaConsumo[] {
-        return [...lotes]
-            .filter(l => l.estado === 'ACTIVO')
-            .sort((a, b) => {
-                const fechaA = a.fechaActivacion?.getTime() ?? 0;
-                const fechaB = b.fechaActivacion?.getTime() ?? 0;
-                return fechaA - fechaB;
-            });
+  // Ordena lotes activos por fecha de activación
+  private ordenarLotesActivosPorFecha(lotes: LoteParaConsumo[]): LoteParaConsumo[] {
+    return [...lotes]
+      .filter((l) => l.estado === 'ACTIVO')
+      .sort((a, b) => {
+        const fechaA = a.fechaActivacion?.getTime() ?? 0;
+        const fechaB = b.fechaActivacion?.getTime() ?? 0;
+        return fechaA - fechaB;
+      });
+  }
+
+  // Consume stock de tandas según estado y tipo
+  private consumirPorTipoStock(params: {
+    lotes: LoteParaConsumo[];
+    cantidadRestante: number;
+    estadoTanda: 'INACTIVA' | 'EN_CASA';
+    tipoStock: 'RESERVADO' | 'EN_CASA';
+    fuentesStock: FuenteStock[];
+    lotesInvolucrados: Set<string>;
+  }): number {
+    let restante = params.cantidadRestante;
+
+    for (const lote of params.lotes) {
+      if (restante <= 0) break;
+
+      const tandas = lote.tandas
+        .filter((t) => t.estado === params.estadoTanda && t.stockActual > 0)
+        .sort((a, b) => a.numero - b.numero);
+
+      for (const tanda of tandas) {
+        if (restante <= 0) break;
+
+        const consumir = Math.min(tanda.stockActual, restante);
+
+        params.fuentesStock.push({
+          tandaId: tanda.id,
+          cantidadConsumida: consumir,
+          tipoStock: params.tipoStock,
+        });
+
+        params.lotesInvolucrados.add(lote.id);
+        restante -= consumir;
+      }
     }
 
-// Consume stock de tandas según estado y tipo
-    private consumirPorTipoStock(params: {
-        lotes: LoteParaConsumo[];
-        cantidadRestante: number;
-        estadoTanda: 'INACTIVA' | 'EN_CASA';
-        tipoStock: 'RESERVADO' | 'EN_CASA';
-        fuentesStock: FuenteStock[];
-        lotesInvolucrados: Set<string>;
-    }): number {
-        let restante = params.cantidadRestante;
-
-        for (const lote of params.lotes) {
-            if (restante <= 0) break;
-
-            const tandas = lote.tandas
-                .filter(
-                    t => t.estado === params.estadoTanda && t.stockActual > 0,
-                )
-                .sort((a, b) => a.numero - b.numero);
-
-            for (const tanda of tandas) {
-                if (restante <= 0) break;
-
-                const consumir = Math.min(tanda.stockActual, restante);
-
-                params.fuentesStock.push({
-                    tandaId: tanda.id,
-                    cantidadConsumida: consumir,
-                    tipoStock: params.tipoStock,
-                });
-
-                params.lotesInvolucrados.add(lote.id);
-                restante -= consumir;
-            }
-        }
-
-        return restante;
-    }
+    return restante;
+  }
 }

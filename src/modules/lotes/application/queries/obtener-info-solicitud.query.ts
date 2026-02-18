@@ -1,10 +1,7 @@
 import { QueryHandler, IQueryHandler, IQuery } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  ILoteRepository,
-  LOTE_REPOSITORY,
-} from '../../domain/lote.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY } from '../../domain/lote.repository.interface';
 import { CalculadoraInversionService } from '../../domain/calculadora-inversion.service';
 import { InfoSolicitudLoteDto } from '../dto';
 import { calcularInfoSolicitud } from '../commands/solicitar-lote.command';
@@ -18,7 +15,7 @@ export class ObtenerInfoSolicitudQuery implements IQuery {
 
 /**
  * Handler de la query ObtenerInfoSolicitud
- * 
+ *
  * Retorna:
  * - Cantidad mínima de TRABIX
  * - Costo por TRABIX
@@ -28,9 +25,10 @@ export class ObtenerInfoSolicitudQuery implements IQuery {
  * - Si puede solicitar más
  */
 @QueryHandler(ObtenerInfoSolicitudQuery)
-export class ObtenerInfoSolicitudHandler
-  implements IQueryHandler<ObtenerInfoSolicitudQuery, InfoSolicitudLoteDto>
-{
+export class ObtenerInfoSolicitudHandler implements IQueryHandler<
+  ObtenerInfoSolicitudQuery,
+  InfoSolicitudLoteDto
+> {
   private readonly maxLotesCreados: number;
   private readonly inversionMinimaVendedor: number;
 
@@ -42,7 +40,8 @@ export class ObtenerInfoSolicitudHandler
   ) {
     // Cargar configuración desde .env
     this.maxLotesCreados = this.configService.get<number>('lotes.maxLotesCreadosPorVendedor') ?? 2;
-    this.inversionMinimaVendedor = this.configService.get<number>('lotes.inversionMinimaVendedor') ?? 20000;
+    this.inversionMinimaVendedor =
+      this.configService.get<number>('lotes.inversionMinimaVendedor') ?? 20000;
   }
 
   async execute(query: ObtenerInfoSolicitudQuery): Promise<InfoSolicitudLoteDto> {

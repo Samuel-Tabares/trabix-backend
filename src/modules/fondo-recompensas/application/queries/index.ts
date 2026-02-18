@@ -1,14 +1,7 @@
 import { QueryHandler, IQueryHandler, IQuery } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import {
-  IFondoRecompensasRepository,
-  FONDO_RECOMPENSAS_REPOSITORY,
-} from '../../domain';
-import {
-  QueryTransaccionesDto,
-  SaldoFondoResponseDto,
-  TransaccionesPaginadasDto,
-} from '../dto';
+import { IFondoRecompensasRepository, FONDO_RECOMPENSAS_REPOSITORY } from '../../domain';
+import { QueryTransaccionesDto, SaldoFondoResponseDto, TransaccionesPaginadasDto } from '../dto';
 
 // ========== ObtenerSaldoFondoQuery ==========
 
@@ -19,9 +12,10 @@ import {
 export class ObtenerSaldoFondoQuery implements IQuery {}
 
 @QueryHandler(ObtenerSaldoFondoQuery)
-export class ObtenerSaldoFondoHandler
-  implements IQueryHandler<ObtenerSaldoFondoQuery, SaldoFondoResponseDto>
-{
+export class ObtenerSaldoFondoHandler implements IQueryHandler<
+  ObtenerSaldoFondoQuery,
+  SaldoFondoResponseDto
+> {
   constructor(
     @Inject(FONDO_RECOMPENSAS_REPOSITORY)
     private readonly fondoRepository: IFondoRecompensasRepository,
@@ -44,9 +38,10 @@ export class ListarTransaccionesFondoQuery implements IQuery {
 }
 
 @QueryHandler(ListarTransaccionesFondoQuery)
-export class ListarTransaccionesFondoHandler
-  implements IQueryHandler<ListarTransaccionesFondoQuery, TransaccionesPaginadasDto>
-{
+export class ListarTransaccionesFondoHandler implements IQueryHandler<
+  ListarTransaccionesFondoQuery,
+  TransaccionesPaginadasDto
+> {
   constructor(
     @Inject(FONDO_RECOMPENSAS_REPOSITORY)
     private readonly fondoRepository: IFondoRecompensasRepository,

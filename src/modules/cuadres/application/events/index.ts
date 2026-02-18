@@ -6,6 +6,4 @@ import { CuadreExitosoHandler } from './cuadre-exitoso.handler';
 /**
  * Array de todos los event handlers del módulo cuadres
  */
-export const CuadreEventHandlers = [
-  CuadreExitosoHandler,
-];
+export const CuadreEventHandlers = [CuadreExitosoHandler];

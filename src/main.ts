@@ -23,179 +23,171 @@ import { IdempotencyInterceptor } from './presentation/http/interceptors/idempot
 import { RedisService } from './infrastructure/cache/redis.service';
 
 async function bootstrap() {
-    // Logger Winston para bootstrap
-    const logger = createWinstonLogger();
+  // Logger Winston para bootstrap
+  const logger = createWinstonLogger();
 
-    // Crear aplicación Nest
-    const app = await NestFactory.create(AppModule, {
-        logger,
+  // Crear aplicación Nest
+  const app = await NestFactory.create(AppModule, {
+    logger,
+  });
+
+  const configService = app.get(ConfigService);
+  const reflector = app.get(Reflector);
+  const redisService = app.get(RedisService);
+
+  /**
+   * ===============================
+   * Configuración general
+   * ===============================
+   */
+  const apiPrefix = configService.get<string>('app.apiPrefix')!;
+  const nodeEnv = configService.get<string>('app.nodeEnv')!;
+  const port = configService.get<number>('app.port')!;
+
+  app.setGlobalPrefix(apiPrefix);
+
+  /**
+   * ===============================
+   * Versionamiento de API
+   * ===============================
+   */
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: configService.get<string>('app.apiVersion', '1'),
+  });
+
+  /**
+   * ===============================
+   * Seguridad - Helmet
+   * ===============================
+   */
+  const helmetConfig = configService.get<any>('security.helmet')!;
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: helmetConfig.contentSecurityPolicy.defaultSrc.split(','),
+          styleSrc: helmetConfig.contentSecurityPolicy.styleSrc.split(','),
+          imgSrc: helmetConfig.contentSecurityPolicy.imgSrc.split(','),
+          scriptSrc: helmetConfig.contentSecurityPolicy.scriptSrc.split(','),
+        },
+      },
+      crossOriginEmbedderPolicy: helmetConfig.crossOriginEmbedderPolicy,
+    }),
+  );
+
+  /**
+   * ===============================
+   * CORS
+   * ===============================
+   */
+  const corsOrigin = configService.get<string>('security.corsOrigin')!;
+  const corsConfig = configService.get<any>('security.cors')!;
+
+  app.enableCors({
+    origin: corsOrigin.split(',').map((o) => o.trim()),
+    methods: corsConfig.methods.split(','),
+    allowedHeaders: corsConfig.headers.split(','),
+    credentials: corsConfig.credentials,
+  });
+
+  /**
+   * ===============================
+   * ValidationPipe global
+   * ===============================
+   */
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      validateCustomDecorators: true,
+    }),
+  );
+
+  /**
+   * ===============================
+   * Filters globales
+   * (orden: específico → general)
+   * ===============================
+   */
+  app.useGlobalFilters(
+    new DomainExceptionFilter(),
+    new HttpExceptionFilter(),
+    new AllExceptionsFilter(),
+  );
+
+  /**
+   * ===============================
+   * Interceptors globales
+   * ===============================
+   */
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new IdempotencyInterceptor(reflector, redisService),
+  );
+
+  /**
+   * ===============================
+   * Swagger (no producción)
+   * ===============================
+   */
+  if (nodeEnv !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('TRABIX Backend API')
+      .setDescription('API Backend para el sistema de gestión de ventas de granizados TRABIX.')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'Authorization',
+          in: 'header',
+        },
+        'access-token',
+      )
+      .addTag('Health')
+      .addTag('Auth')
+      .addTag('Usuarios')
+      .addTag('Lotes')
+      .addTag('Tandas')
+      .addTag('Ventas')
+      .addTag('Ventas Mayor')
+      .addTag('Cuadres')
+      .addTag('Cuadres Mayor')
+      .addTag('Mini-Cuadres')
+      .addTag('Equipamiento')
+      .addTag('Fondo Recompensas')
+      .addTag('Notificaciones')
+      .addTag('Admin')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        tagsSorter: 'alpha',
+        operationsSorter: 'alpha',
+      },
     });
 
-    const configService = app.get(ConfigService);
-    const reflector = app.get(Reflector);
-    const redisService = app.get(RedisService);
+    logger.log(`📚 Swagger disponible en http://localhost:${port}/docs`);
+  }
 
-    /**
-     * ===============================
-     * Configuración general
-     * ===============================
-     */
-    const apiPrefix = configService.get<string>('app.apiPrefix')!;
-    const nodeEnv = configService.get<string>('app.nodeEnv')!;
-    const port = configService.get<number>('app.port')!;
+  /**
+   * ===============================
+   * Start server
+   * ===============================
+   */
+  await app.listen(port);
 
-
-    app.setGlobalPrefix(apiPrefix);
-
-    /**
-     * ===============================
-     * Versionamiento de API
-     * ===============================
-     */
-    app.enableVersioning({
-        type: VersioningType.URI,
-        defaultVersion: configService.get<string>('app.apiVersion', '1'),
-    });
-
-    /**
-     * ===============================
-     * Seguridad - Helmet
-     * ===============================
-     */
-    const helmetConfig = configService.get<any>('security.helmet')!;
-
-    app.use(
-        helmet({
-            contentSecurityPolicy: {
-                directives: {
-                    defaultSrc: helmetConfig.contentSecurityPolicy.defaultSrc.split(','),
-                    styleSrc: helmetConfig.contentSecurityPolicy.styleSrc.split(','),
-                    imgSrc: helmetConfig.contentSecurityPolicy.imgSrc.split(','),
-                    scriptSrc: helmetConfig.contentSecurityPolicy.scriptSrc.split(','),
-                },
-            },
-            crossOriginEmbedderPolicy:
-            helmetConfig.crossOriginEmbedderPolicy,
-        }),
-    );
-
-    /**
-     * ===============================
-     * CORS
-     * ===============================
-     */
-    const corsOrigin = configService.get<string>('security.corsOrigin')!;
-    const corsConfig = configService.get<any>('security.cors')!;
-
-    app.enableCors({
-        origin: corsOrigin.split(',').map((o) => o.trim()),
-        methods: corsConfig.methods.split(','),
-        allowedHeaders: corsConfig.headers.split(','),
-        credentials: corsConfig.credentials,
-    });
-
-    /**
-     * ===============================
-     * ValidationPipe global
-     * ===============================
-     */
-    app.useGlobalPipes(
-        new ValidationPipe({
-            whitelist: true,
-            forbidNonWhitelisted: true,
-            transform: true,
-            transformOptions: {
-                enableImplicitConversion: true,
-            },
-            validateCustomDecorators: true,
-        }),
-    );
-
-    /**
-     * ===============================
-     * Filters globales
-     * (orden: específico → general)
-     * ===============================
-     */
-    app.useGlobalFilters(
-        new DomainExceptionFilter(),
-        new HttpExceptionFilter(),
-        new AllExceptionsFilter(),
-    );
-
-    /**
-     * ===============================
-     * Interceptors globales
-     * ===============================
-     */
-    app.useGlobalInterceptors(
-        new LoggingInterceptor(),
-        new IdempotencyInterceptor(reflector, redisService),
-    );
-
-    /**
-     * ===============================
-     * Swagger (no producción)
-     * ===============================
-     */
-    if (nodeEnv !== 'production') {
-        const swaggerConfig = new DocumentBuilder()
-            .setTitle('TRABIX Backend API')
-            .setDescription(
-                'API Backend para el sistema de gestión de ventas de granizados TRABIX.',
-            )
-            .setVersion('1.0')
-            .addBearerAuth(
-                {
-                    type: 'http',
-                    scheme: 'bearer',
-                    bearerFormat: 'JWT',
-                    name: 'Authorization',
-                    in: 'header',
-                },
-                'access-token',
-            )
-            .addTag('Health')
-            .addTag('Auth')
-            .addTag('Usuarios')
-            .addTag('Lotes')
-            .addTag('Tandas')
-            .addTag('Ventas')
-            .addTag('Ventas Mayor')
-            .addTag('Cuadres')
-            .addTag('Cuadres Mayor')
-            .addTag('Mini-Cuadres')
-            .addTag('Equipamiento')
-            .addTag('Fondo Recompensas')
-            .addTag('Notificaciones')
-            .addTag('Admin')
-            .build();
-
-        const document = SwaggerModule.createDocument(app, swaggerConfig);
-        SwaggerModule.setup('docs', app, document, {
-            swaggerOptions: {
-                persistAuthorization: true,
-                tagsSorter: 'alpha',
-                operationsSorter: 'alpha',
-            },
-        });
-
-        logger.log(
-            `📚 Swagger disponible en http://localhost:${port}/docs`,
-        );
-    }
-
-    /**
-     * ===============================
-     * Start server
-     * ===============================
-     */
-    await app.listen(port);
-
-    logger.log(
-        `🚀 TRABIX Backend corriendo en http://localhost:${port}/${apiPrefix}`,
-    );
-    logger.log(`📊 Ambiente: ${nodeEnv}`);
+  logger.log(`🚀 TRABIX Backend corriendo en http://localhost:${port}/${apiPrefix}`);
+  logger.log(`📊 Ambiente: ${nodeEnv}`);
 }
 
 bootstrap();

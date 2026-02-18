@@ -1,10 +1,7 @@
 import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { Usuario, EstadoUsuario } from '@prisma/client';
-import {
-  IUsuarioRepository,
-  USUARIO_REPOSITORY,
-} from '../../domain/usuario.repository.interface';
+import { IUsuarioRepository, USUARIO_REPOSITORY } from '../../domain/usuario.repository.interface';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
 import { UsuarioEntity } from '../../domain/usuario.entity';
 
@@ -40,9 +37,7 @@ export class CambiarEstadoCommand implements ICommand {
  * - Puede reactivarse por Admin en cualquier momento
  */
 @CommandHandler(CambiarEstadoCommand)
-export class CambiarEstadoHandler
-  implements ICommandHandler<CambiarEstadoCommand, Usuario>
-{
+export class CambiarEstadoHandler implements ICommandHandler<CambiarEstadoCommand, Usuario> {
   private readonly logger = new Logger(CambiarEstadoHandler.name);
 
   constructor(
@@ -76,10 +71,7 @@ export class CambiarEstadoHandler
     }
 
     // Cambiar estado
-    const usuarioActualizado = await this.usuarioRepository.cambiarEstado(
-      usuarioId,
-      nuevoEstado,
-    );
+    const usuarioActualizado = await this.usuarioRepository.cambiarEstado(usuarioId, nuevoEstado);
 
     this.logger.log(
       `Estado de usuario ${usuarioId} cambiado a ${nuevoEstado} por admin ${adminId}`,

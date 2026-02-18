@@ -28,98 +28,98 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 const ADMIN_ID = '00000000-0000-4000-a000-000000000001';
 
 const V = {
-  activo_ok:           '00000000-0000-4000-a000-000000000100',
-  activo_pwd_temp:     '00000000-0000-4000-a000-000000000101',
-  inactivo:            '00000000-0000-4000-a000-000000000102',
-  eliminado:           '00000000-0000-4000-a000-000000000103',
-  bloqueado_l1:        '00000000-0000-4000-a000-000000000104',
-  bloqueado_l2:        '00000000-0000-4000-a000-000000000105',
-  bloqueado_perm:      '00000000-0000-4000-a000-000000000106',
-  con_lote_creado:     '00000000-0000-4000-a000-000000000107',
+  activo_ok: '00000000-0000-4000-a000-000000000100',
+  activo_pwd_temp: '00000000-0000-4000-a000-000000000101',
+  inactivo: '00000000-0000-4000-a000-000000000102',
+  eliminado: '00000000-0000-4000-a000-000000000103',
+  bloqueado_l1: '00000000-0000-4000-a000-000000000104',
+  bloqueado_l2: '00000000-0000-4000-a000-000000000105',
+  bloqueado_perm: '00000000-0000-4000-a000-000000000106',
+  con_lote_creado: '00000000-0000-4000-a000-000000000107',
   con_lote_finalizado: '00000000-0000-4000-a000-000000000108',
-  multi_lotes:         '00000000-0000-4000-a000-000000000109',
-  eq_solicitado:       '00000000-0000-4000-a000-000000000110',
-  eq_activo_deposito:  '00000000-0000-4000-a000-000000000111',
-  eq_activo_sin_dep:   '00000000-0000-4000-a000-000000000112',
-  eq_devuelto:         '00000000-0000-4000-a000-000000000113',
-  eq_danado:           '00000000-0000-4000-a000-000000000114',
-  eq_perdido:          '00000000-0000-4000-a000-000000000115',
-  sin_lotes:           '00000000-0000-4000-a000-000000000116',
-  inactivo_con_lote:   '00000000-0000-4000-a000-000000000117',
-  con_ventas_pend:     '00000000-0000-4000-a000-000000000118',
-  con_ventas_rech:     '00000000-0000-4000-a000-000000000119',
-  cuadre_pendiente:    '00000000-0000-4000-a000-000000000120',
-  cuadre_exitoso:      '00000000-0000-4000-a000-000000000121',
-  mini_cuadre_pend:    '00000000-0000-4000-a000-000000000122',
-  venta_mayor_pend:    '00000000-0000-4000-a000-000000000123',
-  venta_mayor_comp:    '00000000-0000-4000-a000-000000000124',
-  login_reciente:      '00000000-0000-4000-a000-000000000125',
-  sin_login:           '00000000-0000-4000-a000-000000000126',
-  cambio_estado_rec:   '00000000-0000-4000-a000-000000000127',
-  lote_forzado:        '00000000-0000-4000-a000-000000000128',
+  multi_lotes: '00000000-0000-4000-a000-000000000109',
+  eq_solicitado: '00000000-0000-4000-a000-000000000110',
+  eq_activo_deposito: '00000000-0000-4000-a000-000000000111',
+  eq_activo_sin_dep: '00000000-0000-4000-a000-000000000112',
+  eq_devuelto: '00000000-0000-4000-a000-000000000113',
+  eq_danado: '00000000-0000-4000-a000-000000000114',
+  eq_perdido: '00000000-0000-4000-a000-000000000115',
+  sin_lotes: '00000000-0000-4000-a000-000000000116',
+  inactivo_con_lote: '00000000-0000-4000-a000-000000000117',
+  con_ventas_pend: '00000000-0000-4000-a000-000000000118',
+  con_ventas_rech: '00000000-0000-4000-a000-000000000119',
+  cuadre_pendiente: '00000000-0000-4000-a000-000000000120',
+  cuadre_exitoso: '00000000-0000-4000-a000-000000000121',
+  mini_cuadre_pend: '00000000-0000-4000-a000-000000000122',
+  venta_mayor_pend: '00000000-0000-4000-a000-000000000123',
+  venta_mayor_comp: '00000000-0000-4000-a000-000000000124',
+  login_reciente: '00000000-0000-4000-a000-000000000125',
+  sin_login: '00000000-0000-4000-a000-000000000126',
+  cambio_estado_rec: '00000000-0000-4000-a000-000000000127',
+  lote_forzado: '00000000-0000-4000-a000-000000000128',
   eq_mensualidad_mora: '00000000-0000-4000-a000-000000000129',
 };
 
 const R = {
   activo_con_recl: '00000000-0000-4000-a000-000000000200',
-  inactivo:        '00000000-0000-4000-a000-000000000201',
-  con_cadena:      '00000000-0000-4000-a000-000000000202',
-  eliminado:       '00000000-0000-4000-a000-000000000203',
+  inactivo: '00000000-0000-4000-a000-000000000201',
+  con_cadena: '00000000-0000-4000-a000-000000000202',
+  eliminado: '00000000-0000-4000-a000-000000000203',
 };
 
 const V50 = {
-  activo_1:        '00000000-0000-4000-a000-000000000300',
-  activo_2:        '00000000-0000-4000-a000-000000000301',
-  inactivo:        '00000000-0000-4000-a000-000000000302',
-  con_lote:        '00000000-0000-4000-a000-000000000303',
-  cadena_nivel2:   '00000000-0000-4000-a000-000000000304',
-  pwd_temp:        '00000000-0000-4000-a000-000000000305',
-  eliminado:       '00000000-0000-4000-a000-000000000306',
-  bloqueado:       '00000000-0000-4000-a000-000000000307',
-  con_equip:       '00000000-0000-4000-a000-000000000308',
+  activo_1: '00000000-0000-4000-a000-000000000300',
+  activo_2: '00000000-0000-4000-a000-000000000301',
+  inactivo: '00000000-0000-4000-a000-000000000302',
+  con_lote: '00000000-0000-4000-a000-000000000303',
+  cadena_nivel2: '00000000-0000-4000-a000-000000000304',
+  pwd_temp: '00000000-0000-4000-a000-000000000305',
+  eliminado: '00000000-0000-4000-a000-000000000306',
+  bloqueado: '00000000-0000-4000-a000-000000000307',
+  con_equip: '00000000-0000-4000-a000-000000000308',
   con_venta_mayor: '00000000-0000-4000-a000-000000000309',
 };
 
 const LOTE = {
-  v_activo_lote1:   '00000000-0000-4000-b000-000000000001',
-  v_creado:         '00000000-0000-4000-b000-000000000002',
-  v_finalizado:     '00000000-0000-4000-b000-000000000003',
-  v_multi_1:        '00000000-0000-4000-b000-000000000004',
-  v_multi_2:        '00000000-0000-4000-b000-000000000005',
-  v_inactivo_lote:  '00000000-0000-4000-b000-000000000006',
-  v_cuadre_pend:    '00000000-0000-4000-b000-000000000007',
-  v_cuadre_exit:    '00000000-0000-4000-b000-000000000008',
-  v_mini_cuadre:    '00000000-0000-4000-b000-000000000009',
-  v_vta_pend:       '00000000-0000-4000-b000-000000000010',
-  v_vta_rech:       '00000000-0000-4000-b000-000000000011',
+  v_activo_lote1: '00000000-0000-4000-b000-000000000001',
+  v_creado: '00000000-0000-4000-b000-000000000002',
+  v_finalizado: '00000000-0000-4000-b000-000000000003',
+  v_multi_1: '00000000-0000-4000-b000-000000000004',
+  v_multi_2: '00000000-0000-4000-b000-000000000005',
+  v_inactivo_lote: '00000000-0000-4000-b000-000000000006',
+  v_cuadre_pend: '00000000-0000-4000-b000-000000000007',
+  v_cuadre_exit: '00000000-0000-4000-b000-000000000008',
+  v_mini_cuadre: '00000000-0000-4000-b000-000000000009',
+  v_vta_pend: '00000000-0000-4000-b000-000000000010',
+  v_vta_rech: '00000000-0000-4000-b000-000000000011',
   v_vta_mayor_pend: '00000000-0000-4000-b000-000000000012',
   v_vta_mayor_comp: '00000000-0000-4000-b000-000000000013',
-  v50_con_lote:     '00000000-0000-4000-b000-000000000014',
-  v_lote_forzado:   '00000000-0000-4000-b000-000000000015',
-  v50_vta_mayor:    '00000000-0000-4000-b000-000000000016',
+  v50_con_lote: '00000000-0000-4000-b000-000000000014',
+  v_lote_forzado: '00000000-0000-4000-b000-000000000015',
+  v50_vta_mayor: '00000000-0000-4000-b000-000000000016',
 };
 
 const TANDA = {
-  activo_t1:  '00000000-0000-4000-c000-000000000001',
-  activo_t2:  '00000000-0000-4000-c000-000000000002',
-  final_t1:   '00000000-0000-4000-c000-000000000003',
-  final_t2:   '00000000-0000-4000-c000-000000000004',
-  cuadre_t1:  '00000000-0000-4000-c000-000000000005',
-  cuadre_t2:  '00000000-0000-4000-c000-000000000006',
-  cuadre_t3:  '00000000-0000-4000-c000-000000000007',
-  exit_t1:    '00000000-0000-4000-c000-000000000008',
-  exit_t2:    '00000000-0000-4000-c000-000000000009',
-  mini_t1:    '00000000-0000-4000-c000-000000000010',
-  mini_t2:    '00000000-0000-4000-c000-000000000011',
-  vpend_t1:   '00000000-0000-4000-c000-000000000012',
-  vrech_t1:   '00000000-0000-4000-c000-000000000014',
-  multi1_t1:  '00000000-0000-4000-c000-000000000016',
-  vmayp_t1:   '00000000-0000-4000-c000-000000000020',
-  vmayc_t1:   '00000000-0000-4000-c000-000000000022',
-  vmayc_t2:   '00000000-0000-4000-c000-000000000023',
-  v50_t1:     '00000000-0000-4000-c000-000000000024',
-  forz_t1:    '00000000-0000-4000-c000-000000000026',
-  v50vm_t1:   '00000000-0000-4000-c000-000000000028',
+  activo_t1: '00000000-0000-4000-c000-000000000001',
+  activo_t2: '00000000-0000-4000-c000-000000000002',
+  final_t1: '00000000-0000-4000-c000-000000000003',
+  final_t2: '00000000-0000-4000-c000-000000000004',
+  cuadre_t1: '00000000-0000-4000-c000-000000000005',
+  cuadre_t2: '00000000-0000-4000-c000-000000000006',
+  cuadre_t3: '00000000-0000-4000-c000-000000000007',
+  exit_t1: '00000000-0000-4000-c000-000000000008',
+  exit_t2: '00000000-0000-4000-c000-000000000009',
+  mini_t1: '00000000-0000-4000-c000-000000000010',
+  mini_t2: '00000000-0000-4000-c000-000000000011',
+  vpend_t1: '00000000-0000-4000-c000-000000000012',
+  vrech_t1: '00000000-0000-4000-c000-000000000014',
+  multi1_t1: '00000000-0000-4000-c000-000000000016',
+  vmayp_t1: '00000000-0000-4000-c000-000000000020',
+  vmayc_t1: '00000000-0000-4000-c000-000000000022',
+  vmayc_t2: '00000000-0000-4000-c000-000000000023',
+  v50_t1: '00000000-0000-4000-c000-000000000024',
+  forz_t1: '00000000-0000-4000-c000-000000000026',
+  v50vm_t1: '00000000-0000-4000-c000-000000000028',
 };
 
 // ============================================================
@@ -187,9 +187,7 @@ describe('TRABIX E2E - All Scenarios', () => {
     // Verificar que hay datos del seed
     const userCount = await prisma.usuario.count();
     if (userCount === 0) {
-      throw new Error(
-        'No hay datos en la BD. Ejecute primero: npx prisma db seed',
-      );
+      throw new Error('No hay datos en la BD. Ejecute primero: npx prisma db seed');
     }
     console.log(`✅ BD con ${userCount} usuarios (seed presente)`);
   }, 60000);
@@ -202,27 +200,18 @@ describe('TRABIX E2E - All Scenarios', () => {
   // HELPER: hacer request autenticado
   // ============================================================
   const authGet = (url: string, token: string) =>
-    request(app.getHttpServer())
-      .get(`${PREFIX}${url}`)
-      .set('Authorization', `Bearer ${token}`);
+    request(app.getHttpServer()).get(`${PREFIX}${url}`).set('Authorization', `Bearer ${token}`);
 
   const authPost = (url: string, token: string) =>
-    request(app.getHttpServer())
-      .post(`${PREFIX}${url}`)
-      .set('Authorization', `Bearer ${token}`);
+    request(app.getHttpServer()).post(`${PREFIX}${url}`).set('Authorization', `Bearer ${token}`);
 
   const authPatch = (url: string, token: string) =>
-    request(app.getHttpServer())
-      .patch(`${PREFIX}${url}`)
-      .set('Authorization', `Bearer ${token}`);
+    request(app.getHttpServer()).patch(`${PREFIX}${url}`).set('Authorization', `Bearer ${token}`);
 
   const authDelete = (url: string, token: string) =>
-    request(app.getHttpServer())
-      .delete(`${PREFIX}${url}`)
-      .set('Authorization', `Bearer ${token}`);
+    request(app.getHttpServer()).delete(`${PREFIX}${url}`).set('Authorization', `Bearer ${token}`);
 
-  const publicPost = (url: string) =>
-    request(app.getHttpServer()).post(`${PREFIX}${url}`);
+  const publicPost = (url: string) => request(app.getHttpServer()).post(`${PREFIX}${url}`);
 
   // Helper para obtener cédula por ID de usuario
   const getCedulaById = async (userId: string): Promise<number> => {
@@ -292,15 +281,11 @@ describe('TRABIX E2E - All Scenarios', () => {
 
       it('debería rechazar usuario inactivo', async () => {
         const cedula = await getCedulaById(V.inactivo);
-        await publicPost('/auth/login')
-          .send({ cedula, password: VENDEDOR_PASSWORD })
-          .expect(403);
+        await publicPost('/auth/login').send({ cedula, password: VENDEDOR_PASSWORD }).expect(403);
       });
 
       it('debería rechazar login sin datos', async () => {
-        await publicPost('/auth/login')
-          .send({})
-          .expect(400);
+        await publicPost('/auth/login').send({}).expect(400);
       });
     });
 
@@ -319,9 +304,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería rechazar refresh token inválido', async () => {
-        await publicPost('/auth/refresh')
-          .send({ refreshToken: 'invalid-token' })
-          .expect(401);
+        await publicPost('/auth/refresh').send({ refreshToken: 'invalid-token' }).expect(401);
       });
     });
 
@@ -365,19 +348,15 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería rechazar si no es admin', async () => {
-        await authPost(
-          `/auth/admin/reset-password/${V.activo_ok}`,
-          vendedorAccessToken,
-        ).expect(403);
+        await authPost(`/auth/admin/reset-password/${V.activo_ok}`, vendedorAccessToken).expect(
+          403,
+        );
       });
     });
 
     describe('POST /auth/admin/desbloquear/:usuarioId', () => {
       it('debería desbloquear un usuario bloqueado (admin)', async () => {
-        await authPost(
-          `/auth/admin/desbloquear/${V.bloqueado_l1}`,
-          adminAccessToken,
-        ).expect(200);
+        await authPost(`/auth/admin/desbloquear/${V.bloqueado_l1}`, adminAccessToken).expect(200);
       });
     });
 
@@ -549,10 +528,9 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería retornar 404 para ID inexistente', async () => {
-        await authGet(
-          '/usuarios/00000000-0000-4000-a000-000000000999',
-          adminAccessToken,
-        ).expect(404);
+        await authGet('/usuarios/00000000-0000-4000-a000-000000000999', adminAccessToken).expect(
+          404,
+        );
       });
     });
 
@@ -568,10 +546,7 @@ describe('TRABIX E2E - All Scenarios', () => {
 
     describe('PATCH /usuarios/:id/estado', () => {
       it('debería cambiar estado a INACTIVO (admin)', async () => {
-        const res = await authPatch(
-          `/usuarios/${V.cambio_estado_rec}/estado`,
-          adminAccessToken,
-        )
+        const res = await authPatch(`/usuarios/${V.cambio_estado_rec}/estado`, adminAccessToken)
           .send({ estado: 'INACTIVO' })
           .expect(200);
 
@@ -579,10 +554,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería cambiar estado a ACTIVO (admin)', async () => {
-        const res = await authPatch(
-          `/usuarios/${V.cambio_estado_rec}/estado`,
-          adminAccessToken,
-        )
+        const res = await authPatch(`/usuarios/${V.cambio_estado_rec}/estado`, adminAccessToken)
           .send({ estado: 'ACTIVO' })
           .expect(200);
 
@@ -619,10 +591,9 @@ describe('TRABIX E2E - All Scenarios', () => {
 
     describe('GET /usuarios/:id/jerarquia', () => {
       it('debería obtener jerarquía de un reclutador (admin)', async () => {
-        const res = await authGet(
-          `/usuarios/${R.con_cadena}/jerarquia`,
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet(`/usuarios/${R.con_cadena}/jerarquia`, adminAccessToken).expect(
+          200,
+        );
 
         expect(res.body).toHaveProperty('reclutados');
         expect(res.body.totalReclutados).toBeGreaterThan(0);
@@ -759,7 +730,9 @@ describe('TRABIX E2E - All Scenarios', () => {
 
     describe('POST /lotes/:id/cancelar', () => {
       it('debería cancelar un lote en CREADO', async () => {
-        const res = await authPost(`/lotes/${LOTE.v_creado}/cancelar`, adminAccessToken).expect(200);
+        const res = await authPost(`/lotes/${LOTE.v_creado}/cancelar`, adminAccessToken).expect(
+          200,
+        );
 
         expect(res.body).toHaveProperty('message');
       });
@@ -799,10 +772,9 @@ describe('TRABIX E2E - All Scenarios', () => {
   describe('Tandas Module', () => {
     describe('GET /tandas/lote/:loteId', () => {
       it('debería listar tandas de un lote (admin)', async () => {
-        const res = await authGet(
-          `/tandas/lote/${LOTE.v_activo_lote1}`,
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet(`/tandas/lote/${LOTE.v_activo_lote1}`, adminAccessToken).expect(
+          200,
+        );
 
         expect(Array.isArray(res.body)).toBe(true);
         expect(res.body.length).toBe(2);
@@ -835,10 +807,9 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería rechazar si tanda no está EN_TRANSITO', async () => {
-        await authPost(
-          `/tandas/${TANDA.activo_t1}/confirmar-entrega`,
-          adminAccessToken,
-        ).expect(409);
+        await authPost(`/tandas/${TANDA.activo_t1}/confirmar-entrega`, adminAccessToken).expect(
+          409,
+        );
       });
     });
   });
@@ -853,9 +824,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería registrar una venta como vendedor', async () => {
         const res = await authPost('/ventas', vendedorAccessToken)
           .send({
-            detalles: [
-              { tipo: 'UNIDAD', cantidad: 1 },
-            ],
+            detalles: [{ tipo: 'UNIDAD', cantidad: 1 }],
           })
           .expect(201);
 
@@ -866,9 +835,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería rechazar venta sin detalles', async () => {
-        await authPost('/ventas', vendedorAccessToken)
-          .send({ detalles: [] })
-          .expect(400);
+        await authPost('/ventas', vendedorAccessToken).send({ detalles: [] }).expect(400);
       });
 
       it('debería rechazar para admin', async () => {
@@ -918,10 +885,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería aprobar una venta pendiente (admin)', async () => {
         if (!ventaCreada) return;
 
-        const res = await authPost(
-          `/ventas/${ventaCreada}/aprobar`,
-          adminAccessToken,
-        ).expect(200);
+        const res = await authPost(`/ventas/${ventaCreada}/aprobar`, adminAccessToken).expect(200);
 
         expect(res.body.estado).toBe('APROBADA');
         expect(res.body.fechaValidacion).not.toBeNull();
@@ -1061,10 +1025,9 @@ describe('TRABIX E2E - All Scenarios', () => {
 
         if (!mc) return;
 
-        const res = await authPost(
-          `/mini-cuadres/${mc.id}/confirmar`,
-          adminAccessToken,
-        ).expect(200);
+        const res = await authPost(`/mini-cuadres/${mc.id}/confirmar`, adminAccessToken).expect(
+          200,
+        );
 
         expect(res.body.estado).toBe('EXITOSO');
       });
@@ -1084,10 +1047,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería filtrar por estado PENDIENTE', async () => {
-        const res = await authGet(
-          '/ventas-mayor?estado=PENDIENTE',
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet('/ventas-mayor?estado=PENDIENTE', adminAccessToken).expect(200);
 
         res.body.data.forEach((v: any) => {
           expect(v.estado).toBe('PENDIENTE');
@@ -1126,10 +1086,9 @@ describe('TRABIX E2E - All Scenarios', () => {
 
         if (!vm) return;
 
-        const res = await authPost(
-          `/ventas-mayor/${vm.id}/completar`,
-          adminAccessToken,
-        ).expect(200);
+        const res = await authPost(`/ventas-mayor/${vm.id}/completar`, adminAccessToken).expect(
+          200,
+        );
 
         expect(res.body.estado).toBe('COMPLETADA');
       });
@@ -1247,10 +1206,7 @@ describe('TRABIX E2E - All Scenarios', () => {
 
         if (!eq) return;
 
-        const res = await authPost(
-          `/equipamiento/${eq.id}/activar`,
-          adminAccessToken,
-        ).expect(200);
+        const res = await authPost(`/equipamiento/${eq.id}/activar`, adminAccessToken).expect(200);
 
         expect(res.body.estado).toBe('ACTIVO');
         expect(res.body.fechaEntrega).not.toBeNull();
@@ -1296,10 +1252,7 @@ describe('TRABIX E2E - All Scenarios', () => {
 
     describe('GET /fondo-recompensas/transacciones', () => {
       it('debería listar transacciones del fondo', async () => {
-        const res = await authGet(
-          '/fondo-recompensas/transacciones',
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet('/fondo-recompensas/transacciones', adminAccessToken).expect(200);
 
         expect(res.body).toHaveProperty('data');
         expect(res.body.total).toBeGreaterThan(0);
@@ -1358,10 +1311,9 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería filtrar solo no leídas', async () => {
-        const res = await authGet(
-          '/notificaciones?soloNoLeidas=true',
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet('/notificaciones?soloNoLeidas=true', adminAccessToken).expect(
+          200,
+        );
 
         res.body.data.forEach((n: any) => {
           expect(n.leida).toBe(false);
@@ -1418,10 +1370,9 @@ describe('TRABIX E2E - All Scenarios', () => {
 
         if (!notif) return;
 
-        const res = await authPatch(
-          `/notificaciones/${notif.id}/leer`,
-          adminAccessToken,
-        ).expect(200);
+        const res = await authPatch(`/notificaciones/${notif.id}/leer`, adminAccessToken).expect(
+          200,
+        );
 
         expect(res.body.leida).toBe(true);
         expect(res.body.fechaLeida).not.toBeNull();
@@ -1491,10 +1442,7 @@ describe('TRABIX E2E - All Scenarios', () => {
 
     describe('PATCH /admin/configuraciones/:clave', () => {
       it('debería modificar una configuración (admin)', async () => {
-        const res = await authPatch(
-          '/admin/configuraciones/PRECIO_UNIDAD_LICOR',
-          adminAccessToken,
-        )
+        const res = await authPatch('/admin/configuraciones/PRECIO_UNIDAD_LICOR', adminAccessToken)
           .send({ valor: '8500', motivo: 'Ajuste de precio test E2E' })
           .expect(200);
 
@@ -1503,19 +1451,16 @@ describe('TRABIX E2E - All Scenarios', () => {
 
       // Restaurar valor original
       afterAll(async () => {
-        await authPatch(
-          '/admin/configuraciones/PRECIO_UNIDAD_LICOR',
-          adminAccessToken,
-        ).send({ valor: '8000', motivo: 'Restaurar valor original' });
+        await authPatch('/admin/configuraciones/PRECIO_UNIDAD_LICOR', adminAccessToken).send({
+          valor: '8000',
+          motivo: 'Restaurar valor original',
+        });
       });
     });
 
     describe('GET /admin/configuraciones/historial', () => {
       it('debería obtener historial de cambios', async () => {
-        const res = await authGet(
-          '/admin/configuraciones/historial',
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet('/admin/configuraciones/historial', adminAccessToken).expect(200);
 
         expect(Array.isArray(res.body) || res.body.data !== undefined).toBeTruthy();
       });
@@ -1549,10 +1494,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería filtrar por activos', async () => {
-        const res = await authGet(
-          '/admin/tipos-insumo?activo=true',
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet('/admin/tipos-insumo?activo=true', adminAccessToken).expect(200);
 
         res.body.forEach((t: any) => {
           expect(t.activo).toBe(true);
@@ -1564,10 +1506,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería modificar tipo de insumo', async () => {
         if (!tipoInsumoId) return;
 
-        const res = await authPatch(
-          `/admin/tipos-insumo/${tipoInsumoId}`,
-          adminAccessToken,
-        )
+        const res = await authPatch(`/admin/tipos-insumo/${tipoInsumoId}`, adminAccessToken)
           .send({ nombre: 'Insumo Renombrado E2E' })
           .expect(200);
 
@@ -1651,10 +1590,9 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería filtrar por estado', async () => {
-        const res = await authGet(
-          '/admin/pedidos-stock?estado=BORRADOR',
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet('/admin/pedidos-stock?estado=BORRADOR', adminAccessToken).expect(
+          200,
+        );
 
         if (res.body.data) {
           res.body.data.forEach((p: any) => {
@@ -1668,10 +1606,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería obtener pedido con detalles', async () => {
         if (!pedidoId) return;
 
-        const res = await authGet(
-          `/admin/pedidos-stock/${pedidoId}`,
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet(`/admin/pedidos-stock/${pedidoId}`, adminAccessToken).expect(200);
 
         expect(res.body.id).toBe(pedidoId);
         expect(res.body).toHaveProperty('detallesCosto');
@@ -1682,10 +1617,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería modificar pedido en BORRADOR', async () => {
         if (!pedidoId) return;
 
-        const res = await authPatch(
-          `/admin/pedidos-stock/${pedidoId}`,
-          adminAccessToken,
-        )
+        const res = await authPatch(`/admin/pedidos-stock/${pedidoId}`, adminAccessToken)
           .send({ cantidadTrabix: 100, notas: 'Actualizado E2E' })
           .expect(200);
 
@@ -1697,10 +1629,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería agregar costo al pedido', async () => {
         if (!pedidoId) return;
 
-        const res = await authPost(
-          `/admin/pedidos-stock/${pedidoId}/costos`,
-          adminAccessToken,
-        )
+        const res = await authPost(`/admin/pedidos-stock/${pedidoId}/costos`, adminAccessToken)
           .send({
             concepto: 'Trabix (unidad de producto)',
             esObligatorio: true,
@@ -1717,10 +1646,7 @@ describe('TRABIX E2E - All Scenarios', () => {
       it('debería cancelar pedido en BORRADOR', async () => {
         if (!pedidoId) return;
 
-        const res = await authPost(
-          `/admin/pedidos-stock/${pedidoId}/cancelar`,
-          adminAccessToken,
-        )
+        const res = await authPost(`/admin/pedidos-stock/${pedidoId}/cancelar`, adminAccessToken)
           .send({ motivo: 'Cancelado por test E2E' })
           .expect(200);
 
@@ -1759,26 +1685,21 @@ describe('TRABIX E2E - All Scenarios', () => {
       });
 
       it('debería obtener ventas de la semana', async () => {
-        await authGet(
-          '/admin/dashboard/ventas-periodo?periodo=semana',
-          adminAccessToken,
-        ).expect(200);
+        await authGet('/admin/dashboard/ventas-periodo?periodo=semana', adminAccessToken).expect(
+          200,
+        );
       });
 
       it('debería obtener ventas del mes', async () => {
-        await authGet(
-          '/admin/dashboard/ventas-periodo?periodo=mes',
-          adminAccessToken,
-        ).expect(200);
+        await authGet('/admin/dashboard/ventas-periodo?periodo=mes', adminAccessToken).expect(200);
       });
     });
 
     describe('GET /admin/dashboard/vendedores-activos', () => {
       it('debería obtener cantidad de vendedores activos', async () => {
-        const res = await authGet(
-          '/admin/dashboard/vendedores-activos',
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet('/admin/dashboard/vendedores-activos', adminAccessToken).expect(
+          200,
+        );
 
         expect(res.body).toHaveProperty('total');
         expect(res.body).toHaveProperty('vendedores');
@@ -1789,10 +1710,9 @@ describe('TRABIX E2E - All Scenarios', () => {
 
     describe('GET /admin/dashboard/cuadres-pendientes', () => {
       it('debería listar cuadres pendientes', async () => {
-        const res = await authGet(
-          '/admin/dashboard/cuadres-pendientes',
-          adminAccessToken,
-        ).expect(200);
+        const res = await authGet('/admin/dashboard/cuadres-pendientes', adminAccessToken).expect(
+          200,
+        );
 
         expect(Array.isArray(res.body)).toBe(true);
       });
@@ -1804,9 +1724,7 @@ describe('TRABIX E2E - All Scenarios', () => {
   // ============================================================
   describe('Seguridad y Control de Acceso', () => {
     it('debería rechazar request sin token', async () => {
-      await request(app.getHttpServer())
-        .get(`${PREFIX}/usuarios/me`)
-        .expect(401);
+      await request(app.getHttpServer()).get(`${PREFIX}/usuarios/me`).expect(401);
     });
 
     it('debería rechazar token inválido', async () => {
@@ -1830,10 +1748,7 @@ describe('TRABIX E2E - All Scenarios', () => {
     });
 
     it('vendedor NO puede activar lotes', async () => {
-      await authPost(
-        `/lotes/${LOTE.v_multi_2}/activar`,
-        vendedorAccessToken,
-      ).expect(403);
+      await authPost(`/lotes/${LOTE.v_multi_2}/activar`, vendedorAccessToken).expect(403);
     });
   });
 

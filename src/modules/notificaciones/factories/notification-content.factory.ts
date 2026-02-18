@@ -125,10 +125,7 @@ export class NotificationContentFactory {
   /**
    * Crea el contenido de una notificación según su tipo
    */
-  create(
-    tipo: TipoNotificacion,
-    datos: Record<string, unknown>,
-  ): NotificacionContent {
+  create(tipo: TipoNotificacion, datos: Record<string, unknown>): NotificacionContent {
     switch (tipo) {
       case 'STOCK_BAJO':
         return this.createStockBajo(datos as StockBajoData);
@@ -260,7 +257,8 @@ export class NotificationContentFactory {
 
     return {
       titulo: '📋 Equipamiento Solicitado',
-      mensaje: 'Tu solicitud de equipamiento ha sido registrada. Espera la confirmación del administrador.',
+      mensaje:
+        'Tu solicitud de equipamiento ha sido registrada. Espera la confirmación del administrador.',
       datos,
     };
   }
