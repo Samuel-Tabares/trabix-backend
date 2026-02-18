@@ -20,12 +20,28 @@ const configuration = () => ({
     redisUrl: process.env.BULL_REDIS_URL ?? process.env.REDIS_URL,
   },
 
-  security: {
-    bcryptRounds: Number(process.env.BCRYPT_ROUNDS),
-    rateLimitTtl: Number(process.env.RATE_LIMIT_TTL),
-    rateLimitMax: Number(process.env.RATE_LIMIT_MAX),
-    corsOrigin: process.env.CORS_ORIGIN,
-  },
+    security: {
+        bcryptRounds: Number(process.env.BCRYPT_ROUNDS),
+        rateLimitTtl: Number(process.env.RATE_LIMIT_TTL),
+        rateLimitMax: Number(process.env.RATE_LIMIT_MAX),
+        corsOrigin: process.env.CORS_ORIGIN,
+
+        helmet: {
+            contentSecurityPolicy: {
+                defaultSrc: process.env.CSP_DEFAULT_SRC ?? "'self'",
+                styleSrc: process.env.CSP_STYLE_SRC ?? "'self','unsafe-inline'",
+                imgSrc: process.env.CSP_IMG_SRC ?? "'self',data:",
+                scriptSrc: process.env.CSP_SCRIPT_SRC ?? "'self'",
+            },
+            crossOriginEmbedderPolicy: false,
+        },
+
+        cors: {
+            methods: process.env.CORS_METHODS ?? 'GET,HEAD,PUT,PATCH,POST,DELETE',
+            headers: process.env.CORS_HEADERS ?? 'Content-Type,Authorization',
+            credentials: true,
+        },
+    },
 
   // Configuración de bloqueo progresivo por intentos fallidos
   lockout: {

@@ -161,3 +161,7 @@ Usa esta opción para forzar conexiones y variables del entorno de test.
 ---
 
 ✨ **Tip final:** si algo explota… revisa primero Docker, luego Prisma, y después respira profundo 🧘‍♂️
+
+swagger: http://localhost:3000/docs
+api base: http://localhost:3000/api/v1
+ambiente: development
