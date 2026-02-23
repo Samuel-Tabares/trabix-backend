@@ -4,6 +4,36 @@ import redisConfig from './redis.config';
 import jwtConfig from './jwt.config';
 import throttleConfig from './throttle.config';
 
+// Convierte directivas CSP del .env (string separado por comas)
+// en un array válido para Helmet.
+// dotenv elimina las comillas, pero Helmet exige valores como 'self'
+// explícitamente entre comillas simples.
+// Esta función divide, limpia y agrega las comillas si faltan.
+const parseCsp = (value?: string) =>
+  value
+    ? value.split(',').map(v => {
+      const trimmed = v.trim();
+      // Si ya tiene comillas, lo dejamos igual
+      if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
+        return trimmed;
+      }
+      // Palabras clave que requieren comillas en CSP
+      const keywordsRequiringQuotes = [
+        'self',
+        'unsafe-inline',
+        'unsafe-eval',
+        'none',
+        'strict-dynamic',
+        'report-sample',
+      ];
+      if (keywordsRequiringQuotes.includes(trimmed)) {
+        return `'${trimmed}'`;
+      }
+      // data:, https:, http:, etc NO llevan comillas
+      return trimmed;
+    })
+    : undefined;
+
 const configuration = () => ({
   app: {
     nodeEnv: process.env.NODE_ENV,
@@ -28,10 +58,12 @@ const configuration = () => ({
 
     helmet: {
       contentSecurityPolicy: {
-        defaultSrc: process.env.CSP_DEFAULT_SRC ?? "'self'",
-        styleSrc: process.env.CSP_STYLE_SRC ?? "'self','unsafe-inline'",
-        imgSrc: process.env.CSP_IMG_SRC ?? "'self',data:",
-        scriptSrc: process.env.CSP_SCRIPT_SRC ?? "'self'",
+        directives: {
+          defaultSrc: parseCsp(process.env.CSP_DEFAULT_SRC),
+          styleSrc: parseCsp(process.env.CSP_STYLE_SRC),
+          imgSrc: parseCsp(process.env.CSP_IMG_SRC),
+          scriptSrc: parseCsp(process.env.CSP_SCRIPT_SRC),
+        },
       },
       crossOriginEmbedderPolicy: false,
     },

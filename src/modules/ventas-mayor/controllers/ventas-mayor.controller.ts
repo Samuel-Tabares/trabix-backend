@@ -25,6 +25,7 @@ import {
 
 // Commands
 import { RegistrarVentaMayorCommand, CompletarVentaMayorCommand } from '../application/commands';
+import { Idempotent } from '../../../presentation/http/decorators/idempotent.decorator';
 
 // Queries
 import {
@@ -151,6 +152,7 @@ export class VentasMayorController {
    */
   @Post(':id/completar')
   @Roles('ADMIN')
+  @Idempotent()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Completar venta (admin)' })
   @ApiParam({ name: 'id', description: 'ID de la venta al mayor' })

@@ -33,6 +33,7 @@ import {
   CancelarLoteCommand,
   ActivarLoteCommand,
 } from '../application/commands';
+import { Idempotent } from '../../../presentation/http/decorators/idempotent.decorator';
 
 // Queries
 import {
@@ -244,6 +245,7 @@ export class LotesController {
    */
   @Post(':id/activar')
   @Roles('ADMIN')
+  @Idempotent()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Activar lote (admin)',

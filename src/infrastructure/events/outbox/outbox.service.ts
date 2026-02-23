@@ -22,6 +22,25 @@ export class OutboxService {
 
   constructor(private readonly prisma: PrismaService) {}
   /**
+   * Guarda un evento en el outbox dentro de una transacción de negocio.
+   * Llamar esto en el mismo bloque de transacción Prisma que la operación de negocio
+   * garantiza at-least-once delivery aunque el servidor falle después del commit.
+   *
+   * @param eventType - Nombre del evento (ej: 'LoteActivado'). Debe coincidir con EVENT_MAPPINGS.
+   * @param payload   - Datos serializables del evento (todos los campos del constructor).
+   * @param tx        - Transacción Prisma activa (opcional; si no se pasa usa la conexión default).
+   */
+  async create(
+    eventType: string,
+    payload: Record<string, unknown>,
+    tx?: Parameters<Parameters<typeof this.prisma.$transaction>[0]>[0],
+  ): Promise<void> {
+    const client = tx ?? this.prisma;
+    await (client as any).outbox.create({ data: { eventType, payload } });
+    this.logger.debug(`Evento guardado en outbox: ${eventType}`);
+  }
+
+  /**
    * Obtiene mensajes pendientes de procesar
    */
   async getPendingMessages(limit: number = 100): Promise<any[]> {

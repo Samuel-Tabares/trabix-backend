@@ -6,6 +6,7 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
 import { createWinstonLogger } from './shared/utils/logger.util';
@@ -64,19 +65,9 @@ async function bootstrap() {
    */
   const helmetConfig = configService.get<any>('security.helmet')!;
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: helmetConfig.contentSecurityPolicy.defaultSrc.split(','),
-          styleSrc: helmetConfig.contentSecurityPolicy.styleSrc.split(','),
-          imgSrc: helmetConfig.contentSecurityPolicy.imgSrc.split(','),
-          scriptSrc: helmetConfig.contentSecurityPolicy.scriptSrc.split(','),
-        },
-      },
-      crossOriginEmbedderPolicy: helmetConfig.crossOriginEmbedderPolicy,
-    }),
-  );
+  // Cookie parser — necesario para leer HttpOnly cookies en los endpoints de auth
+  app.use(cookieParser());
+  app.use(helmet(helmetConfig));
 
   /**
    * ===============================
@@ -85,9 +76,20 @@ async function bootstrap() {
    */
   const corsOrigin = configService.get<string>('security.corsOrigin')!;
   const corsConfig = configService.get<any>('security.cors')!;
+  const allowedOrigins = corsOrigin.split(',').map((o) => o.trim());
 
   app.enableCors({
-    origin: corsOrigin.split(',').map((o) => o.trim()),
+    origin: (origin, callback) => {
+      // Allow non-browser requests (Postman, server-to-server, etc.)
+      if (!origin) return callback(null, true);
+      // Allow explicitly listed origins
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow any device on the local network (192.168.x.x) in non-production
+      if (nodeEnv !== 'production' && /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     methods: corsConfig.methods.split(','),
     allowedHeaders: corsConfig.headers.split(','),
     credentials: corsConfig.credentials,

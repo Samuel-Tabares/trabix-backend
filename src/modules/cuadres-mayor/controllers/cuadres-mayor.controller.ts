@@ -23,6 +23,7 @@ import {
 
 // Commands
 import { ConfirmarCuadreMayorCommand } from '../application/commands';
+import { Idempotent } from '../../../presentation/http/decorators/idempotent.decorator';
 
 // Queries
 import { ObtenerCuadreMayorQuery, ListarCuadresMayorQuery } from '../application/queries';
@@ -104,6 +105,7 @@ export class CuadresMayorController {
    */
   @Post(':id/confirmar')
   @Roles('ADMIN')
+  @Idempotent()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirmar cuadre al mayor (admin)' })
   @ApiParam({ name: 'id', description: 'ID del cuadre al mayor' })

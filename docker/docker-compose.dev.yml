@@ -105,10 +105,11 @@ services:
     restart: unless-stopped
 
   # ===========================================
-  # Redis Commander (Redis Management UI)
+  # Redis Commander (Redis Management UI) (aun no necesario para produccion, solo pruebas)
   # ===========================================
   redis-commander:
     image: rediscommander/redis-commander:latest
+    platform: linux/amd64
     container_name: trabix-redis-commander-dev
     ports:
       - "8081:8081"

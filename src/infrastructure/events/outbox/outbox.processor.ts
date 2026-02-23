@@ -1,21 +1,76 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { EventBus } from '@nestjs/cqrs';
+import { Decimal } from 'decimal.js';
 import { OutboxService } from './outbox.service';
 import { EventStoreService, DomainEvent } from '../event-store/event-store.service';
 
+// Eventos de dominio registrados
+import { LoteActivadoEvent } from '../../../modules/lotes/application/events/lote-activado.event';
+import { CuadreExitosoEvent } from '../../../modules/cuadres/application/events/cuadre-exitoso.event';
+import { MiniCuadreExitosoEvent } from '../../../modules/mini-cuadres/application/events/mini-cuadre-exitoso.event';
+import { StockUltimaTandaAgotadoEvent } from '../../../modules/mini-cuadres/application/events/stock-ultima-tanda-agotado.event';
+import { VentaAprobadaEvent } from '../../../modules/ventas/application/events/venta-aprobada.event';
+import { CuadreMayorExitosoEvent } from '../../../modules/cuadres-mayor/application/events/cuadre-mayor-exitoso.event';
+import { VentaMayorRegistradaEvent } from '../../../modules/ventas-mayor/application/events/venta-mayor-registrada.event';
+
 /**
- * Mapeo de tipos de evento a clases de evento.
+ * Mapeo de eventType → factory function que reconstruye el evento desde el payload JSON.
  *
- * TODO: Registrar aquí cada clase de evento de dominio que se almacene en el Outbox,
- * de lo contrario los manejadores (@EventsHandler) no serán invocados y
- * el evento solo quedará auditado en el EventStore (no se ejecutará at-least-once delivery).
- *
- * Ejemplo:
- *   import { LoteActivadoEvent } from '../../../modules/lotes/domain/events/lote-activado.event';
- *   'LoteActivado': LoteActivadoEvent,
+ * Cada factory recibe el payload tal como fue serializado en el outbox y
+ * reconstruye el evento con los tipos correctos (Decimal, arrays, etc.).
+ * El nombre de la clave debe coincidir exactamente con el eventType guardado en el outbox.
  */
-const EVENT_MAPPINGS: Record<string, new (...args: any[]) => any> = {};
+const EVENT_MAPPINGS: Record<string, (payload: any) => any> = {
+  LoteActivado: (p) =>
+    new LoteActivadoEvent(p.loteId, p.vendedorId, p.cantidadTrabix, p.modeloNegocio, p.tandas),
+
+  CuadreExitoso: (p) =>
+    new CuadreExitosoEvent(
+      p.cuadreId,
+      p.tandaId,
+      p.loteId,
+      p.vendedorId,
+      new Decimal(p.montoRecibido),
+      p.numeroTanda,
+    ),
+
+  MiniCuadreExitoso: (p) =>
+    new MiniCuadreExitosoEvent(p.miniCuadreId, p.loteId, p.tandaId, p.vendedorId, p.montoFinal),
+
+  StockUltimaTandaAgotado: (p) => new StockUltimaTandaAgotadoEvent(p.tandaId, p.loteId),
+
+  VentaAprobada: (p) =>
+    new VentaAprobadaEvent(
+      p.ventaId,
+      p.vendedorId,
+      p.loteId,
+      p.tandaId,
+      new Decimal(p.montoTotal),
+      p.cantidadTrabix,
+    ),
+
+  CuadreMayorExitoso: (p) =>
+    new CuadreMayorExitosoEvent(
+      p.cuadreMayorId,
+      p.vendedorId,
+      p.lotesInvolucradosIds,
+      p.cuadresCerradosIds,
+      p.loteForzadoId,
+    ),
+
+  VentaMayorRegistrada: (p) =>
+    new VentaMayorRegistradaEvent(
+      p.ventaMayorId,
+      p.vendedorId,
+      p.cantidadUnidades,
+      new Decimal(p.ingresoBruto),
+      p.modalidad,
+      p.necesitaLoteForzado,
+      p.cantidadLoteForzado,
+      p.lotesInvolucradosIds,
+    ),
+};
 
 /**
  * Outbox Processor
@@ -120,22 +175,22 @@ export class OutboxProcessor implements OnModuleInit {
   }
 
   /**
-   * Publica un evento en el EventBus
+   * Publica un evento en el EventBus.
+   * Si existe una factory en EVENT_MAPPINGS, reconstruye el evento tipado para que
+   * los @EventsHandler registrados lo reciban correctamente.
+   * Si no existe mapeo, publica como objeto genérico (solo quedará en EventStore).
    */
   private async publishEvent(eventType: string, payload: any): Promise<void> {
-    // Crear evento genérico si no hay mapeo específico
-    const EventClass = EVENT_MAPPINGS[eventType];
+    const factory = EVENT_MAPPINGS[eventType];
 
-    if (EventClass) {
-      const event = new EventClass(payload);
+    if (factory) {
+      const event = factory(payload);
       await this.eventBus.publish(event);
     } else {
-      // Publicar como evento genérico
-      await this.eventBus.publish({
-        type: eventType,
-        payload,
-        timestamp: new Date(),
-      });
+      this.logger.warn(
+        `Sin mapeo para eventType "${eventType}". Publicando como evento genérico.`,
+      );
+      await this.eventBus.publish({ type: eventType, payload, timestamp: new Date() });
     }
   }
 

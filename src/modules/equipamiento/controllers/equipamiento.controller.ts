@@ -8,7 +8,6 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -104,15 +103,8 @@ export class EquipamientoController {
   @ApiResponse({ status: 200, type: EquipamientoResponseDto })
   @ApiResponse({ status: 403, description: 'Solo vendedores pueden acceder a este endpoint' })
   @ApiResponse({ status: 404, description: 'No tiene equipamiento' })
-  async obtenerMio(@CurrentUser() user: AuthenticatedUser): Promise<EquipamientoResponseDto> {
-    const equipamiento = await this.queryBus.execute(new ObtenerMiEquipamientoQuery(user.id));
-
-    // Manejar caso cuando no existe equipamiento
-    if (!equipamiento) {
-      throw new NotFoundException('No tiene equipamiento activo o solicitado');
-    }
-
-    return equipamiento;
+  async obtenerMio(@CurrentUser() user: AuthenticatedUser): Promise<EquipamientoResponseDto | null> {
+    return this.queryBus.execute(new ObtenerMiEquipamientoQuery(user.id));
   }
 
   /**

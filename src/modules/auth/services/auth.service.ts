@@ -115,6 +115,10 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
+    if (!Number.isInteger(cedula) || cedula < 100000 || cedula > 2147483647) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
     const user = await this.prisma.usuario.findUnique({
       where: { cedula },
     });

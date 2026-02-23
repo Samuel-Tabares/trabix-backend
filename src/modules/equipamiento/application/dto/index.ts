@@ -50,10 +50,10 @@ export class PagarDeudaDto {
 export class QueryEquipamientosDto {
   @ApiPropertyOptional({
     description: 'Filtrar por estado',
-    enum: ['SOLICITADO', 'ACTIVO', 'DEVUELTO', 'PERDIDO'],
+    enum: ['SOLICITADO', 'ACTIVO', 'DEVUELTO', 'DANADO', 'PERDIDO'],
   })
   @IsOptional()
-  @IsEnum(['SOLICITADO', 'ACTIVO', 'DEVUELTO', 'PERDIDO'])
+  @IsEnum(['SOLICITADO', 'ACTIVO', 'DEVUELTO', 'DANADO', 'PERDIDO'])
   estado?: EstadoEquipamiento;
 
   @ApiPropertyOptional({ description: 'Filtrar por vendedor' })

@@ -350,6 +350,7 @@ export class DevolverEquipamientoHandler implements ICommandHandler<DevolverEqui
   constructor(
     @Inject(EQUIPAMIENTO_REPOSITORY)
     private readonly equipamientoRepository: IEquipamientoRepository,
+    private readonly commandBus: CommandBus,
   ) {}
 
   async execute(command: DevolverEquipamientoCommand): Promise<any> {
@@ -369,14 +370,41 @@ export class DevolverEquipamientoHandler implements ICommandHandler<DevolverEqui
     let devuelto = await this.equipamientoRepository.devolver(command.equipamientoId);
 
     // Si tiene depósito, devolverlo
-    if (equipamiento.tieneDeposito && !equipamiento.depositoDevuelto) {
+    const depositoDevuelto = equipamiento.tieneDeposito && !equipamiento.depositoDevuelto;
+    if (depositoDevuelto) {
       devuelto = await this.equipamientoRepository.devolverDeposito(command.equipamientoId);
       this.logger.log(`Depósito devuelto: ${command.equipamientoId}`);
     }
 
     this.logger.log(
-      `Equipamiento devuelto: ${command.equipamientoId} - ` + `Admin: ${command.adminId}`,
+      `Equipamiento devuelto: ${command.equipamientoId} - Admin: ${command.adminId}`,
     );
+
+    // Notificar al vendedor que el equipamiento fue devuelto al admin
+    try {
+      await this.commandBus.execute(
+        new EnviarNotificacionCommand(equipamiento.vendedorId, 'MANUAL', {
+          titulo: '📦 Equipamiento devuelto',
+          mensaje: 'Tu equipamiento ha sido devuelto al administrador y está fuera de servicio.',
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(`Error enviando notificación EQUIPAMIENTO_DEVUELTO: ${error}`);
+    }
+
+    // Si tenía depósito, notificar el desembolso
+    if (depositoDevuelto) {
+      try {
+        await this.commandBus.execute(
+          new EnviarNotificacionCommand(equipamiento.vendedorId, 'MANUAL', {
+            titulo: '💵 Depósito desembolsado',
+            mensaje: 'El depósito de tu equipamiento ha sido devuelto. Comunícate con el administrador para recibirlo.',
+          }),
+        );
+      } catch (error) {
+        this.logger.warn(`Error enviando notificación depósito devuelto: ${error}`);
+      }
+    }
 
     return devuelto;
   }

@@ -14,6 +14,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
+import { Idempotent } from '../../../presentation/http/decorators/idempotent.decorator';
 
 // DTOs
 import { CuadreResponseDto, CuadresPaginadosDto } from '../application/dto/cuadre-response.dto';
@@ -147,6 +148,7 @@ export class CuadresController {
    */
   @Post(':id/confirmar')
   @Roles('ADMIN')
+  @Idempotent()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirmar cuadre exitoso (admin)' })
   @ApiParam({ name: 'id', description: 'ID del cuadre' })

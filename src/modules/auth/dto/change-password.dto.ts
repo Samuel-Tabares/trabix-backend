@@ -22,10 +22,10 @@ export class ChangePasswordDto {
   })
   @IsString({ message: 'La nueva contraseña debe ser una cadena de texto' })
   @IsNotEmpty({ message: 'La nueva contraseña es requerida' })
-  @MinLength(6, { message: 'La nueva contraseña debe tener al menos 6 caracteres' })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.$!%*?&])[A-Za-z\d@.$!%*?&]+$/, {
-    message:
-      'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un caracter especial (@.$!%*?&)',
-  })
+  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  @Matches(/[A-Z]/, { message: 'La contraseña debe contener al menos una letra mayúscula' })
+  @Matches(/[a-z]/, { message: 'La contraseña debe contener al menos una letra minúscula' })
+  @Matches(/\d/, { message: 'La contraseña debe contener al menos un número' })
+  @Matches(/[@.$!%*?&]/, { message: 'La contraseña debe contener al menos un caracter especial (@.$!%*?&)' })
   newPassword!: string;
 }

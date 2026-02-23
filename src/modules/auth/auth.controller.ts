@@ -7,7 +7,11 @@ import {
   UseGuards,
   Param,
   ParseUUIDPipe,
+  Req,
+  Res,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { Request, Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -81,8 +85,13 @@ export class AuthController {
     description: 'Usuario bloqueado, inactivo o requiere desbloqueo por admin',
   })
   @ApiResponse({ status: 429, description: 'Demasiados intentos. Intente más tarde.' })
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const result = await this.authService.login(loginDto);
+    this.setRefreshTokenCookie(res, result.refreshToken);
+    return result;
   }
 
   /**
@@ -105,8 +114,18 @@ export class AuthController {
     type: AuthResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Refresh token inválido o expirado' })
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<AuthResponseDto> {
-    return this.authService.refreshTokens(refreshTokenDto.refreshToken);
+  async refresh(
+    @Req() req: Request,
+    @Body() _refreshTokenDto: RefreshTokenDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const refreshToken = (req.cookies as Record<string, string>)?.rt;
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token no encontrado. Inicie sesión nuevamente.');
+    }
+    const result = await this.authService.refreshTokens(refreshToken);
+    this.setRefreshTokenCookie(res, result.refreshToken);
+    return result;
   }
 
   /**
@@ -133,9 +152,34 @@ export class AuthController {
     type: MessageResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Refresh token inválido' })
-  async logout(@Body() logoutDto: LogoutDto): Promise<MessageResponseDto> {
-    await this.authService.logout(logoutDto.refreshToken, logoutDto.accessToken);
+  async logout(
+    @Req() req: Request,
+    @Body() logoutDto: LogoutDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<MessageResponseDto> {
+    const refreshToken = (req.cookies as Record<string, string>)?.rt;
+    if (refreshToken) {
+      await this.authService.logout(refreshToken, logoutDto.accessToken);
+    }
+    this.clearRefreshTokenCookie(res);
     return { message: 'Sesión cerrada exitosamente' };
+  }
+
+  // ==================== HELPERS PRIVADOS ====================
+
+  private setRefreshTokenCookie(res: Response, refreshToken: string): void {
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('rt', refreshToken, {
+      httpOnly: true,          // No accesible desde JS → protege contra XSS
+      secure: isProduction,    // Solo HTTPS en producción
+      sameSite: 'strict',      // Protege contra CSRF
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en ms
+      path: '/api/v1/auth',    // Solo enviado a endpoints de auth
+    });
+  }
+
+  private clearRefreshTokenCookie(res: Response): void {
+    res.clearCookie('rt', { path: '/api/v1/auth' });
   }
 
   // ==================== ENDPOINTS AUTENTICADOS ====================

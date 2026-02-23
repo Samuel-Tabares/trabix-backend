@@ -14,6 +14,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
+import { Idempotent } from '../../../presentation/http/decorators/idempotent.decorator';
 
 // DTOs
 import { CreateVentaDto } from '../application/dto/create-venta.dto';
@@ -126,6 +127,7 @@ export class VentasController {
    */
   @Post(':id/aprobar')
   @Roles('ADMIN')
+  @Idempotent()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Aprobar venta (admin)' })
   @ApiParam({ name: 'id', description: 'ID de la venta' })

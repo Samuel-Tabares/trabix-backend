@@ -16,12 +16,16 @@ export class LoginThrottleGuard extends ThrottlerGuard {
     reflector: Reflector,
   ) {
     super(options, storageService, reflector);
-    // Use only the 'login' named throttler (stricter limits) instead of all throttlers.
-    // The 'login' throttler is registered in AppModule's ThrottlerModule.forRootAsync().
-    const loginThrottlers = this.throttlers.filter((t: any) => t.name === 'login');
-    if (loginThrottlers.length > 0) {
-      this.throttlers = loginThrottlers;
-    }
+      // 👇 Inicialización defensiva
+      if (Array.isArray(this.throttlers)) {
+          const loginThrottlers = this.throttlers.filter(
+              (t: any) => t.name === 'login',
+          );
+
+          if (loginThrottlers.length > 0) {
+              this.throttlers = loginThrottlers;
+          }
+      }
   }
 
   protected async getTracker(req: Record<string, any>): Promise<string> {

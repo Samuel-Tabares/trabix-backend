@@ -1,23 +1,18 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
- * DTO para logout
+ * DTO para logout.
+ * El refresh token ahora se lee de la HttpOnly cookie 'rt' del servidor.
+ * El access token es opcional: si se envía, se agrega a la blacklist inmediatamente
+ * (en lugar de esperar a que expire en 15 minutos).
  */
 export class LogoutDto {
-  @ApiProperty({
-    description: 'Refresh token a invalidar (requerido para identificar la sesión)',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-  })
-  @IsString({ message: 'El refresh token debe ser una cadena de texto' })
-  @IsNotEmpty({ message: 'El refresh token es requerido' })
-  refreshToken!: string;
-
   @ApiPropertyOptional({
-    description: 'Access token a invalidar (opcional, se agregará a blacklist si se proporciona)',
+    description: 'Access token a invalidar (opcional, se blacklistea de inmediato si se envía)',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
-  @IsString({ message: 'El access token debe ser una cadena de texto' })
+  @IsString()
   @IsOptional()
   accessToken?: string;
 }

@@ -14,11 +14,27 @@ export class PrismaEquipamientoRepository implements IEquipamientoRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<Equipamiento | null> {
-    return this.prisma.equipamiento.findUnique({ where: { id } });
+    return this.prisma.equipamiento.findUnique({
+      where: { id },
+      include: {
+        vendedor: {
+          select: {
+            id: true,
+            nombre: true,
+            apellidos: true,
+            cedula: true,
+            telefono: true,
+          },
+        },
+      },
+    }) as Promise<Equipamiento | null>;
   }
 
   async findByVendedorId(vendedorId: string): Promise<Equipamiento | null> {
-    return this.prisma.equipamiento.findUnique({ where: { vendedorId } });
+    return this.prisma.equipamiento.findFirst({
+      where: { vendedorId },
+      orderBy: { fechaSolicitud: 'desc' },
+    });
   }
 
   async findActivoByVendedorId(vendedorId: string): Promise<Equipamiento | null> {
