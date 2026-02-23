@@ -170,11 +170,11 @@ export class AuthController {
   private setRefreshTokenCookie(res: Response, refreshToken: string): void {
     const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('rt', refreshToken, {
-      httpOnly: true,          // No accesible desde JS → protege contra XSS
-      secure: isProduction,    // Solo HTTPS en producción
-      sameSite: 'strict',      // Protege contra CSRF
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en ms
-      path: '/api/v1/auth',    // Solo enviado a endpoints de auth
+      httpOnly: true,                               // No accesible desde JS → protege contra XSS
+      secure: isProduction,                         // Solo HTTPS en producción
+      sameSite: isProduction ? 'strict' : 'lax',   // strict en prod; lax en dev para cross-port
+      maxAge: 7 * 24 * 60 * 60 * 1000,             // 7 días en ms
+      path: '/api/v1/auth',                         // Solo enviado a endpoints de auth
     });
   }
 
