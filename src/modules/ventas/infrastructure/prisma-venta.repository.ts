@@ -22,6 +22,7 @@ export class PrismaVentaRepository implements IVentaRepository {
       where: { id },
       include: {
         detalles: true,
+        vendedor: { select: { nombre: true, telefono: true } },
       },
     });
   }
@@ -46,6 +47,7 @@ export class PrismaVentaRepository implements IVentaRepository {
       take: take + 1,
       include: {
         detalles: true,
+        vendedor: { select: { nombre: true, telefono: true } },
       },
     };
 
@@ -129,19 +131,6 @@ export class PrismaVentaRepository implements IVentaRepository {
       where: { id },
       data: {
         estado: 'APROBADA',
-        fechaValidacion: new Date(),
-      },
-      include: {
-        detalles: true,
-      },
-    });
-  }
-
-  async rechazar(id: string): Promise<VentaConDetalles> {
-    return this.prisma.venta.update({
-      where: { id },
-      data: {
-        estado: 'RECHAZADA',
         fechaValidacion: new Date(),
       },
       include: {

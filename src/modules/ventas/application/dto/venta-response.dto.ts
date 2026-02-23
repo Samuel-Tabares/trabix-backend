@@ -37,13 +37,19 @@ export class VentaResponseDto {
   @ApiProperty()
   vendedorId!: string;
 
+  @ApiPropertyOptional()
+  vendedorNombre?: string;
+
+  @ApiPropertyOptional()
+  vendedorTelefono?: string;
+
   @ApiProperty()
   loteId!: string;
 
   @ApiProperty()
   tandaId!: string;
 
-  @ApiProperty({ enum: ['PENDIENTE', 'APROBADA', 'RECHAZADA'] })
+  @ApiProperty({ enum: ['PENDIENTE', 'APROBADA'] })
   estado!: EstadoVenta;
 
   @ApiProperty()

@@ -33,10 +33,10 @@ export class QueryVentasDto {
 
   @ApiPropertyOptional({
     description: 'Filtrar por estado',
-    enum: ['PENDIENTE', 'APROBADA', 'RECHAZADA'],
+    enum: ['PENDIENTE', 'APROBADA'],
   })
   @IsOptional()
-  @IsEnum(['PENDIENTE', 'APROBADA', 'RECHAZADA'])
+  @IsEnum(['PENDIENTE', 'APROBADA'])
   estado?: EstadoVenta;
 
   @ApiPropertyOptional({

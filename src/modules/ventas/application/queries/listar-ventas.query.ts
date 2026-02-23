@@ -73,6 +73,8 @@ export class ListarVentasHandler implements IQueryHandler<ListarVentasQuery, Ven
     return {
       id: venta.id,
       vendedorId: venta.vendedorId,
+      vendedorNombre: venta.vendedor?.nombre,
+      vendedorTelefono: venta.vendedor?.telefono,
       loteId: venta.loteId,
       tandaId: venta.tandaId,
       estado: venta.estado,

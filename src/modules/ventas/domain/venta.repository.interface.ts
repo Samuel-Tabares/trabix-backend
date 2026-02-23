@@ -41,12 +41,7 @@ export interface IVentaRepository {
   aprobar(id: string): Promise<VentaConDetalles>;
 
   /**
-   * Rechaza una venta
-   */
-  rechazar(id: string): Promise<VentaConDetalles>;
-
-  /**
-   * Elimina una venta (para cuando se rechaza)
+   * Elimina una venta (al ser rechazada por el admin)
    */
   delete(id: string): Promise<void>;
 
@@ -62,10 +57,14 @@ export interface IVentaRepository {
 }
 
 /**
- * Venta con detalles incluidos
+ * Venta con detalles y datos básicos del vendedor incluidos
  */
 export interface VentaConDetalles extends Venta {
   detalles: DetalleVenta[];
+  vendedor?: {
+    nombre: string;
+    telefono: string;
+  };
 }
 
 /**
