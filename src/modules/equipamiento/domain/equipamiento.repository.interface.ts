@@ -53,6 +53,12 @@ export interface IEquipamientoRepository {
   findActivoByVendedorId(vendedorId: string): Promise<Equipamiento | null>;
 
   /**
+   * Busca equipamiento vigente por vendedor (SOLICITADO, ACTIVO o PERDIDO)
+   * Usado para mostrar info al vendedor incluso cuando el equipo está reportado como perdido
+   */
+  findVigenteByVendedorId(vendedorId: string): Promise<Equipamiento | null>;
+
+  /**
    * Lista equipamientos con filtros
    */
   findAll(options: FindEquipamientosOptions): Promise<PaginatedEquipamientos>;

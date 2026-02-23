@@ -48,6 +48,18 @@ export class PrismaEquipamientoRepository implements IEquipamientoRepository {
     });
   }
 
+  async findVigenteByVendedorId(vendedorId: string): Promise<Equipamiento | null> {
+    return this.prisma.equipamiento.findFirst({
+      where: {
+        vendedorId,
+        estado: {
+          in: ['SOLICITADO', 'ACTIVO', 'PERDIDO'],
+        },
+      },
+      orderBy: { fechaSolicitud: 'desc' },
+    });
+  }
+
   async findAll(options: FindEquipamientosOptions): Promise<PaginatedEquipamientos> {
     const { skip = 0, take = 20, where } = options;
 

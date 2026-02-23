@@ -94,8 +94,8 @@ export class ObtenerMiEquipamientoHandler implements IQueryHandler<
   ) {}
 
   async execute(query: ObtenerMiEquipamientoQuery): Promise<EquipamientoResponseDto | null> {
-    // Buscar equipamiento activo o solicitado
-    const equipamiento = await this.equipamientoRepository.findActivoByVendedorId(query.vendedorId);
+    // Incluye PERDIDO para que el vendedor vea info sobre equipo reportado como perdido
+    const equipamiento = await this.equipamientoRepository.findVigenteByVendedorId(query.vendedorId);
     if (!equipamiento) {
       return null;
     }
@@ -230,8 +230,8 @@ export class ObtenerDeudaEquipamientoHandler implements IQueryHandler<
   ) {}
 
   async execute(query: ObtenerDeudaEquipamientoQuery): Promise<ResumenDeudaEquipamientoDto | null> {
-    // Buscar equipamiento activo del vendedor
-    const equipamiento = await this.equipamientoRepository.findActivoByVendedorId(query.vendedorId);
+    // Incluye PERDIDO porque el vendedor sigue teniendo deuda aunque el equipo esté perdido
+    const equipamiento = await this.equipamientoRepository.findVigenteByVendedorId(query.vendedorId);
 
     if (!equipamiento) {
       return null;
