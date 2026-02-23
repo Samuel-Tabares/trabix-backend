@@ -1,7 +1,8 @@
-import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, ICommand, CommandBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ModeloNegocio } from '@prisma/client';
+import { EnviarNotificacionARolCommand } from '../../../notificaciones/application/commands';
 import {
   ILoteRepository,
   LOTE_REPOSITORY,
@@ -49,6 +50,7 @@ export class SolicitarLoteHandler implements ICommandHandler<SolicitarLoteComman
     private readonly calculadoraInversion: CalculadoraInversionService,
     private readonly calculadoraTandas: CalculadoraTandasService,
     private readonly configService: ConfigService,
+    private readonly commandBus: CommandBus,
   ) {
     // Cargar límites desde configuración
     this.maxLotesCreados = this.configService.get<number>('lotes.maxLotesCreadosPorVendedor') ?? 2;
@@ -144,8 +146,21 @@ export class SolicitarLoteHandler implements ICommandHandler<SolicitarLoteComman
       `Lote solicitado: ${lote.id} - ${cantidadTrabix} TRABIX por vendedor ${vendedorId} (${modeloNegocio})`,
     );
 
-    // TODO: Enviar notificación al vendedor con instrucciones de pago
-    // TODO: Enviar notificación al admin de nueva solicitud
+    // Notificar a todos los admins de la nueva solicitud de lote
+    try {
+      await this.commandBus.execute(
+        new EnviarNotificacionARolCommand('ADMIN', 'LOTE_SOLICITADO', {
+          loteId: lote.id,
+          cantidadTrabix,
+          inversionTotal: lote.inversionTotal.toNumber(),
+          inversionVendedor: lote.inversionVendedor.toNumber(),
+          modeloNegocio,
+          vendedorNombre: vendedor.nombre,
+        }),
+      );
+    } catch (notifError) {
+      this.logger.warn(`Error enviando notificación LOTE_SOLICITADO: ${notifError}`);
+    }
 
     return lote;
   }

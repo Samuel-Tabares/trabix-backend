@@ -87,6 +87,28 @@ interface LoteFinalizadoData {
 }
 
 /**
+ * Datos para notificación de lote solicitado (al admin)
+ */
+interface LoteSolicitadoData {
+  loteId?: string;
+  cantidadTrabix?: number;
+  inversionTotal?: number;
+  inversionVendedor?: number;
+  modeloNegocio?: string;
+  vendedorNombre?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Datos para notificación de lote rechazado (al vendedor)
+ */
+interface LoteRechazadoData {
+  loteId?: string;
+  cantidadTrabix?: number;
+  [key: string]: unknown;
+}
+
+/**
  * Datos para notificación de equipamiento solicitado
  */
 interface EquipamientoSolicitadoData {
@@ -143,6 +165,10 @@ export class NotificationContentFactory {
         return this.createLoteActivado(datos as LoteActivadoData);
       case 'LOTE_FINALIZADO':
         return this.createLoteFinalizado(datos as LoteFinalizadoData);
+      case 'LOTE_SOLICITADO':
+        return this.createLoteSolicitado(datos as LoteSolicitadoData);
+      case 'LOTE_RECHAZADO':
+        return this.createLoteRechazado(datos as LoteRechazadoData);
       case 'EQUIPAMIENTO_SOLICITADO':
         return this.createEquipamientoSolicitado(datos as EquipamientoSolicitadoData);
       case 'EQUIPAMIENTO_ENTREGADO':
@@ -238,6 +264,26 @@ export class NotificationContentFactory {
     return {
       titulo: '🎊 ¡Lote Finalizado!',
       mensaje: `Tu lote ha sido completado exitosamente. Monto final: $${montoFinal.toLocaleString('es-CO')}.`,
+      datos,
+    };
+  }
+
+  private createLoteSolicitado(datos: LoteSolicitadoData): NotificacionContent {
+    const nombre = datos.vendedorNombre ?? 'Un vendedor';
+    const cantidad = datos.cantidadTrabix ?? 0;
+    const inversion = datos.inversionVendedor ?? 0;
+    return {
+      titulo: '📋 Nueva Solicitud de Lote',
+      mensaje: `${nombre} ha solicitado un lote de ${cantidad} TRABIX (inversión: $${inversion.toLocaleString('es-CO')}). Revisa las solicitudes pendientes.`,
+      datos,
+    };
+  }
+
+  private createLoteRechazado(datos: LoteRechazadoData): NotificacionContent {
+    const cantidad = datos.cantidadTrabix ?? 0;
+    return {
+      titulo: '❌ Solicitud de Lote Rechazada',
+      mensaje: `Tu solicitud de lote con ${cantidad} TRABIX ha sido rechazada por el administrador.`,
       datos,
     };
   }

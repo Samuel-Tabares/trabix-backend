@@ -1,7 +1,8 @@
-import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, ICommand, CommandBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { ILoteRepository, LOTE_REPOSITORY } from '../../domain/lote.repository.interface';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
+import { EnviarNotificacionCommand } from '../../../notificaciones/application/commands';
 
 /**
  * Command para cancelar un lote en estado CREADO
@@ -30,6 +31,7 @@ export class CancelarLoteHandler implements ICommandHandler<
   constructor(
     @Inject(LOTE_REPOSITORY)
     private readonly loteRepository: ILoteRepository,
+    private readonly commandBus: CommandBus,
   ) {}
 
   async execute(command: CancelarLoteCommand): Promise<{ message: string }> {
@@ -57,10 +59,29 @@ export class CancelarLoteHandler implements ICommandHandler<
       });
     }
 
-    // 4. Eliminar el lote (hard delete ya que nunca fue activado)
+    // 4. Guardar datos antes de eliminar para la notificación
+    const vendedorId = lote.vendedorId;
+    const cantidadTrabix = lote.cantidadTrabix;
+
+    // 5. Eliminar el lote (hard delete ya que nunca fue activado)
     await this.loteRepository.cancelar(loteId);
 
     this.logger.log(`Lote cancelado: ${loteId} por usuario ${usuarioId} (admin: ${esAdmin})`);
+
+    // 6. Si el admin rechaza, notificar al vendedor/reclutador
+    if (esAdmin) {
+      try {
+        await this.commandBus.execute(
+          new EnviarNotificacionCommand(vendedorId, 'LOTE_RECHAZADO', {
+            loteId,
+            cantidadTrabix,
+          }),
+        );
+      } catch (notifError) {
+        this.logger.warn(`Error enviando notificación LOTE_RECHAZADO: ${notifError}`);
+      }
+    }
+
     return { message: 'Lote cancelado exitosamente' };
   }
 }
