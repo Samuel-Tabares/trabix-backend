@@ -12,6 +12,7 @@ import {
   EquipamientoResponseDto,
   EquipamientosPaginadosDto,
   ResumenDeudaEquipamientoDto,
+  AbonoEquipamientoDto,
 } from '../dto';
 
 // ========== ObtenerEquipamientoQuery ==========
@@ -41,6 +42,8 @@ export class ObtenerEquipamientoHandler implements IQueryHandler<
   private mapToDto(equipamiento: any): EquipamientoResponseDto {
     const entity = new EquipamientoEntity({
       ...equipamiento,
+      neveraDanada: equipamiento.neveraDanada,
+      pijamaDanada: equipamiento.pijamaDanada,
       deudaDano: equipamiento.deudaDano,
       deudaPerdida: equipamiento.deudaPerdida,
     });
@@ -56,6 +59,8 @@ export class ObtenerEquipamientoHandler implements IQueryHandler<
         : null,
       mensualidadActual: Number.parseFloat(equipamiento.mensualidadActual),
       ultimaMensualidadPagada: equipamiento.ultimaMensualidadPagada,
+      neveraDanada: equipamiento.neveraDanada ?? false,
+      pijamaDanada: equipamiento.pijamaDanada ?? false,
       deudaDano: Number.parseFloat(equipamiento.deudaDano),
       deudaPerdida: Number.parseFloat(equipamiento.deudaPerdida),
       fechaSolicitud: equipamiento.fechaSolicitud,
@@ -73,6 +78,15 @@ export class ObtenerEquipamientoHandler implements IQueryHandler<
       deudaTotal: Number.parseFloat(entity.deudaTotal.toFixed(2)),
       deudaTotalConMensualidades: Number.parseFloat(entity.deudaTotalConMensualidades().toFixed(2)),
       tieneDeuda: entity.tieneDeuda(),
+      abonos: (equipamiento.abonos ?? []).map(
+        (a: any): AbonoEquipamientoDto => ({
+          id: a.id,
+          tipo: a.tipo,
+          monto: Number.parseFloat(a.monto),
+          cuadreId: a.cuadreId ?? null,
+          fecha: a.fecha,
+        }),
+      ),
     };
   }
 }
@@ -105,6 +119,8 @@ export class ObtenerMiEquipamientoHandler implements IQueryHandler<
   private mapToDto(equipamiento: any): EquipamientoResponseDto {
     const entity = new EquipamientoEntity({
       ...equipamiento,
+      neveraDanada: equipamiento.neveraDanada,
+      pijamaDanada: equipamiento.pijamaDanada,
       deudaDano: equipamiento.deudaDano,
       deudaPerdida: equipamiento.deudaPerdida,
     });
@@ -119,6 +135,8 @@ export class ObtenerMiEquipamientoHandler implements IQueryHandler<
         : null,
       mensualidadActual: Number.parseFloat(equipamiento.mensualidadActual),
       ultimaMensualidadPagada: equipamiento.ultimaMensualidadPagada,
+      neveraDanada: equipamiento.neveraDanada ?? false,
+      pijamaDanada: equipamiento.pijamaDanada ?? false,
       deudaDano: Number.parseFloat(equipamiento.deudaDano),
       deudaPerdida: Number.parseFloat(equipamiento.deudaPerdida),
       fechaSolicitud: equipamiento.fechaSolicitud,
@@ -176,6 +194,8 @@ export class ListarEquipamientosHandler implements IQueryHandler<
   private mapToDto(equipamiento: any): EquipamientoResponseDto {
     const entity = new EquipamientoEntity({
       ...equipamiento,
+      neveraDanada: equipamiento.neveraDanada,
+      pijamaDanada: equipamiento.pijamaDanada,
       deudaDano: equipamiento.deudaDano || 0,
       deudaPerdida: equipamiento.deudaPerdida || 0,
     });
@@ -191,6 +211,8 @@ export class ListarEquipamientosHandler implements IQueryHandler<
         : null,
       mensualidadActual: Number.parseFloat(equipamiento.mensualidadActual),
       ultimaMensualidadPagada: equipamiento.ultimaMensualidadPagada,
+      neveraDanada: equipamiento.neveraDanada ?? false,
+      pijamaDanada: equipamiento.pijamaDanada ?? false,
       deudaDano: Number.parseFloat(new Decimal(equipamiento.deudaDano || 0).toFixed(2)),
       deudaPerdida: Number.parseFloat(new Decimal(equipamiento.deudaPerdida || 0).toFixed(2)),
       fechaSolicitud: equipamiento.fechaSolicitud,

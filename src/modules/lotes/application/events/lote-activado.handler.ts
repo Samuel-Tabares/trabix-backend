@@ -88,6 +88,7 @@ export class LoteActivadoHandler implements IEventHandler<LoteActivadoEvent> {
           tandaId: tanda.id,
           concepto,
           montoEsperado: resultado.montoTotal,
+          desglose: resultado.desglose,
         });
 
         // Log detallado si hay deuda de equipamiento

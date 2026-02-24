@@ -58,6 +58,12 @@ export class PrismaTandaRepository implements ITandaRepository {
     });
   }
 
+  async findTodasLiberadas(): Promise<Tanda[]> {
+    return this.prisma.tanda.findMany({
+      where: { estado: 'LIBERADA' },
+    });
+  }
+
   async liberar(id: string): Promise<Tanda> {
     return this.prisma.tanda.update({
       where: { id },

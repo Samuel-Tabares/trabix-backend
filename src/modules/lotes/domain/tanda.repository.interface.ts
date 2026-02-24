@@ -26,6 +26,12 @@ export interface ITandaRepository {
   findTandasParaTransicion(): Promise<Tanda[]>;
 
   /**
+   * Obtiene TODAS las tandas en estado LIBERADA, sin restricción de tiempo.
+   * Solo para uso en entornos de desarrollo/testing.
+   */
+  findTodasLiberadas(): Promise<Tanda[]>;
+
+  /**
    * Libera una tanda (INACTIVA → LIBERADA)
    */
   liberar(id: string): Promise<Tanda>;

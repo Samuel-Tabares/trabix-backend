@@ -76,46 +76,46 @@ export class ConfirmarCuadreHandler implements ICommandHandler<ConfirmarCuadreCo
       throw new DomainException('CUA_004', 'Vendedor no encontrado en el cuadre', { cuadreId });
     }
 
-    // Ejecutar todoo en una transacción
-    const cuadreActualizado = await this.ejecutarConfirmacionEnTransaccion(
-      cuadreId,
-      vendedorId,
-      montoRecibidoDecimal,
-    );
+    // Ejecutar en una transacción atómica
+    const { cuadre: cuadreActualizado, estaCompleto } =
+      await this.ejecutarConfirmacionEnTransaccion(cuadreId, vendedorId, montoRecibidoDecimal);
 
-    this.logger.log(
-      `Cuadre confirmado exitoso: ${cuadreId} - Monto: $${montoRecibido} - Admin: ${adminId}`,
-    );
-
-    // Publicar evento CuadreExitosoEvent (fuera de transacción)
-    this.eventBus.publish(
-      new CuadreExitosoEvent(
-        cuadreId,
-        cuadre.tandaId,
-        cuadre.tanda.loteId,
-        vendedorId,
-        montoRecibidoDecimal,
-        cuadre.tanda.numero,
-      ),
-    );
+    if (estaCompleto) {
+      this.logger.log(
+        `Cuadre confirmado exitoso: ${cuadreId} - Monto total: $${montoRecibido} - Admin: ${adminId}`,
+      );
+      // Publicar CuadreExitosoEvent solo cuando el cuadre queda completamente pagado
+      this.eventBus.publish(
+        new CuadreExitosoEvent(
+          cuadreId,
+          cuadre.tandaId,
+          cuadre.tanda.loteId,
+          vendedorId,
+          montoRecibidoDecimal,
+          cuadre.tanda.numero,
+        ),
+      );
+    } else {
+      this.logger.log(
+        `Abono parcial registrado en cuadre: ${cuadreId} - Abono: $${montoRecibido} - Admin: ${adminId}`,
+      );
+    }
 
     return cuadreActualizado;
   }
 
   /**
-   * Ejecuta la confirmación del cuadre y procesamiento de deudas en una transacción
-   * Si falla cualquier operación, se hace rollback completo
+   * Ejecuta el abono al cuadre en una transacción atómica.
+   * - Acumula montoRecibido sobre el valor ya existente.
+   * - Solo marca EXITOSO y procesa deudas de equipamiento cuando el faltante llega a 0.
+   * Retorna { cuadre, estaCompleto } para que execute() decida si publicar el evento.
    */
   private async ejecutarConfirmacionEnTransaccion(
     cuadreId: string,
     vendedorId: string,
-    montoRecibido: Decimal,
-  ) {
+    montoAbono: Decimal,
+  ): Promise<{ cuadre: any; estaCompleto: boolean }> {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Procesar deudas de equipamiento
-      await this.procesarDeudasEquipamientoEnTransaccion(tx, vendedorId);
-
-      // 2. Confirmar el cuadre como exitoso
       const cuadre = await tx.cuadre.findUnique({ where: { id: cuadreId } });
       if (!cuadre) {
         throw new DomainException('CUA_001', 'Cuadre no encontrado', { cuadreId });
@@ -124,20 +124,26 @@ export class ConfirmarCuadreHandler implements ICommandHandler<ConfirmarCuadreCo
       const montoEsperado = new Decimal(cuadre.montoEsperado);
       const montoCubierto = new Decimal(cuadre.montoCubiertoPorMayor);
       const montoRequerido = montoEsperado.minus(montoCubierto);
-      const montoFaltante = montoRequerido.minus(montoRecibido);
+      const montoAcumulado = new Decimal(cuadre.montoRecibido).plus(montoAbono);
+      const nuevoFaltante = montoRequerido.minus(montoAcumulado);
+      const estaCompleto = nuevoFaltante.lessThanOrEqualTo(0);
+
+      if (estaCompleto) {
+        // Pago completo: procesar deudas de equipamiento y marcar EXITOSO
+        await this.procesarDeudasEquipamientoEnTransaccion(tx, vendedorId, cuadreId);
+      }
 
       const cuadreActualizado = await tx.cuadre.update({
         where: { id: cuadreId },
         data: {
-          estado: 'EXITOSO',
-          montoRecibido: montoRecibido.toFixed(2),
-          montoFaltante: montoFaltante.greaterThan(0) ? montoFaltante.toFixed(2) : '0',
-          fechaExitoso: new Date(),
+          montoRecibido: montoAcumulado.toFixed(2),
+          montoFaltante: estaCompleto ? '0' : nuevoFaltante.toFixed(2),
+          ...(estaCompleto && { estado: 'EXITOSO', fechaExitoso: new Date() }),
           version: { increment: 1 },
         },
       });
 
-      return cuadreActualizado;
+      return { cuadre: cuadreActualizado, estaCompleto };
     });
   }
 
@@ -152,6 +158,7 @@ export class ConfirmarCuadreHandler implements ICommandHandler<ConfirmarCuadreCo
   private async procesarDeudasEquipamientoEnTransaccion(
     tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
     vendedorId: string,
+    cuadreId: string,
   ): Promise<void> {
     // Buscar equipamiento activo del vendedor
     const equipamiento = await tx.equipamiento.findFirst({
@@ -182,6 +189,14 @@ export class ConfirmarCuadreHandler implements ICommandHandler<ConfirmarCuadreCo
           deudaDano: { set: 0 },
         },
       });
+      await tx.abonoEquipamiento.create({
+        data: {
+          equipamientoId: equipamiento.id,
+          tipo: 'DANO',
+          monto: deudaDano.toFixed(2),
+          cuadreId,
+        },
+      });
       operaciones.push(`deuda daño: -$${deudaDano.toFixed(2)}`);
     }
 
@@ -193,6 +208,14 @@ export class ConfirmarCuadreHandler implements ICommandHandler<ConfirmarCuadreCo
           deudaPerdida: { set: 0 },
         },
       });
+      await tx.abonoEquipamiento.create({
+        data: {
+          equipamientoId: equipamiento.id,
+          tipo: 'PERDIDA',
+          monto: deudaPerdida.toFixed(2),
+          cuadreId,
+        },
+      });
       operaciones.push(`deuda pérdida: -$${deudaPerdida.toFixed(2)}`);
     }
 
@@ -202,6 +225,14 @@ export class ConfirmarCuadreHandler implements ICommandHandler<ConfirmarCuadreCo
         where: { id: equipamiento.id },
         data: {
           ultimaMensualidadPagada: new Date(),
+        },
+      });
+      await tx.abonoEquipamiento.create({
+        data: {
+          equipamientoId: equipamiento.id,
+          tipo: 'MENSUALIDAD',
+          monto: new Decimal(equipamiento.mensualidadActual).toFixed(2),
+          cuadreId,
         },
       });
       operaciones.push('mensualidad registrada');

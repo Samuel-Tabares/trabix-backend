@@ -176,6 +176,7 @@ model Cuadre {
   estado                  EstadoCuadre   @default(INACTIVO)
   concepto                ConceptoCuadre
   montoEsperado           Decimal        @db.Decimal(12, 2)
+  desglose                Json?
   montoRecibido           Decimal        @default(0) @db.Decimal(12, 2)
   montoFaltante           Decimal        @default(0) @db.Decimal(12, 2)
   montoCubiertoPorMayor   Decimal        @default(0) @db.Decimal(12, 2)
@@ -184,6 +185,7 @@ model Cuadre {
   fechaExitoso            DateTime?
   tanda                   Tanda          @relation(fields: [tandaId], references: [id])
   cuadreMayorCierre       CuadreMayor?   @relation("CuadreMayorCierres", fields: [cerradoPorCuadreMayorId], references: [id])
+  abonosEquipamiento      AbonoEquipamiento[]
 
   @@index([estado])
   @@map("cuadres")
@@ -245,6 +247,8 @@ model Equipamiento {
   depositoPagado          Decimal?           @db.Decimal(12, 2)
   mensualidadActual       Decimal            @db.Decimal(12, 2)
   ultimaMensualidadPagada DateTime?
+  neveraDanada            Boolean            @default(false)
+  pijamaDanada            Boolean            @default(false)
   deudaDano               Decimal            @default(0) @db.Decimal(12, 2)
   deudaPerdida            Decimal            @default(0) @db.Decimal(12, 2)
   fechaSolicitud          DateTime           @default(now())
@@ -253,8 +257,23 @@ model Equipamiento {
   depositoDevuelto        Boolean            @default(false)
   fechaDevolucionDeposito DateTime?
   vendedor                Usuario            @relation("UsuarioEquipamientos", fields: [vendedorId], references: [id])
+  abonos                  AbonoEquipamiento[]
 
   @@map("equipamientos")
+}
+
+model AbonoEquipamiento {
+  id             String                @id @default(uuid())
+  equipamientoId String
+  tipo           TipoAbonoEquipamiento
+  monto          Decimal               @db.Decimal(12, 2)
+  cuadreId       String?
+  fecha          DateTime              @default(now())
+  equipamiento   Equipamiento          @relation(fields: [equipamientoId], references: [id])
+  cuadre         Cuadre?               @relation(fields: [cuadreId], references: [id])
+
+  @@index([equipamientoId, fecha])
+  @@map("abonos_equipamiento")
 }
 
 model PedidoStock {
@@ -541,6 +560,12 @@ enum EstadoEquipamiento {
   DEVUELTO
   DANADO
   PERDIDO
+}
+
+enum TipoAbonoEquipamiento {
+  DANO
+  PERDIDA
+  MENSUALIDAD
 }
 
 enum TipoTransaccionFondo {

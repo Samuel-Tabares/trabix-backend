@@ -2,6 +2,26 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EstadoCuadre, ConceptoCuadre } from '@prisma/client';
 
 /**
+ * DTO de desglose del monto esperado
+ */
+export class DesgloseCuadreDto {
+  @ApiProperty({ description: 'Inversión admin a recuperar' })
+  inversionAdmin!: number;
+
+  @ApiProperty({ description: 'Ganancias de admin' })
+  gananciasAdmin!: number;
+
+  @ApiProperty({ description: 'Mensualidades de equipamiento' })
+  mensualidades!: number;
+
+  @ApiProperty({ description: 'Deuda por daño de equipamiento' })
+  deudaDano!: number;
+
+  @ApiProperty({ description: 'Deuda por pérdida de equipamiento' })
+  deudaPerdida!: number;
+}
+
+/**
  * DTO de respuesta para tanda dentro de cuadre
  */
 export class TandaCuadreResponseDto {
@@ -72,6 +92,9 @@ export class CuadreResponseDto {
 
   @ApiProperty({ description: 'Indica si fue cerrado por cuadre al mayor' })
   fueCerradoPorMayor!: boolean;
+
+  @ApiPropertyOptional({ type: DesgloseCuadreDto, description: 'Desglose del monto esperado' })
+  desglose?: DesgloseCuadreDto | null;
 }
 
 /**

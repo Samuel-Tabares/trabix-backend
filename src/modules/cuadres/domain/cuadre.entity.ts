@@ -64,8 +64,8 @@ export class CuadreEntity {
   }
 
   /**
-   * Valida si el cuadre puede ser confirmado como exitoso
-   * Según sección 17.6: monto_recibido >= monto_esperado
+   * Valida si el cuadre puede ser confirmado
+   * Permite montos parciales (el faltante queda registrado en montoFaltante)
    */
   validarConfirmacion(montoRecibido: Decimal): void {
     if (this.estado !== 'PENDIENTE') {
@@ -74,12 +74,9 @@ export class CuadreEntity {
       });
     }
 
-    const montoRequerido = this.montoEsperadoAjustado;
-    if (montoRecibido.lessThan(montoRequerido)) {
-      throw new DomainException('CUA_003', 'El monto recibido es insuficiente', {
-        montoEsperado: montoRequerido.toFixed(2),
+    if (montoRecibido.lessThanOrEqualTo(0)) {
+      throw new DomainException('CUA_003', 'El monto recibido debe ser mayor a cero', {
         montoRecibido: montoRecibido.toFixed(2),
-        montoFaltante: montoRequerido.minus(montoRecibido).toFixed(2),
       });
     }
   }

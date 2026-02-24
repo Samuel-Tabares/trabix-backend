@@ -161,7 +161,7 @@ export class ActualizadorCuadresVendedorService {
     }
 
     // Actualizar en BD
-    await this.cuadreRepository.actualizarMontoEsperado(cuadre.id, montoNuevo);
+    await this.cuadreRepository.actualizarMontoEsperado(cuadre.id, montoNuevo, nuevoCalculo.desglose);
 
     this.logger.log(
       `Cuadre ${cuadre.id} (${cuadre.estado}) actualizado: ` +

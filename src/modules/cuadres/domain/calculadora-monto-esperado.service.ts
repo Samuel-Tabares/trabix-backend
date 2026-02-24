@@ -4,6 +4,7 @@ import { Decimal } from 'decimal.js';
 import { ModeloNegocio, ConceptoCuadre } from '@prisma/client';
 import { CalculadoraGananciasService, JerarquiaReclutador } from './calculadora-ganancias.service';
 import { ObtenerDeudaEquipamientoQuery } from '../../equipamiento/application/queries';
+import { DesgloseCuadre } from './cuadre.repository.interface';
 
 /**
  * Servicio de dominio para calcular el monto esperado de un cuadre
@@ -57,10 +58,22 @@ export class CalculadoraMontoEsperadoService {
       ? montoBase.plus(deudaEquipamiento.total)
       : montoBase;
 
+    const desglose: DesgloseCuadre = {
+      inversionAdmin:
+        concepto === 'INVERSION_ADMIN' || concepto === 'MIXTO' ? inversionAdmin.toNumber() : 0,
+      gananciasAdmin: 0,
+      mensualidades: incluirDeudaEquipamiento
+        ? deudaEquipamiento.montoMensualidades.toNumber()
+        : 0,
+      deudaDano: incluirDeudaEquipamiento ? deudaEquipamiento.deudaDano.toNumber() : 0,
+      deudaPerdida: incluirDeudaEquipamiento ? deudaEquipamiento.deudaPerdida.toNumber() : 0,
+    };
+
     return {
       montoBase,
       deudaEquipamiento: incluirDeudaEquipamiento ? deudaEquipamiento : null,
       montoTotal,
+      desglose,
     };
   }
 
@@ -88,6 +101,7 @@ export class CalculadoraMontoEsperadoService {
     } = params;
 
     let montoBase = new Decimal(0);
+    let gananciasAdmin = new Decimal(0);
 
     // Calcular ganancias si aplica
     if (concepto === 'GANANCIAS' || concepto === 'MIXTO') {
@@ -99,7 +113,8 @@ export class CalculadoraMontoEsperadoService {
       );
 
       if (resultadoGanancias.hayGanancias) {
-        montoBase = resultadoGanancias.gananciaAdmin;
+        gananciasAdmin = resultadoGanancias.gananciaAdmin;
+        montoBase = gananciasAdmin;
       }
     }
 
@@ -113,10 +128,20 @@ export class CalculadoraMontoEsperadoService {
 
     const montoTotal = montoBase.plus(deudaEquipamiento.total);
 
+    const desglose: DesgloseCuadre = {
+      inversionAdmin:
+        concepto === 'MIXTO' || concepto === 'INVERSION_ADMIN' ? inversionAdmin.toNumber() : 0,
+      gananciasAdmin: gananciasAdmin.toNumber(),
+      mensualidades: deudaEquipamiento.montoMensualidades.toNumber(),
+      deudaDano: deudaEquipamiento.deudaDano.toNumber(),
+      deudaPerdida: deudaEquipamiento.deudaPerdida.toNumber(),
+    };
+
     return {
       montoBase,
       deudaEquipamiento,
       montoTotal,
+      desglose,
     };
   }
 
@@ -167,6 +192,7 @@ export interface MontoEsperadoResult {
   montoBase: Decimal;
   deudaEquipamiento: DeudaEquipamientoDetalle | null;
   montoTotal: Decimal;
+  desglose: DesgloseCuadre;
 }
 
 /**

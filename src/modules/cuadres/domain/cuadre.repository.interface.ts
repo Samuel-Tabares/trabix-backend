@@ -53,7 +53,7 @@ export interface ICuadreRepository {
   /**
    * Actualiza el monto esperado de un cuadre
    */
-  actualizarMontoEsperado(id: string, montoEsperado: Decimal): Promise<Cuadre>;
+  actualizarMontoEsperado(id: string, montoEsperado: Decimal, desglose?: DesgloseCuadre): Promise<Cuadre>;
 
   /**
    * Busca cuadres inactivos que cumplan el trigger
@@ -121,12 +121,24 @@ export interface PaginatedCuadres {
 }
 
 /**
+ * Desglose del monto esperado de un cuadre
+ */
+export interface DesgloseCuadre {
+  inversionAdmin: number;
+  gananciasAdmin: number;
+  mensualidades: number;
+  deudaDano: number;
+  deudaPerdida: number;
+}
+
+/**
  * Datos para crear un cuadre
  */
 export interface CreateCuadreData {
   tandaId: string;
   concepto: ConceptoCuadre;
   montoEsperado: Decimal;
+  desglose?: DesgloseCuadre;
 }
 
 /**

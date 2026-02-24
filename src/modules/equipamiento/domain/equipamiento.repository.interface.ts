@@ -75,10 +75,17 @@ export interface IEquipamientoRepository {
   activar(id: string): Promise<Equipamiento>;
 
   /**
-   * Reporta daño de nevera o pijama
-   * Solo aumenta la deuda, NO cambia el estado
+   * Reporta daño de nevera o pijama.
+   * Marca el componente como dañado y aumenta deudaDano.
+   * NO cambia el estado.
    */
   reportarDano(id: string, tipoDano: 'NEVERA' | 'PIJAMA', monto: Decimal): Promise<Equipamiento>;
+
+  /**
+   * Transiciona a PERDIDO automáticamente cuando ambos componentes están dañados.
+   * Limpia deudaDano (ya incluida en deudaPerdida), establece deudaPerdida y estado PERDIDO.
+   */
+  transicionarAPerdidoPorDanos(id: string, montoPerdida: Decimal): Promise<Equipamiento>;
 
   /**
    * Reporta pérdida total del equipamiento (ACTIVO → PERDIDO)

@@ -1,4 +1,4 @@
-import { CuadreResponseDto, TandaCuadreResponseDto } from './cuadre-response.dto';
+import { CuadreResponseDto, TandaCuadreResponseDto, DesgloseCuadreDto } from './cuadre-response.dto';
 import { CuadreConTanda } from '../../domain/cuadre.repository.interface';
 
 /**
@@ -35,6 +35,7 @@ export class CuadreMapper {
       fechaExitoso: cuadre.fechaExitoso,
       tanda,
       fueCerradoPorMayor: cuadre.cerradoPorCuadreMayorId !== null,
+      desglose: cuadre.desglose ? (cuadre.desglose as unknown as DesgloseCuadreDto) : null,
     };
   }
 

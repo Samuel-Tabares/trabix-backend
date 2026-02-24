@@ -28,6 +28,8 @@ export class EquipamientoEntity {
   readonly depositoPagado: Decimal | null;
   readonly mensualidadActual: Decimal;
   readonly ultimaMensualidadPagada: Date | null;
+  readonly neveraDanada: boolean;
+  readonly pijamaDanada: boolean;
   readonly deudaDano: Decimal;
   readonly deudaPerdida: Decimal;
   readonly fechaSolicitud: Date;
@@ -44,6 +46,8 @@ export class EquipamientoEntity {
     this.depositoPagado = props.depositoPagado ? new Decimal(props.depositoPagado) : null;
     this.mensualidadActual = new Decimal(props.mensualidadActual);
     this.ultimaMensualidadPagada = props.ultimaMensualidadPagada;
+    this.neveraDanada = props.neveraDanada ?? false;
+    this.pijamaDanada = props.pijamaDanada ?? false;
     this.deudaDano = new Decimal(props.deudaDano || 0);
     this.deudaPerdida = new Decimal(props.deudaPerdida || 0);
     this.fechaSolicitud = props.fechaSolicitud;
@@ -179,16 +183,30 @@ export class EquipamientoEntity {
   }
 
   /**
-   * Valida que se puede reportar daño
-   * Solo admin puede ejecutar esta acción
-   * Solo aplica a equipamiento ACTIVO
+   * Valida que se puede reportar daño en el componente indicado.
+   * Cada componente (nevera/pijama) solo puede dañarse una vez.
+   * Solo aplica a equipamiento ACTIVO.
    */
-  validarReporteDano(): void {
+  validarReporteDano(tipoDano: 'NEVERA' | 'PIJAMA'): void {
     if (this.estado !== 'ACTIVO') {
       throw new DomainException('EQU_003', 'Solo se puede reportar daño en equipamiento ACTIVO', {
         estadoActual: this.estado,
       });
     }
+    if (tipoDano === 'NEVERA' && this.neveraDanada) {
+      throw new DomainException('EQU_018', 'La nevera ya fue reportada como dañada');
+    }
+    if (tipoDano === 'PIJAMA' && this.pijamaDanada) {
+      throw new DomainException('EQU_019', 'La pijama ya fue reportada como dañada');
+    }
+  }
+
+  /**
+   * Indica si con el daño del componente dado ambos quedarán dañados (→ auto-perdido)
+   */
+  ambosDanadosTras(tipoDano: 'NEVERA' | 'PIJAMA'): boolean {
+    if (tipoDano === 'NEVERA') return this.pijamaDanada;
+    return this.neveraDanada;
   }
 
   /**
@@ -218,6 +236,8 @@ export interface EquipamientoEntityProps {
   depositoPagado: Decimal | string | number | null;
   mensualidadActual: Decimal | string | number;
   ultimaMensualidadPagada: Date | null;
+  neveraDanada?: boolean;
+  pijamaDanada?: boolean;
   deudaDano?: Decimal | string | number;
   deudaPerdida?: Decimal | string | number;
   fechaSolicitud: Date;

@@ -1,10 +1,12 @@
 import { CommandHandler, ICommandHandler, ICommand, CommandBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
+import { Equipamiento } from '@prisma/client';
 import {
   IEquipamientoRepository,
   EQUIPAMIENTO_REPOSITORY,
 } from '../../domain/equipamiento.repository.interface';
+import { PrismaService } from '../../../../infrastructure/database/prisma/prisma.service';
 import {
   IUsuarioRepository,
   USUARIO_REPOSITORY,
@@ -215,36 +217,57 @@ export class ReportarDanoHandler implements ICommandHandler<ReportarDanoCommand>
 
     const entity = new EquipamientoEntity({
       ...equipamiento,
+      neveraDanada: equipamiento.neveraDanada,
+      pijamaDanada: equipamiento.pijamaDanada,
       deudaDano: equipamiento.deudaDano,
       deudaPerdida: equipamiento.deudaPerdida,
     });
-    entity.validarReporteDano();
+    // Valida ACTIVO y que el componente no haya sido dañado antes
+    entity.validarReporteDano(command.tipoDano);
 
-    // Obtener costo del daño desde configuración
-    const monto = this.equipamientoConfig.getCostoDano(command.tipoDano);
+    const montoComponente = this.equipamientoConfig.getCostoDano(command.tipoDano);
+    const ambosDanados = entity.ambosDanadosTras(command.tipoDano);
 
-    const danado = await this.equipamientoRepository.reportarDano(
-      command.equipamientoId,
-      command.tipoDano,
-      monto,
-    );
+    let resultado: Equipamiento;
 
-    this.logger.log(
-      `Daño reportado: ${command.equipamientoId} - ` +
-        `Tipo: ${command.tipoDano} - ` +
-        `Monto: $${monto.toFixed(0)} - ` +
-        `Admin: ${command.adminId}`,
-    );
+    if (ambosDanados) {
+      // Ambos componentes quedan dañados → transición automática a PERDIDO
+      const montoPerdida = this.equipamientoConfig.costoPerdidaTotal;
+      resultado = await this.equipamientoRepository.transicionarAPerdidoPorDanos(
+        command.equipamientoId,
+        montoPerdida,
+      );
+      this.logger.log(
+        `Auto-perdido por daños: ${command.equipamientoId} - ` +
+          `Último daño: ${command.tipoDano} - ` +
+          `Deuda total: $${montoPerdida.toFixed(0)} - ` +
+          `Admin: ${command.adminId}`,
+      );
+    } else {
+      resultado = await this.equipamientoRepository.reportarDano(
+        command.equipamientoId,
+        command.tipoDano,
+        montoComponente,
+      );
+      this.logger.log(
+        `Daño reportado: ${command.equipamientoId} - ` +
+          `Tipo: ${command.tipoDano} - ` +
+          `Monto: $${montoComponente.toFixed(0)} - ` +
+          `Admin: ${command.adminId}`,
+      );
+    }
 
     // Intentar actualizar cuadres del vendedor
     let advertenciaCuadres: string | undefined;
     try {
+      const motivo = ambosDanados
+        ? `Auto-perdido por daños ($${this.equipamientoConfig.costoPerdidaTotal.toFixed(0)})`
+        : `Daño reportado: ${command.tipoDano} ($${montoComponente.toFixed(0)})`;
       await this.actualizadorCuadres.actualizarPorCambioDeudaEquipamiento(
         equipamiento.vendedorId,
-        `Daño reportado: ${command.tipoDano} ($${monto.toFixed(0)})`,
+        motivo,
       );
     } catch (error) {
-      // PUNTO 8: No silenciar, registrar y advertir al admin
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error actualizando cuadres después de reportar daño: ${errorMsg}`);
       advertenciaCuadres =
@@ -253,7 +276,7 @@ export class ReportarDanoHandler implements ICommandHandler<ReportarDanoCommand>
     }
 
     return {
-      equipamiento: danado,
+      equipamiento: resultado,
       advertenciaCuadres,
     };
   }
@@ -431,6 +454,7 @@ export class PagarMensualidadHandler implements ICommandHandler<PagarMensualidad
     @Inject(EQUIPAMIENTO_REPOSITORY)
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly actualizadorCuadres: ActualizadorCuadresVendedorService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(command: PagarMensualidadCommand): Promise<ResultadoConAdvertencia> {
@@ -465,6 +489,14 @@ export class PagarMensualidadHandler implements ICommandHandler<PagarMensualidad
     const actualizado = await this.equipamientoRepository.registrarPagoMensualidad(
       command.equipamientoId,
     );
+
+    await this.prisma.abonoEquipamiento.create({
+      data: {
+        equipamientoId: command.equipamientoId,
+        tipo: 'MENSUALIDAD',
+        monto: new Decimal(equipamiento.mensualidadActual).toFixed(2),
+      },
+    });
 
     this.logger.log(
       `Mensualidad pagada: ${command.equipamientoId} - ` +
@@ -514,6 +546,8 @@ export class PagarDeudaDanoHandler implements ICommandHandler<PagarDeudaDanoComm
     @Inject(EQUIPAMIENTO_REPOSITORY)
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly actualizadorCuadres: ActualizadorCuadresVendedorService,
+    private readonly prisma: PrismaService,
+    private readonly commandBus: CommandBus,
   ) {}
 
   async execute(command: PagarDeudaDanoCommand): Promise<ResultadoConAdvertencia> {
@@ -548,6 +582,14 @@ export class PagarDeudaDanoHandler implements ICommandHandler<PagarDeudaDanoComm
       montoAbono,
     );
 
+    await this.prisma.abonoEquipamiento.create({
+      data: {
+        equipamientoId: command.equipamientoId,
+        tipo: 'DANO',
+        monto: montoAbono.toFixed(2),
+      },
+    });
+
     this.logger.log(
       `Deuda daño reducida: ${command.equipamientoId} - ` +
         `Monto: $${montoAbono.toFixed(0)} - ` +
@@ -555,6 +597,21 @@ export class PagarDeudaDanoHandler implements ICommandHandler<PagarDeudaDanoComm
         `Deuda nueva: $${deudaActual.minus(montoAbono).toFixed(0)} - ` +
         `Admin: ${command.adminId}`,
     );
+
+    // Si la deuda quedó en 0, notificar al vendedor que está al día
+    const deudaRestante = deudaActual.minus(montoAbono);
+    if (deudaRestante.equals(0)) {
+      try {
+        await this.commandBus.execute(
+          new EnviarNotificacionCommand(equipamiento.vendedorId, 'MANUAL', {
+            titulo: '✅ Deuda por daño saldada',
+            mensaje: 'Tu deuda por daño de equipamiento ha sido saldada completamente.',
+          }),
+        );
+      } catch (notifError) {
+        this.logger.warn(`Error enviando notificación de deuda daño saldada: ${notifError}`);
+      }
+    }
 
     // Intentar actualizar cuadres
     let advertenciaCuadres: string | undefined;
@@ -598,6 +655,8 @@ export class PagarDeudaPerdidaHandler implements ICommandHandler<PagarDeudaPerdi
     @Inject(EQUIPAMIENTO_REPOSITORY)
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly actualizadorCuadres: ActualizadorCuadresVendedorService,
+    private readonly prisma: PrismaService,
+    private readonly commandBus: CommandBus,
   ) {}
 
   async execute(command: PagarDeudaPerdidaCommand): Promise<ResultadoConAdvertencia> {
@@ -632,6 +691,14 @@ export class PagarDeudaPerdidaHandler implements ICommandHandler<PagarDeudaPerdi
       montoAbono,
     );
 
+    await this.prisma.abonoEquipamiento.create({
+      data: {
+        equipamientoId: command.equipamientoId,
+        tipo: 'PERDIDA',
+        monto: montoAbono.toFixed(2),
+      },
+    });
+
     this.logger.log(
       `Deuda pérdida reducida: ${command.equipamientoId} - ` +
         `Monto: $${montoAbono.toFixed(0)} - ` +
@@ -639,6 +706,29 @@ export class PagarDeudaPerdidaHandler implements ICommandHandler<PagarDeudaPerdi
         `Deuda nueva: $${deudaActual.minus(montoAbono).toFixed(0)} - ` +
         `Admin: ${command.adminId}`,
     );
+
+    // Si la deuda quedó en 0 y el equipo está PERDIDO, devolverlo automáticamente
+    // para que el vendedor pueda solicitar un nuevo equipamiento
+    const deudaRestante = deudaActual.minus(montoAbono);
+    let equipamientoFinal = actualizado;
+    if (deudaRestante.equals(0) && equipamiento.estado === 'PERDIDO') {
+      equipamientoFinal = await this.equipamientoRepository.devolver(command.equipamientoId);
+      this.logger.log(
+        `Equipamiento ${command.equipamientoId} devuelto automáticamente tras saldar deuda por pérdida`,
+      );
+      try {
+        await this.commandBus.execute(
+          new EnviarNotificacionCommand(equipamiento.vendedorId, 'MANUAL', {
+            titulo: '✅ Deuda saldada — equipamiento liberado',
+            mensaje:
+              'Has saldado tu deuda por pérdida de equipamiento. ' +
+              'Ya puedes solicitar un nuevo equipamiento.',
+          }),
+        );
+      } catch (notifError) {
+        this.logger.warn(`Error enviando notificación de liberación de equipamiento: ${notifError}`);
+      }
+    }
 
     // Intentar actualizar cuadres
     let advertenciaCuadres: string | undefined;
@@ -656,7 +746,7 @@ export class PagarDeudaPerdidaHandler implements ICommandHandler<PagarDeudaPerdi
     }
 
     return {
-      equipamiento: actualizado,
+      equipamiento: equipamientoFinal,
       advertenciaCuadres,
     };
   }

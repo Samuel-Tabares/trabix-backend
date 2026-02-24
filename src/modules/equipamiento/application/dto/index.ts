@@ -2,6 +2,23 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsEnum, IsUUID, IsNumber, Min } from 'class-validator';
 import { EstadoEquipamiento } from '@prisma/client';
 
+export class AbonoEquipamientoDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ enum: ['DANO', 'PERDIDA', 'MENSUALIDAD'] })
+  tipo!: string;
+
+  @ApiProperty()
+  monto!: number;
+
+  @ApiPropertyOptional({ description: 'ID del cuadre que originó el pago (si aplica)' })
+  cuadreId?: string | null;
+
+  @ApiProperty()
+  fecha!: Date;
+}
+
 // ========== Request DTOs ==========
 
 /**
@@ -120,6 +137,12 @@ export class EquipamientoResponseDto {
   @ApiPropertyOptional({ description: 'Fecha del último pago de mensualidad' })
   ultimaMensualidadPagada?: Date | null;
 
+  @ApiProperty({ description: 'Si la nevera fue reportada como dañada' })
+  neveraDanada!: boolean;
+
+  @ApiProperty({ description: 'Si la pijama fue reportada como dañada' })
+  pijamaDanada!: boolean;
+
   @ApiProperty({ description: 'Deuda acumulada por daños' })
   deudaDano!: number;
 
@@ -162,6 +185,9 @@ export class EquipamientoResponseDto {
 
   @ApiProperty({ description: 'Si tiene alguna deuda pendiente' })
   tieneDeuda!: boolean;
+
+  @ApiPropertyOptional({ type: [AbonoEquipamientoDto], description: 'Historial de abonos realizados' })
+  abonos?: AbonoEquipamientoDto[];
 }
 
 /**

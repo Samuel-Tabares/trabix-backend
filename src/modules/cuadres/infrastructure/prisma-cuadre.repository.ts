@@ -9,6 +9,7 @@ import {
   PaginatedCuadres,
   CreateCuadreData,
   CountCuadresOptions,
+  DesgloseCuadre,
 } from '../domain/cuadre.repository.interface';
 
 /**
@@ -126,6 +127,7 @@ export class PrismaCuadreRepository implements ICuadreRepository {
         montoFaltante: data.montoEsperado.toFixed(2),
         montoCubiertoPorMayor: '0',
         estado: 'INACTIVO',
+        ...(data.desglose ? { desglose: data.desglose as any } : {}),
       },
     });
   }
@@ -178,7 +180,11 @@ export class PrismaCuadreRepository implements ICuadreRepository {
     });
   }
 
-  async actualizarMontoEsperado(id: string, montoEsperado: Decimal): Promise<Cuadre> {
+  async actualizarMontoEsperado(
+    id: string,
+    montoEsperado: Decimal,
+    desglose?: DesgloseCuadre,
+  ): Promise<Cuadre> {
     const cuadre = await this.prisma.cuadre.findUnique({ where: { id } });
     if (!cuadre) {
       throw new Error('Cuadre no encontrado');
@@ -193,6 +199,7 @@ export class PrismaCuadreRepository implements ICuadreRepository {
         montoEsperado: montoEsperado.toFixed(2),
         montoFaltante: montoFaltante.greaterThan(0) ? montoFaltante.toFixed(2) : '0',
         version: { increment: 1 },
+        ...(desglose ? { desglose: desglose as any } : {}),
       },
     });
   }

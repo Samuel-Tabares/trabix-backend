@@ -26,6 +26,9 @@ export class PrismaEquipamientoRepository implements IEquipamientoRepository {
             telefono: true,
           },
         },
+        abonos: {
+          orderBy: { fecha: 'desc' },
+        },
       },
     }) as Promise<Equipamiento | null>;
   }
@@ -116,24 +119,42 @@ export class PrismaEquipamientoRepository implements IEquipamientoRepository {
 
   async reportarDano(
     id: string,
-    _tipoDano: 'NEVERA' | 'PIJAMA',
+    tipoDano: 'NEVERA' | 'PIJAMA',
     monto: Decimal,
   ): Promise<Equipamiento> {
-    // Solo aumenta la deuda, NO cambia el estado
+    // Aumenta la deuda y marca el componente como dañado
     return this.prisma.equipamiento.update({
       where: { id },
       data: {
         deudaDano: { increment: Number.parseFloat(monto.toFixed(2)) },
+        ...(tipoDano === 'NEVERA' ? { neveraDanada: true } : { pijamaDanada: true }),
+      },
+    });
+  }
+
+  async transicionarAPerdidoPorDanos(id: string, montoPerdida: Decimal): Promise<Equipamiento> {
+    // Cuando ambos componentes están dañados: estado → PERDIDO,
+    // deudaDano → 0 (absorbida en deudaPerdida que cubre el total)
+    return this.prisma.equipamiento.update({
+      where: { id },
+      data: {
+        estado: 'PERDIDO',
+        neveraDanada: true,
+        pijamaDanada: true,
+        deudaDano: '0',
+        deudaPerdida: montoPerdida.toFixed(2),
       },
     });
   }
 
   async reportarPerdida(id: string, monto: Decimal): Promise<Equipamiento> {
-    // Cambia estado a PERDIDO y registra la deuda
+    // Cambia estado a PERDIDO y registra la deuda total
     return this.prisma.equipamiento.update({
       where: { id },
       data: {
         estado: 'PERDIDO',
+        neveraDanada: true,
+        pijamaDanada: true,
         deudaPerdida: monto.toFixed(2),
       },
     });
