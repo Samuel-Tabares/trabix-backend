@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CanalNotificacion } from '@prisma/client';
 import { NotificacionEntity } from '../domain/notificacion.entity';
 
 /**
@@ -22,22 +21,12 @@ export interface INotificacionesGateway {
 }
 
 /**
- * Interface para canales de notificación
- */
-export interface INotificationChannel {
-  readonly canal: CanalNotificacion;
-  send(notificacion: NotificacionEntity): Promise<boolean>;
-}
-
-// FIX #5: Eliminado Symbol('NOTIFICACIONES_GATEWAY') huérfano
-
-/**
- * Canal WebSocket
+ * Canal WebSocket — único canal activo actualmente.
+ * Envía notificaciones en tiempo real vía socket.io.
  */
 @Injectable()
-export class WebSocketChannel implements INotificationChannel {
+export class WebSocketChannel {
   private readonly logger = new Logger(WebSocketChannel.name);
-  readonly canal: CanalNotificacion = 'WEBSOCKET';
 
   private gateway: INotificacionesGateway | null = null;
 
@@ -71,95 +60,31 @@ export class WebSocketChannel implements INotificationChannel {
 }
 
 /**
- * Canal Push Notification
- * TODO: Implementar integración con Firebase/OneSignal
- */
-@Injectable()
-export class PushChannel implements INotificationChannel {
-  private readonly logger = new Logger(PushChannel.name);
-  readonly canal: CanalNotificacion = 'PUSH';
-
-  async send(notificacion: NotificacionEntity): Promise<boolean> {
-    try {
-      // TODO: Implementar integración con servicio de push (Firebase, OneSignal, etc.)
-      this.logger.log(
-        `[MOCK] Push notification enviada a ${notificacion.usuarioId}: ${notificacion.titulo}`,
-      );
-      return true;
-    } catch (error) {
-      this.logger.error(
-        `Error enviando Push: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return false;
-    }
-  }
-}
-
-/**
- * Canal WhatsApp
- * TODO: Implementar integración con WhatsApp Business API
- */
-@Injectable()
-export class WhatsAppChannel implements INotificationChannel {
-  private readonly logger = new Logger(WhatsAppChannel.name);
-  readonly canal: CanalNotificacion = 'WHATSAPP';
-
-  async send(notificacion: NotificacionEntity): Promise<boolean> {
-    try {
-      // TODO: Implementar integración con WhatsApp Business API
-      this.logger.log(
-        `[MOCK] WhatsApp enviado a ${notificacion.usuarioId}: ${notificacion.titulo}`,
-      );
-      return true;
-    } catch (error) {
-      this.logger.error(
-        `Error enviando WhatsApp: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return false;
-    }
-  }
-}
-
-/**
  * NotificationDispatcher
- * Despacha notificaciones a múltiples canales
+ *
+ * Actualmente solo gestiona el canal WebSocket.
+ * En el futuro se pueden agregar canales adicionales aquí:
+ *   - PUSH: Firebase Cloud Messaging / OneSignal
+ *   - EMAIL: SMTP / SendGrid / Resend
+ *   - WHATSAPP: WhatsApp Business API
  */
 @Injectable()
 export class NotificationDispatcher {
   private readonly logger = new Logger(NotificationDispatcher.name);
-  private readonly channels: Map<CanalNotificacion, INotificationChannel> = new Map();
 
-  constructor(
-    private readonly webSocketChannel: WebSocketChannel,
-    // TODO (#10): Inyectar y registrar PushChannel y WhatsAppChannel cuando estén implementados.
-    // Sin esto, las notificaciones con canal PUSH o WHATSAPP se persisten en DB pero nunca se envían.
-    // Pasos:
-    //   1. Descomentar los parámetros del constructor.
-    //   2. Descomentar las líneas channels.set() correspondientes.
-    //   3. Implementar la integración real en PushChannel y WhatsAppChannel.
-    //private readonly pushChannel: PushChannel,
-    //private readonly whatsAppChannel: WhatsAppChannel,
-  ) {
-    // Registrar todos los canales disponibles
-    this.channels.set('WEBSOCKET', webSocketChannel);
-    //this.channels.set('PUSH', pushChannel);
-    //this.channels.set('WHATSAPP', whatsAppChannel);
-
-    this.logger.log(`Canales registrados: ${Array.from(this.channels.keys()).join(', ')}`);
-  }
+  constructor(private readonly webSocketChannel: WebSocketChannel) {}
 
   /**
-   * Despacha una notificación al canal especificado
+   * Despacha una notificación por WebSocket
    */
   async dispatch(notificacion: NotificacionEntity): Promise<boolean> {
-    const channel = this.channels.get(notificacion.canal);
+    const enviado = await this.webSocketChannel.send(notificacion);
 
-    if (!channel) {
-      this.logger.warn(`Canal no encontrado: ${notificacion.canal}`);
-      return false;
+    if (!enviado) {
+      this.logger.warn(`No se pudo enviar notificación ${notificacion.id} por WebSocket`);
     }
 
-    return channel.send(notificacion);
+    return enviado;
   }
 
   /**

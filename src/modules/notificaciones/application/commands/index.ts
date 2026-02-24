@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
-import { TipoNotificacion, CanalNotificacion, Rol } from '@prisma/client';
+import { TipoNotificacion, Rol } from '@prisma/client';
 import {
   INotificacionRepository,
   NOTIFICACION_REPOSITORY,
@@ -18,7 +18,6 @@ export class EnviarNotificacionCommand implements ICommand {
     public readonly usuarioId: string,
     public readonly tipo: TipoNotificacion,
     public readonly datos?: Record<string, unknown>,
-    public readonly canal?: CanalNotificacion,
   ) {}
 }
 
@@ -49,16 +48,14 @@ export class EnviarNotificacionHandler implements ICommandHandler<
       titulo: content.titulo,
       mensaje: content.mensaje,
       datos: content.datos as Record<string, unknown>,
-      canal: command.canal || 'WEBSOCKET',
+      canal: 'WEBSOCKET',
     });
 
     // Despachar por canal
     const enviado = await this.dispatcher.dispatch(notificacion);
 
     if (!enviado) {
-      this.logger.warn(
-        `No se pudo enviar notificación ${notificacion.id} por canal ${notificacion.canal}`,
-      );
+      this.logger.warn(`No se pudo enviar notificación ${notificacion.id} por WebSocket`);
     }
 
     this.logger.log(

@@ -106,22 +106,22 @@ export class NotificacionesController {
 
   /**
    * POST /notificaciones/enviar
-   * Enviar notificación (admin)
+   * Enviar notificación manual (solo admin).
+   * El tipo siempre es MANUAL y el canal siempre es WEBSOCKET.
    *
    * FIX #3: Declarado ANTES de :id
    */
   @Post('enviar')
   @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Enviar notificación (solo admin)' })
+  @ApiOperation({ summary: 'Enviar notificación manual (solo admin)' })
   @ApiResponse({ status: 201, type: NotificacionResponseDto })
   async enviar(@Body() dto: EnviarNotificacionDto): Promise<NotificacionResponseDto> {
     const notificacion = await this.commandBus.execute(
       new EnviarNotificacionCommand(
         dto.usuarioId,
-        dto.tipo,
+        'MANUAL',
         { ...dto.datos, titulo: dto.titulo, mensaje: dto.mensaje },
-        dto.canal,
       ),
     );
 

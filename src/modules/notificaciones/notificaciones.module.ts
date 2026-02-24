@@ -23,8 +23,6 @@ import { NotificationContentFactory } from './factories/notification-content.fac
 import {
   NotificationDispatcher,
   WebSocketChannel,
-  PushChannel,
-  WhatsAppChannel,
 } from './factories/notification-dispatcher';
 
 // Application
@@ -33,9 +31,9 @@ import { NotificacionQueryHandlers } from './application/queries';
 
 /**
  * Gestiona:
- * - Envío de notificaciones (Factory Pattern)
- * - Despacho multicanal (WebSocket, Push, WhatsApp)
- * - WebSocket Gateway para tiempo real
+ * - Envío de notificaciones manuales del admin (Factory Pattern)
+ * - Notificaciones automáticas del sistema por eventos de dominio
+ * - Canal WebSocket para tiempo real (único canal activo)
  * - Listado y marcado de notificaciones
  */
 @Module({
@@ -62,10 +60,8 @@ import { NotificacionQueryHandlers } from './application/queries';
     },
     // Gateway
     NotificacionesGateway,
-    // Canales
+    // Canal activo (WebSocket)
     WebSocketChannel,
-    PushChannel,
-    WhatsAppChannel,
     // Factory + Dispatcher
     NotificationContentFactory,
     NotificationDispatcher,

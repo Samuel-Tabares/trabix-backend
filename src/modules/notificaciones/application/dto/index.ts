@@ -9,7 +9,6 @@ import {
   IsInt,
   Min,
   Max,
-  ValidateIf,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { TipoNotificacion, CanalNotificacion } from '@prisma/client';
@@ -31,59 +30,38 @@ export const TIPOS_NOTIFICACION = [
   'FONDO_EGRESO',
 ] as const;
 
-export const CANALES_NOTIFICACION = ['WEBSOCKET', 'PUSH', 'WHATSAPP'] as const;
-
 // ========== Request DTOs ==========
 
+/**
+ * DTO para que el admin envíe una notificación manual a un usuario.
+ * El tipo siempre es MANUAL y el canal siempre es WEBSOCKET.
+ */
 export class EnviarNotificacionDto {
   @ApiProperty({ description: 'ID del usuario destinatario' })
   @IsUUID('4', { message: 'El usuarioId debe ser un UUID válido' })
   usuarioId!: string;
 
   @ApiProperty({
-    description: 'Tipo de notificación',
-    enum: TIPOS_NOTIFICACION,
-    example: 'MANUAL',
-  })
-  @IsEnum(TIPOS_NOTIFICACION, {
-    message: `El tipo debe ser uno de: ${TIPOS_NOTIFICACION.join(', ')}`,
-  })
-  tipo!: TipoNotificacion;
-
-  @ApiPropertyOptional({
-    description: 'Título personalizado (requerido para tipo MANUAL)',
+    description: 'Título de la notificación',
     example: 'Información importante',
   })
-  @ValidateIf((o) => o.tipo === 'MANUAL')
   @IsString({ message: 'El título debe ser una cadena de texto' })
-  titulo?: string;
+  titulo!: string;
 
-  @ApiPropertyOptional({
-    description: 'Mensaje personalizado (requerido para tipo MANUAL)',
-    example: 'Este es un mensaje de prueba',
+  @ApiProperty({
+    description: 'Mensaje de la notificación',
+    example: 'Este es un mensaje del administrador',
   })
-  @ValidateIf((o) => o.tipo === 'MANUAL')
   @IsString({ message: 'El mensaje debe ser una cadena de texto' })
-  mensaje?: string;
+  mensaje!: string;
 
   @ApiPropertyOptional({
     description: 'Datos adicionales para la notificación',
-    example: { loteId: 'uuid', cantidad: 10 },
+    example: { referencia: 'uuid' },
   })
   @IsOptional()
   @IsObject({ message: 'Los datos deben ser un objeto' })
   datos?: Record<string, unknown>;
-
-  @ApiPropertyOptional({
-    description: 'Canal de notificación',
-    enum: CANALES_NOTIFICACION,
-    default: 'WEBSOCKET',
-  })
-  @IsOptional()
-  @IsEnum(CANALES_NOTIFICACION, {
-    message: `El canal debe ser uno de: ${CANALES_NOTIFICACION.join(', ')}`,
-  })
-  canal?: CanalNotificacion;
 }
 
 export class QueryNotificacionesDto {
@@ -185,7 +163,6 @@ export class NotificacionResponseDto {
 
   @ApiProperty({
     description: 'Canal por el que se envió la notificación',
-    enum: CANALES_NOTIFICACION,
     example: 'WEBSOCKET',
   })
   canal!: CanalNotificacion;

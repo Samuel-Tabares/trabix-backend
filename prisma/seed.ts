@@ -7,7 +7,6 @@ import { seedVentas } from './seeds/05-ventas';
 import { seedCuadres } from './seeds/06-cuadres';
 import { seedVentasMayor } from './seeds/07-ventas-mayor';
 import { seedNotificaciones } from './seeds/08-notificaciones';
-import { seedFondoYAudit } from './seeds/09-fondo-audit';
 
 const prisma = new PrismaClient();
 
@@ -75,10 +74,6 @@ async function main() {
 
     console.log('🔔 [8/9] Notificaciones');
     await seedNotificaciones(prisma);
-    console.log();
-
-    console.log('💎 [9/9] Fondo de recompensas y audit logs');
-    await seedFondoYAudit(prisma);
     console.log();
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
