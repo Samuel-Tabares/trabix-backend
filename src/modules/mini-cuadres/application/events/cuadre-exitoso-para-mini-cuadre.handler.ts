@@ -1,7 +1,8 @@
-import { IEvent, EventsHandler, IEventHandler, EventBus, CommandBus } from '@nestjs/cqrs';
+import { EventsHandler, IEventHandler, EventBus, CommandBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { ModeloNegocio } from '@prisma/client';
+import { CuadreExitosoEvent } from '../../../cuadres/application/events/cuadre-exitoso.event';
 import {
   IMiniCuadreRepository,
   MINI_CUADRE_REPOSITORY,
@@ -16,35 +17,25 @@ import { MiniCuadreExitosoEvent } from './mini-cuadre-exitoso.event';
 import { EnviarNotificacionCommand } from '../../../notificaciones/application/commands';
 
 /**
- * Evento: Stock de Última Tanda Agotado
+ * Handler de CuadreExitosoEvent en el módulo de mini-cuadres
  *
- * Trigger: Cuando el stock de la última tanda llega a 0
- * (ya sea por ventas normales o venta al mayor)
+ * Responsabilidad: Cuando se confirma un cuadre normal, verificar si ya es
+ * momento de activar o auto-confirmar el mini-cuadre.
+ *
+ * Condiciones necesarias para proceder:
+ *   1. Mini-cuadre en estado INACTIVO (no fue activado aún)
+ *   2. No quedan cuadres PENDIENTES en el lote
+ *   3. El stock de la última tanda es 0 (todos los trabix vendidos)
+ *
+ * Escenario A:
+ *   El stock llegó a 0 ANTES de que el último cuadre fuera confirmado.
+ *   StockUltimaTandaAgotadoHandler detectó que había cuadres PENDIENTES
+ *   y no activó el mini-cuadre. Ahora que se confirma el último cuadre,
+ *   este handler retoma el flujo.
  */
-export class StockUltimaTandaAgotadoEvent implements IEvent {
-  constructor(
-    public readonly tandaId: string,
-    public readonly loteId: string,
-  ) {}
-}
-
-/**
- * Handler del evento StockUltimaTandaAgotado
- *
- * REGLA CLAVE: Solo activa el mini-cuadre si NO hay cuadres PENDIENTES.
- * Si hay un cuadre PENDIENTE, lo ignora — CuadreExitosoParaMiniCuadreHandler
- * retomará el flujo cuando ese cuadre sea confirmado.
- *
- * Esto evita que el mini-cuadre aparezca simultáneamente con el cuadre regular,
- * duplicando el monto cobrado.
- *
- * Escenario B (el que maneja este handler):
- *   Todos los cuadres ya están EXITOSOS y luego el stock llega a 0
- *   (se vendieron trabix sobrantes después del último cuadre normal).
- */
-@EventsHandler(StockUltimaTandaAgotadoEvent)
-export class StockUltimaTandaAgotadoHandler implements IEventHandler<StockUltimaTandaAgotadoEvent> {
-  private readonly logger = new Logger(StockUltimaTandaAgotadoHandler.name);
+@EventsHandler(CuadreExitosoEvent)
+export class CuadreExitosoParaMiniCuadreHandler implements IEventHandler<CuadreExitosoEvent> {
+  private readonly logger = new Logger(CuadreExitosoParaMiniCuadreHandler.name);
 
   constructor(
     @Inject(MINI_CUADRE_REPOSITORY)
@@ -58,48 +49,39 @@ export class StockUltimaTandaAgotadoHandler implements IEventHandler<StockUltima
     private readonly commandBus: CommandBus,
   ) {}
 
-  async handle(event: StockUltimaTandaAgotadoEvent): Promise<void> {
-    this.logger.log(
-      `Procesando StockUltimaTandaAgotadoEvent: Tanda ${event.tandaId} - Lote ${event.loteId}`,
-    );
-
+  async handle(event: CuadreExitosoEvent): Promise<void> {
     try {
       const miniCuadre = await this.miniCuadreRepository.findByLoteId(event.loteId);
 
-      if (!miniCuadre) {
-        this.logger.warn(`Mini-cuadre no encontrado para lote ${event.loteId}`);
+      // Solo actuar cuando el mini-cuadre todavía no fue activado
+      if (!miniCuadre || miniCuadre.estado !== 'INACTIVO') {
         return;
       }
 
-      if (miniCuadre.estado !== 'INACTIVO') {
-        this.logger.log(`Mini-cuadre ya está en estado ${miniCuadre.estado}`);
-        return;
-      }
-
-      if (miniCuadre.tandaId !== event.tandaId) {
-        this.logger.log(`La tanda ${event.tandaId} no es la última tanda del lote`);
-        return;
-      }
-
-      const lote = await this.loteRepository.findById(event.loteId);
-      if (!lote) {
-        this.logger.error(`Lote no encontrado: ${event.loteId}`);
-        return;
-      }
-
-      const cuadresDelLote = await this.cuadreRepository.findByLoteId(lote.id);
-
-      // Si hay cuadres PENDIENTES, diferir la activación.
-      // CuadreExitosoParaMiniCuadreHandler lo retomará al confirmarse el cuadre.
+      // Verificar si quedan cuadres PENDIENTES
+      // (el cuadre actual ya fue marcado EXITOSO antes de publicar el evento)
+      const cuadresDelLote = await this.cuadreRepository.findByLoteId(event.loteId);
       const hayPendientes = cuadresDelLote.some((c) => c.estado === 'PENDIENTE');
       if (hayPendientes) {
-        this.logger.log(
-          `Mini-cuadre ${miniCuadre.id}: cuadre(s) PENDIENTE(S) — activación diferida`,
-        );
         return;
       }
 
-      // Todos los cuadres están EXITOSOS → calcular ganancias restantes
+      // Verificar que el stock de la última tanda sea 0
+      const lote = await this.loteRepository.findById(event.loteId);
+      if (!lote) return;
+
+      const ultimaTanda = lote.tandas.find((t) => t.id === miniCuadre.tandaId);
+      if (!ultimaTanda || (ultimaTanda as any).stockActual !== 0) {
+        // Todavía hay trabix sin vender — StockUltimaTandaAgotadoEvent manejará el resto
+        return;
+      }
+
+      this.logger.log(
+        `Escenario A: todos los cuadres confirmados y última tanda sin stock. ` +
+          `Procesando mini-cuadre ${miniCuadre.id}`,
+      );
+
+      // Calcular ganancias restantes (mismo algoritmo que cuadres de tipo GANANCIAS)
       const gananciasYaPagadas = cuadresDelLote
         .filter((c) => c.estado === 'EXITOSO')
         .reduce((suma, c) => {
@@ -119,37 +101,38 @@ export class StockUltimaTandaAgotadoHandler implements IEventHandler<StockUltima
       });
 
       const montoFinal = calculo.montoTotal;
-      const hayGananciasRestantes = montoFinal.greaterThan(1);
 
       this.logger.log(
         `Mini-cuadre ${miniCuadre.id}: gananciasYaPagadas=$${gananciasYaPagadas.toFixed(2)}, ` +
-          `montoFinal=$${montoFinal.toFixed(2)}, hayGananciasRestantes=${hayGananciasRestantes}`,
+          `montoFinal=$${montoFinal.toFixed(2)}`,
       );
 
-      if (!hayGananciasRestantes) {
-        // Todo fue transferido por cuadres → auto-confirmar
+      if (!montoFinal.greaterThan(1)) {
+        // Todo fue cubierto por los cuadres normales → auto-confirmar
         await this.miniCuadreRepository.confirmarConFinalizacion(
           miniCuadre.id,
-          event.tandaId,
+          miniCuadre.tandaId,
           event.loteId,
         );
 
-        this.logger.log(`Mini-cuadre auto-confirmado EXITOSO (monto $0): ${miniCuadre.id}`);
+        this.logger.log(`Mini-cuadre auto-confirmado EXITOSO (Escenario A): ${miniCuadre.id}`);
 
         this.eventBus.publish(
           new MiniCuadreExitosoEvent(
             miniCuadre.id,
             event.loteId,
-            event.tandaId,
-            lote.vendedorId,
+            miniCuadre.tandaId,
+            event.vendedorId,
             new Decimal(0),
           ),
         );
       } else {
-        // Hay ganancias restantes → activar para que admin confirme
+        // Quedan ganancias → activar para que admin confirme
         await this.miniCuadreRepository.activar(miniCuadre.id, montoFinal);
 
-        this.logger.log(`Mini-cuadre activado: ${miniCuadre.id} - $${montoFinal.toFixed(2)}`);
+        this.logger.log(
+          `Mini-cuadre activado tras cuadre exitoso: ${miniCuadre.id} - $${montoFinal.toFixed(2)}`,
+        );
 
         try {
           await this.commandBus.execute(
@@ -160,17 +143,14 @@ export class StockUltimaTandaAgotadoHandler implements IEventHandler<StockUltima
             }),
           );
         } catch (notifError) {
-          this.logger.warn(
-            `Error enviando notificación de mini-cuadre pendiente: ${notifError}`,
-          );
+          this.logger.warn(`Error enviando notificación de mini-cuadre pendiente: ${notifError}`);
         }
       }
     } catch (error) {
       this.logger.error(
-        `Error procesando StockUltimaTandaAgotadoEvent: ${event.tandaId}`,
+        `Error en CuadreExitosoParaMiniCuadreHandler para lote ${event.loteId}`,
         error instanceof Error ? error.stack : error,
       );
-      throw error;
     }
   }
 }

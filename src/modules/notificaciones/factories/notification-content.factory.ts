@@ -25,6 +25,7 @@ interface StockBajoData {
 interface CuadrePendienteData {
   montoEsperado?: number;
   cuadreId?: string;
+  esMiniCuadre?: boolean;
   [key: string]: unknown;
 }
 
@@ -83,6 +84,8 @@ interface LoteActivadoData {
 interface LoteFinalizadoData {
   loteId?: string;
   montoFinal?: number;
+  dineroRecaudado?: number;
+  gananciaVendedor?: number;
   [key: string]: unknown;
 }
 
@@ -193,6 +196,15 @@ export class NotificationContentFactory {
 
   private createCuadrePendiente(datos: CuadrePendienteData): NotificacionContent {
     const monto = datos.montoEsperado ?? 0;
+
+    if (datos.esMiniCuadre) {
+      return {
+        titulo: '💰 Cierre de Lote Pendiente',
+        mensaje: `Tienes un cierre de lote pendiente por $${monto.toLocaleString('es-CO')}. El administrador procesará tu transferencia pronto.`,
+        datos,
+      };
+    }
+
     return {
       titulo: '💰 Cuadre Pendiente',
       mensaje: `Tienes un cuadre pendiente por $${monto.toLocaleString('es-CO')}. Por favor, transfiere el monto.`,
@@ -260,10 +272,14 @@ export class NotificationContentFactory {
   }
 
   private createLoteFinalizado(datos: LoteFinalizadoData): NotificacionContent {
-    const montoFinal = datos.montoFinal ?? 0;
+    const recaudado = datos.dineroRecaudado ?? datos.montoFinal ?? 0;
+    const ganancia = datos.gananciaVendedor ?? 0;
     return {
       titulo: '🎊 ¡Lote Finalizado!',
-      mensaje: `Tu lote ha sido completado exitosamente. Monto final: $${montoFinal.toLocaleString('es-CO')}.`,
+      mensaje:
+        `Tu lote ha sido completado exitosamente. ` +
+        `Total recaudado: $${recaudado.toLocaleString('es-CO')}. ` +
+        `Tus ganancias: $${ganancia.toLocaleString('es-CO')}.`,
       datos,
     };
   }
