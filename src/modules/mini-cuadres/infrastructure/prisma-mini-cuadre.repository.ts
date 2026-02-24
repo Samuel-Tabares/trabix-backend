@@ -139,6 +139,17 @@ export class PrismaMiniCuadreRepository implements IMiniCuadreRepository {
     };
   }
 
+  async findByVendedorId(vendedorId: string): Promise<MiniCuadreConRelaciones[]> {
+    return this.prisma.miniCuadre.findMany({
+      where: {
+        lote: { vendedorId },
+        estado: { not: 'INACTIVO' },
+      },
+      include: this.includeRelations,
+      orderBy: { fechaPendiente: 'desc' },
+    }) as Promise<MiniCuadreConRelaciones[]>;
+  }
+
   async findByEstado(estado: EstadoMiniCuadre): Promise<MiniCuadreConRelaciones[]> {
     return this.prisma.miniCuadre.findMany({
       where: { estado },

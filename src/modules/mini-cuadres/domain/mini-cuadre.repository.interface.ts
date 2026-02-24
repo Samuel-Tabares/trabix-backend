@@ -77,6 +77,11 @@ export interface IMiniCuadreRepository {
   ): Promise<ConfirmacionMiniCuadreResult>;
 
   /**
+   * Lista mini-cuadres de un vendedor (excluye INACTIVO)
+   */
+  findByVendedorId(vendedorId: string): Promise<MiniCuadreConRelaciones[]>;
+
+  /**
    * Lista mini-cuadres por estado
    */
   findByEstado(estado: EstadoMiniCuadre): Promise<MiniCuadreConRelaciones[]>;

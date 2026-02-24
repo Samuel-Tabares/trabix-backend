@@ -89,6 +89,11 @@ export class CalculadoraMontoEsperadoService {
     modeloNegocio: ModeloNegocio;
     concepto: ConceptoCuadre;
     jerarquia?: JerarquiaReclutador[];
+    /**
+     * Suma de gananciasAdmin ya cobradas en cuadres EXITOSOS anteriores del mismo lote.
+     * Se resta para evitar duplicar ganancias entre cuadres consecutivos.
+     */
+    gananciasYaPagadas?: Decimal;
   }): Promise<MontoEsperadoResult> {
     const {
       vendedorId,
@@ -98,6 +103,7 @@ export class CalculadoraMontoEsperadoService {
       modeloNegocio,
       concepto,
       jerarquia,
+      gananciasYaPagadas = new Decimal(0),
     } = params;
 
     let montoBase = new Decimal(0);
@@ -113,7 +119,9 @@ export class CalculadoraMontoEsperadoService {
       );
 
       if (resultadoGanancias.hayGanancias) {
-        gananciasAdmin = resultadoGanancias.gananciaAdmin;
+        // Descontar lo ya cobrado en cuadres anteriores del mismo lote
+        const gananciasNetas = resultadoGanancias.gananciaAdmin.minus(gananciasYaPagadas);
+        gananciasAdmin = Decimal.max(new Decimal(0), gananciasNetas);
         montoBase = gananciasAdmin;
       }
     }

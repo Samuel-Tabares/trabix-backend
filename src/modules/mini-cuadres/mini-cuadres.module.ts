@@ -19,6 +19,7 @@ import { MiniCuadreEventHandlers } from './application/events';
 // Related modules
 import { LotesModule } from '../lotes/lotes.module';
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
+import { CuadresModule } from '../cuadres/cuadres.module';
 
 /**
  * Responsabilidades:
@@ -32,7 +33,12 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
  * - EXITOSO → consolidación confirmada
  */
 @Module({
-  imports: [CqrsModule, forwardRef(() => LotesModule), forwardRef(() => NotificacionesModule)],
+  imports: [
+    CqrsModule,
+    forwardRef(() => LotesModule),
+    forwardRef(() => NotificacionesModule),
+    forwardRef(() => CuadresModule),
+  ],
   controllers: [MiniCuadresController],
   providers: [
     {

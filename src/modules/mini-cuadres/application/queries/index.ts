@@ -83,5 +83,59 @@ export class ObtenerMiniCuadreHandler implements IQueryHandler<
   }
 }
 
+// ========== ListarMiniCuadresQuery ==========
+
+export class ListarMiniCuadresQuery implements IQuery {
+  constructor(
+    /** undefined = admin (todos), vendedorId = solo del vendedor */
+    public readonly vendedorId?: string,
+  ) {}
+}
+
+@QueryHandler(ListarMiniCuadresQuery)
+export class ListarMiniCuadresHandler implements IQueryHandler<
+  ListarMiniCuadresQuery,
+  MiniCuadreResponseDto[]
+> {
+  constructor(
+    @Inject(MINI_CUADRE_REPOSITORY)
+    private readonly miniCuadreRepository: IMiniCuadreRepository,
+  ) {}
+
+  async execute(query: ListarMiniCuadresQuery): Promise<MiniCuadreResponseDto[]> {
+    let miniCuadres;
+
+    if (query.vendedorId) {
+      miniCuadres = await this.miniCuadreRepository.findByVendedorId(query.vendedorId);
+    } else {
+      // Admin: merge PENDIENTE + EXITOSO ordenados por fecha
+      const [pendientes, exitosos] = await Promise.all([
+        this.miniCuadreRepository.findByEstado('PENDIENTE'),
+        this.miniCuadreRepository.findByEstado('EXITOSO'),
+      ]);
+      miniCuadres = [...pendientes, ...exitosos].sort((a, b) => {
+        const dateA = a.fechaPendiente ? new Date(a.fechaPendiente).getTime() : 0;
+        const dateB = b.fechaPendiente ? new Date(b.fechaPendiente).getTime() : 0;
+        return dateB - dateA;
+      });
+    }
+
+    return miniCuadres.map((mc) => ({
+      id: mc.id,
+      loteId: mc.loteId,
+      tandaId: mc.tandaId,
+      estado: mc.estado,
+      montoFinal: Number.parseFloat(mc.montoFinal as any),
+      fechaPendiente: mc.fechaPendiente,
+      fechaExitoso: mc.fechaExitoso,
+      lote: mc.lote,
+    }));
+  }
+}
+
 // Export handlers array
-export const MiniCuadreQueryHandlers = [ObtenerMiniCuadrePorLoteHandler, ObtenerMiniCuadreHandler];
+export const MiniCuadreQueryHandlers = [
+  ObtenerMiniCuadrePorLoteHandler,
+  ObtenerMiniCuadreHandler,
+  ListarMiniCuadresHandler,
+];

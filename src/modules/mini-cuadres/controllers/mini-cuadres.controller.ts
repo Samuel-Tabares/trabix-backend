@@ -13,7 +13,11 @@ import { MiniCuadreResponseDto } from '../application/dto';
 import { ConfirmarMiniCuadreCommand } from '../application/commands';
 
 // Queries
-import { ObtenerMiniCuadrePorLoteQuery, ObtenerMiniCuadreQuery } from '../application/queries';
+import {
+  ObtenerMiniCuadrePorLoteQuery,
+  ObtenerMiniCuadreQuery,
+  ListarMiniCuadresQuery,
+} from '../application/queries';
 
 /**
  * Controlador de Mini-Cuadres
@@ -36,6 +40,23 @@ export class MiniCuadresController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) {}
+
+  /**
+   * GET /mini-cuadres
+   * Lista todos los mini-cuadres no-INACTIVO
+   * Admin: ve todos | Vendedor/Reclutador: solo los suyos
+   */
+  @Get()
+  @ApiOperation({ summary: 'Listar mini-cuadres' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de mini-cuadres',
+    type: [MiniCuadreResponseDto],
+  })
+  async listar(@CurrentUser() user: AuthenticatedUser): Promise<MiniCuadreResponseDto[]> {
+    const vendedorId = user.rol === 'ADMIN' ? undefined : user.id;
+    return this.queryBus.execute(new ListarMiniCuadresQuery(vendedorId));
+  }
 
   /**
    * GET /mini-cuadres/lote/:loteId

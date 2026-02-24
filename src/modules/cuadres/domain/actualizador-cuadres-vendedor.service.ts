@@ -134,7 +134,17 @@ export class ActualizadorCuadresVendedorService {
 
     const montoAnterior = new Decimal(cuadre.montoEsperado);
 
-    // Calcular nuevo monto (incluye ganancias + deuda equipamiento)
+    // Sumar gananciasAdmin ya cobradas en cuadres EXITOSOS anteriores del mismo lote
+    // para no volver a incluirlas en el cuadre actual (evita duplicación entre tandas)
+    const cuadresDelLote = await this.cuadreRepository.findByLoteId(lote.id);
+    const gananciasYaPagadas = cuadresDelLote
+      .filter((c) => c.estado === 'EXITOSO' && c.id !== cuadre.id)
+      .reduce((suma, c) => {
+        const desglose = c.desglose as { gananciasAdmin?: number } | null;
+        return suma.plus(new Decimal(desglose?.gananciasAdmin ?? 0));
+      }, new Decimal(0));
+
+    // Calcular nuevo monto (incluye ganancias netas + deuda equipamiento)
     const nuevoCalculo = await this.calculadoraMontoEsperado.calcularMontoEsperadoActualizado({
       vendedorId: lote.vendedorId,
       dineroRecaudado: new Decimal(lote.dineroRecaudado),
@@ -143,6 +153,7 @@ export class ActualizadorCuadresVendedorService {
       modeloNegocio: lote.modeloNegocio as ModeloNegocio,
       concepto: cuadre.concepto,
       jerarquia: [],
+      gananciasYaPagadas,
     });
 
     const montoNuevo = nuevoCalculo.montoTotal;
