@@ -1,7 +1,7 @@
 import { EventsHandler, IEventHandler, CommandBus, EventBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import { VentaAprobadaEvent } from './venta-aprobada.event';
+import { VentaRegistradaEvent } from './venta-aprobada.event';
 import { ILoteRepository, LOTE_REPOSITORY } from '../../../lotes/domain/lote.repository.interface';
 import {
   ITandaRepository,
@@ -18,21 +18,19 @@ import { StockUltimaTandaAgotadoEvent } from '../../../mini-cuadres/application/
 import { EnviarNotificacionCommand } from '../../../notificaciones/application/commands';
 
 /**
- * Handler del evento VentaAprobada
- * Según sección 23 del documento
+ * Handler del evento VentaRegistrada
  *
  * Acciones:
- * 1. Actualizar stock de tanda (ya reducido temporalmente, confirmar)
- * 2. Actualizar dinero recaudado del lote
- * 3. NUEVO: Actualizar montoEsperado del cuadre (ganancias + deuda equipamiento)
- * 4. Verificar trigger de cuadre (dinero o %)
- * 5. Si stock <= 25%: Enviar notificación
- * 6. Si inversión recuperada: Enviar notificación
- * 7. Si última tanda llega a 0: Activar mini-cuadre
+ * 1. Actualizar dinero recaudado del lote
+ * 2. Actualizar montoEsperado del cuadre de la tanda
+ * 3. Verificar trigger de cuadre (dinero o %)
+ * 4. Si stock <= 25%: Enviar notificación STOCK_BAJO
+ * 5. Si inversión recuperada: Enviar notificación INVERSION_RECUPERADA
+ * 6. Si última tanda llega a 0: Publicar StockUltimaTandaAgotadoEvent
  */
-@EventsHandler(VentaAprobadaEvent)
-export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
-  private readonly logger = new Logger(VentaAprobadaHandler.name);
+@EventsHandler(VentaRegistradaEvent)
+export class VentaRegistradaHandler implements IEventHandler<VentaRegistradaEvent> {
+  private readonly logger = new Logger(VentaRegistradaHandler.name);
 
   constructor(
     @Inject(LOTE_REPOSITORY)
@@ -42,13 +40,16 @@ export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
     @Inject(CUADRE_REPOSITORY)
     private readonly cuadreRepository: ICuadreRepository,
     private readonly calculadoraTandas: CalculadoraTandasService,
-    private readonly actualizadorCuadres: ActualizadorCuadresVendedorService, // NUEVO
+    private readonly actualizadorCuadres: ActualizadorCuadresVendedorService,
     private readonly commandBus: CommandBus,
     private readonly eventBus: EventBus,
   ) {}
 
-  async handle(event: VentaAprobadaEvent): Promise<void> {
-    this.logInicio(event);
+  async handle(event: VentaRegistradaEvent): Promise<void> {
+    this.logger.log(
+      `Procesando VentaRegistradaEvent: Venta ${event.ventaId}, ` +
+        `Lote ${event.loteId}, Monto $${event.montoTotal.toFixed(2)}`,
+    );
 
     try {
       await this.loteRepository.actualizarRecaudado(event.loteId, event.montoTotal);
@@ -58,31 +59,21 @@ export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
 
       const { lote, tanda, triggerResult, dineroRecaudado } = contexto;
 
-      // NUEVO: Actualizar montoEsperado del cuadre de esta tanda
       await this.actualizarMontoEsperadoCuadre(tanda.id);
-
       await this.manejarCuadre(triggerResult, tanda);
       await this.manejarStockBajo(triggerResult, tanda, event.vendedorId);
       await this.manejarInversionRecuperada(lote, dineroRecaudado, event);
       await this.manejarFinalizacionTanda(lote, tanda, event);
 
-      this.logger.log(`VentaAprobadaEvent procesado exitosamente: ${event.ventaId}`);
+      this.logger.log(`VentaRegistradaEvent procesado exitosamente: ${event.ventaId}`);
     } catch (error) {
-      // BUG-007 FIX: Do NOT re-throw. The venta is already APROBADA in the DB.
-      // Re-throwing would propagate a 500 to the caller even though the command
-      // succeeded, causing the admin to see an error on an already-approved venta.
-      this.logger.error(`Error procesando VentaAprobadaEvent: ${event.ventaId}`, error);
+      // No re-throw: la venta ya está persistida en DB.
+      // Si falla un efecto secundario se registra el error pero no se revierte la venta.
+      this.logger.error(`Error procesando VentaRegistradaEvent: ${event.ventaId}`, error);
     }
   }
 
-  private logInicio(event: VentaAprobadaEvent): void {
-    this.logger.log(
-      `Procesando VentaAprobadaEvent: Venta ${event.ventaId}, ` +
-        `Lote ${event.loteId}, Monto $${event.montoTotal.toFixed(2)}`,
-    );
-  }
-
-  private async obtenerContexto(event: VentaAprobadaEvent) {
+  private async obtenerContexto(event: VentaRegistradaEvent) {
     const lote = await this.loteRepository.findById(event.loteId);
     const tanda = await this.tandaRepository.findById(event.tandaId);
 
@@ -106,13 +97,8 @@ export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
     return { lote, tanda, triggerResult, dineroRecaudado };
   }
 
-  /**
-   * NUEVO: Actualiza el montoEsperado del cuadre cuando se aprueba una venta
-   * Esto asegura que las ganancias se reflejen correctamente
-   */
   private async actualizarMontoEsperadoCuadre(tandaId: string): Promise<void> {
     try {
-      // Obtener el cuadre de esta tanda
       const cuadre = await this.cuadreRepository.findByTandaId(tandaId);
 
       if (!cuadre) {
@@ -120,7 +106,6 @@ export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
         return;
       }
 
-      // Actualizar usando el servicio de actualización
       const resultado = await this.actualizadorCuadres.actualizarPorVentaAprobada(cuadre.id);
 
       if (resultado?.actualizado) {
@@ -130,7 +115,6 @@ export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
         );
       }
     } catch (error) {
-      // Log del error pero no bloquear el flujo de la venta
       this.logger.error(`Error actualizando montoEsperado del cuadre: ${error}`);
     }
   }
@@ -173,7 +157,7 @@ export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
   private async manejarInversionRecuperada(
     lote: any,
     dineroRecaudado: Decimal,
-    event: VentaAprobadaEvent,
+    event: VentaRegistradaEvent,
   ): Promise<void> {
     const inversionTotal = new Decimal(lote.inversionTotal);
 
@@ -200,7 +184,7 @@ export class VentaAprobadaHandler implements IEventHandler<VentaAprobadaEvent> {
   private async manejarFinalizacionTanda(
     lote: any,
     tanda: any,
-    event: VentaAprobadaEvent,
+    event: VentaRegistradaEvent,
   ): Promise<void> {
     if (tanda.stockActual !== 0 || tanda.estado !== 'EN_CASA') return;
 

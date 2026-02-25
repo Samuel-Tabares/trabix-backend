@@ -35,7 +35,6 @@ export class PrismaVentaRepository implements IVentaRepository {
     if (where.vendedorId) whereCondition.vendedorId = where.vendedorId;
     if (where.loteId) whereCondition.loteId = where.loteId;
     if (where.tandaId) whereCondition.tandaId = where.tandaId;
-    if (where.estado) whereCondition.estado = where.estado;
 
     const orderByCondition: Prisma.VentaOrderByWithRelationInput = orderBy
       ? { [orderBy.field]: orderBy.direction }
@@ -110,7 +109,6 @@ export class PrismaVentaRepository implements IVentaRepository {
         tandaId: data.tandaId,
         montoTotal: data.montoTotal.toFixed(2),
         cantidadTrabix: data.cantidadTrabix,
-        estado: 'PENDIENTE',
         detalles: {
           create: data.detalles.map((detalle) => ({
             tipo: detalle.tipo,
@@ -126,39 +124,15 @@ export class PrismaVentaRepository implements IVentaRepository {
     });
   }
 
-  async aprobar(id: string): Promise<VentaConDetalles> {
-    return this.prisma.venta.update({
-      where: { id },
-      data: {
-        estado: 'APROBADA',
-        fechaValidacion: new Date(),
-      },
-      include: {
-        detalles: true,
-      },
-    });
-  }
-
-  async delete(id: string): Promise<void> {
-    await this.prisma.$transaction([
-      this.prisma.detalleVenta.deleteMany({ where: { ventaId: id } }),
-      this.prisma.venta.delete({ where: { id } }),
-    ]);
-  }
-
   /**
-   * Cuenta los regalos APROBADOS de un lote
-   * Solo cuenta ventas con estado APROBADA para tener consistencia
-   * con el cálculo del resumen financiero
+   * Cuenta los regalos registrados en un lote.
+   * Todas las ventas están confirmadas al momento de registrarse.
    */
   async contarRegalosPorLote(loteId: string): Promise<number> {
     const result = await this.prisma.detalleVenta.aggregate({
       where: {
         tipo: 'REGALO',
-        venta: {
-          loteId,
-          estado: 'APROBADA',
-        },
+        venta: { loteId },
       },
       _sum: {
         cantidad: true,
@@ -173,7 +147,6 @@ export class PrismaVentaRepository implements IVentaRepository {
 
     if (options?.vendedorId) where.vendedorId = options.vendedorId;
     if (options?.loteId) where.loteId = options.loteId;
-    if (options?.estado) where.estado = options.estado;
 
     return this.prisma.venta.count({ where });
   }

@@ -1,7 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsUUID, IsEnum, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { EstadoVenta } from '@prisma/client';
 
 /**
  * DTO para consultar ventas con filtros y paginación
@@ -30,14 +29,6 @@ export class QueryVentasDto {
   @IsOptional()
   @IsUUID('4')
   tandaId?: string;
-
-  @ApiPropertyOptional({
-    description: 'Filtrar por estado',
-    enum: ['PENDIENTE', 'APROBADA'],
-  })
-  @IsOptional()
-  @IsEnum(['PENDIENTE', 'APROBADA'])
-  estado?: EstadoVenta;
 
   @ApiPropertyOptional({
     description: 'Número de registros a saltar',
@@ -72,12 +63,12 @@ export class QueryVentasDto {
 
   @ApiPropertyOptional({
     description: 'Campo para ordenar',
-    enum: ['fechaRegistro', 'fechaValidacion', 'montoTotal'],
+    enum: ['fechaRegistro', 'montoTotal'],
     default: 'fechaRegistro',
   })
   @IsOptional()
-  @IsEnum(['fechaRegistro', 'fechaValidacion', 'montoTotal'])
-  orderBy?: 'fechaRegistro' | 'fechaValidacion' | 'montoTotal' = 'fechaRegistro';
+  @IsEnum(['fechaRegistro', 'montoTotal'])
+  orderBy?: 'fechaRegistro' | 'montoTotal' = 'fechaRegistro';
 
   @ApiPropertyOptional({
     description: 'Dirección del ordenamiento',

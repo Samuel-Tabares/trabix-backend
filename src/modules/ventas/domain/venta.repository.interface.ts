@@ -1,4 +1,4 @@
-import { Venta, DetalleVenta, EstadoVenta, TipoVenta } from '@prisma/client';
+import { Venta, DetalleVenta, TipoVenta } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 
 /**
@@ -36,17 +36,7 @@ export interface IVentaRepository {
   create(data: CreateVentaData): Promise<VentaConDetalles>;
 
   /**
-   * Aprueba una venta
-   */
-  aprobar(id: string): Promise<VentaConDetalles>;
-
-  /**
-   * Elimina una venta (al ser rechazada por el admin)
-   */
-  delete(id: string): Promise<void>;
-
-  /**
-   * Cuenta los regalos aprobados de un lote
+   * Cuenta los regalos registrados en un lote
    */
   contarRegalosPorLote(loteId: string): Promise<number>;
 
@@ -78,10 +68,9 @@ export interface FindVentasOptions {
     vendedorId?: string;
     loteId?: string;
     tandaId?: string;
-    estado?: EstadoVenta;
   };
   orderBy?: {
-    field: 'fechaRegistro' | 'fechaValidacion' | 'montoTotal';
+    field: 'fechaRegistro' | 'montoTotal';
     direction: 'asc' | 'desc';
   };
 }
@@ -119,7 +108,6 @@ export interface CreateVentaData {
 export interface CountVentasOptions {
   vendedorId?: string;
   loteId?: string;
-  estado?: EstadoVenta;
 }
 
 /**

@@ -55,12 +55,10 @@ export class ObtenerVentaHandler implements IQueryHandler<ObtenerVentaQuery, Ven
       vendedorTelefono: venta.vendedor?.telefono,
       loteId: venta.loteId,
       tandaId: venta.tandaId,
-      estado: venta.estado,
       montoTotal: Number.parseFloat(venta.montoTotal),
       cantidadTrabix: venta.cantidadTrabix,
       detalles,
       fechaRegistro: venta.fechaRegistro,
-      fechaValidacion: venta.fechaValidacion,
       cantidadRegalos,
     };
   }

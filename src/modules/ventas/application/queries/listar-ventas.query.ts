@@ -37,7 +37,6 @@ export class ListarVentasHandler implements IQueryHandler<ListarVentasQuery, Ven
         vendedorId: filtros.vendedorId,
         loteId: filtros.loteId,
         tandaId: filtros.tandaId,
-        estado: filtros.estado,
       },
       orderBy: {
         field: filtros.orderBy || 'fechaRegistro',
@@ -77,12 +76,10 @@ export class ListarVentasHandler implements IQueryHandler<ListarVentasQuery, Ven
       vendedorTelefono: venta.vendedor?.telefono,
       loteId: venta.loteId,
       tandaId: venta.tandaId,
-      estado: venta.estado,
       montoTotal: Number.parseFloat(venta.montoTotal),
       cantidadTrabix: venta.cantidadTrabix,
       detalles,
       fechaRegistro: venta.fechaRegistro,
-      fechaValidacion: venta.fechaValidacion,
       cantidadRegalos,
     };
   }

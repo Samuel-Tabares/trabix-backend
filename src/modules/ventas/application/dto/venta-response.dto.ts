@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { EstadoVenta, TipoVenta } from '@prisma/client';
+import { TipoVenta } from '@prisma/client';
 
 /**
  * DTO de respuesta para detalle de venta
@@ -49,9 +49,6 @@ export class VentaResponseDto {
   @ApiProperty()
   tandaId!: string;
 
-  @ApiProperty({ enum: ['PENDIENTE', 'APROBADA'] })
-  estado!: EstadoVenta;
-
   @ApiProperty()
   montoTotal!: number;
 
@@ -63,9 +60,6 @@ export class VentaResponseDto {
 
   @ApiProperty()
   fechaRegistro!: Date;
-
-  @ApiPropertyOptional()
-  fechaValidacion?: Date | null;
 
   @ApiProperty({ description: 'Cantidad de regalos en esta venta' })
   cantidadRegalos!: number;

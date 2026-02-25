@@ -96,21 +96,19 @@ model Tanda {
 }
 
 model Venta {
-  id              String         @id @default(uuid())
-  vendedorId      String
-  loteId          String
-  tandaId         String
-  estado          EstadoVenta    @default(PENDIENTE)
-  montoTotal      Decimal        @db.Decimal(12, 2)
-  cantidadTrabix  Int
-  fechaRegistro   DateTime       @default(now())
-  fechaValidacion DateTime?
-  detalles        DetalleVenta[]
-  lote            Lote           @relation(fields: [loteId], references: [id])
-  tanda           Tanda          @relation(fields: [tandaId], references: [id])
-  vendedor        Usuario        @relation(fields: [vendedorId], references: [id])
+  id             String         @id @default(uuid())
+  vendedorId     String
+  loteId         String
+  tandaId        String
+  montoTotal     Decimal        @db.Decimal(12, 2)
+  cantidadTrabix Int
+  fechaRegistro  DateTime       @default(now())
+  detalles       DetalleVenta[]
+  lote           Lote           @relation(fields: [loteId], references: [id])
+  tanda          Tanda          @relation(fields: [tandaId], references: [id])
+  vendedor       Usuario        @relation(fields: [vendedorId], references: [id])
 
-  @@index([vendedorId, estado])
+  @@index([vendedorId])
   @@index([loteId, tandaId])
   @@index([fechaRegistro])
   @@map("ventas")
@@ -511,12 +509,6 @@ enum EstadoTanda {
   EN_TRANSITO
   EN_CASA
   FINALIZADA
-}
-
-enum EstadoVenta {
-  PENDIENTE
-  APROBADA
-  RECHAZADA
 }
 
 enum TipoVenta {

@@ -27,13 +27,12 @@ import { CuadresModule } from '../cuadres/cuadres.module';
 
 /**
  * Gestiona:
- * - Registro de ventas normales
- * - Aprobación/rechazo de ventas
+ * - Registro y confirmación automática de ventas
  * - Cálculo de precios según tipo
  * - Integración con tandas y cuadres
  *
  * INTEGRACIÓN CON CUADRES:
- * - Al aprobar una venta, se actualiza el montoEsperado del cuadre
+ * - Al registrar una venta, se actualiza el montoEsperado del cuadre
  * - Usa ActualizadorCuadresVendedorService para mantener sincronizado
  *
  * Tipos de venta:

@@ -3,9 +3,6 @@ import { seedConfiguraciones } from './seeds/01-configuraciones';
 import { seedUsuarios } from './seeds/02-usuarios';
 import { seedEquipamientos } from './seeds/03-equipamientos';
 import { seedLotesTandas } from './seeds/04-lotes-tandas';
-import { seedVentas } from './seeds/05-ventas';
-import { seedCuadres } from './seeds/06-cuadres';
-import { seedVentasMayor } from './seeds/07-ventas-mayor';
 import { seedNotificaciones } from './seeds/08-notificaciones';
 
 const prisma = new PrismaClient();
@@ -58,18 +55,6 @@ async function main() {
 
     console.log('📦 [4/9] Lotes y tandas');
     await seedLotesTandas(prisma);
-    console.log();
-
-    console.log('💰 [5/9] Ventas al detal');
-    await seedVentas(prisma);
-    console.log();
-
-    console.log('📊 [6/9] Cuadres y mini-cuadres');
-    await seedCuadres(prisma);
-    console.log();
-
-    console.log('🏭 [7/9] Ventas al mayor y cuadres mayor');
-    await seedVentasMayor(prisma);
     console.log();
 
     console.log('🔔 [8/9] Notificaciones');

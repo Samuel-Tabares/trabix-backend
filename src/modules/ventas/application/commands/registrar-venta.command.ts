@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, ICommand, EventBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import {
   IVentaRepository,
@@ -13,6 +13,7 @@ import { VendedorPuedeVenderSpecification } from '../../domain/vendedor-puede-ve
 import { RegaloPermitidoSpecification } from '../../domain/regalo-permitido.specification';
 import { CalculadoraPreciosVentaService } from '../../domain/calculadora-precios-venta.service';
 import { CreateVentaDto } from '../dto/create-venta.dto';
+import { VentaRegistradaEvent } from '../events/venta-aprobada.event';
 
 /**
  * Command para registrar una venta
@@ -26,16 +27,10 @@ export class RegistrarVentaCommand implements ICommand {
 
 /**
  * Handler del comando RegistrarVenta
- * Según sección 6 del documento
  *
- * Flujo:
- * 1. Vendedor registra venta colectiva
- * 2. Venta queda en estado PENDIENTE
- * 3. Stock se reduce temporalmente
- *
- * Lógica de consumo de stock:
- * - Las ventas consumen siempre el lote activo más antiguo
- * - Consume de la tanda EN_CASA actual
+ * La venta se confirma automáticamente al registrarse.
+ * Los efectos de dominio (recaudo, trigger de cuadre, notificaciones)
+ * se procesan sincrónicamente vía VentaRegistradaEvent.
  */
 @CommandHandler(RegistrarVentaCommand)
 export class RegistrarVentaHandler implements ICommandHandler<
@@ -52,18 +47,19 @@ export class RegistrarVentaHandler implements ICommandHandler<
     private readonly vendedorPuedeVender: VendedorPuedeVenderSpecification,
     private readonly regaloPermitido: RegaloPermitidoSpecification,
     private readonly calculadoraPrecios: CalculadoraPreciosVentaService,
+    private readonly eventBus: EventBus,
   ) {}
 
   async execute(command: RegistrarVentaCommand): Promise<VentaConDetalles> {
     const { vendedorId, data } = command;
 
-    // Calcular cantidad total de TRABIX usando el servicio
+    // Calcular cantidad total de TRABIX
     const cantidadTrabix = this.calculadoraPrecios.calcularCantidadTrabix(data.detalles);
 
-    // 1. Verificar que el vendedor puede vender (todas las validaciones)
+    // 1. Verificar que el vendedor puede vender (stock, estado, lote activo, etc.)
     const { lote, tanda } = await this.vendedorPuedeVender.verificar(vendedorId, cantidadTrabix);
 
-    // 2. Calcular cantidad de regalos y verificar límite
+    // 2. Verificar límite de regalos
     const cantidadRegalos = data.detalles
       .filter((d) => d.tipo === 'REGALO')
       .reduce((sum, d) => sum + d.cantidad, 0);
@@ -72,13 +68,13 @@ export class RegistrarVentaHandler implements ICommandHandler<
       await this.regaloPermitido.verificar(lote.id, lote.cantidadTrabix, cantidadRegalos);
     }
 
-    // 3. Calcular monto total y detalles usando el servicio de precios
+    // 3. Calcular monto total y detalles
     const resultadoCalculo = this.calculadoraPrecios.calcularVenta(data.detalles);
 
-    // 4. Reducir stock temporalmente (se confirma o revierte según aprobación)
+    // 4. Reducir stock de la tanda
     await this.tandaRepository.consumirStock(tanda.id, cantidadTrabix);
 
-    // 5. Crear la venta en estado PENDIENTE
+    // 5. Persistir la venta
     const venta = await this.ventaRepository.create({
       vendedorId,
       loteId: lote.id,
@@ -90,6 +86,18 @@ export class RegistrarVentaHandler implements ICommandHandler<
 
     this.logger.log(
       `Venta registrada: ${venta.id} - ${cantidadTrabix} TRABIX, $${resultadoCalculo.montoTotal.toFixed(2)} - Vendedor: ${vendedorId}`,
+    );
+
+    // 6. Publicar evento para efectos de dominio (recaudo, cuadre, notificaciones)
+    this.eventBus.publish(
+      new VentaRegistradaEvent(
+        venta.id,
+        vendedorId,
+        lote.id,
+        tanda.id,
+        resultadoCalculo.montoTotal,
+        cantidadTrabix,
+      ),
     );
 
     return venta;

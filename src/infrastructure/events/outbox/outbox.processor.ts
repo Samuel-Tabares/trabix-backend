@@ -10,7 +10,7 @@ import { LoteActivadoEvent } from '../../../modules/lotes/application/events/lot
 import { CuadreExitosoEvent } from '../../../modules/cuadres/application/events/cuadre-exitoso.event';
 import { MiniCuadreExitosoEvent } from '../../../modules/mini-cuadres/application/events/mini-cuadre-exitoso.event';
 import { StockUltimaTandaAgotadoEvent } from '../../../modules/mini-cuadres/application/events/stock-ultima-tanda-agotado.event';
-import { VentaAprobadaEvent } from '../../../modules/ventas/application/events/venta-aprobada.event';
+import { VentaRegistradaEvent } from '../../../modules/ventas/application/events/venta-aprobada.event';
 import { CuadreMayorExitosoEvent } from '../../../modules/cuadres-mayor/application/events/cuadre-mayor-exitoso.event';
 import { VentaMayorRegistradaEvent } from '../../../modules/ventas-mayor/application/events/venta-mayor-registrada.event';
 
@@ -40,8 +40,8 @@ const EVENT_MAPPINGS: Record<string, (payload: any) => any> = {
 
   StockUltimaTandaAgotado: (p) => new StockUltimaTandaAgotadoEvent(p.tandaId, p.loteId),
 
-  VentaAprobada: (p) =>
-    new VentaAprobadaEvent(
+  VentaRegistrada: (p) =>
+    new VentaRegistradaEvent(
       p.ventaId,
       p.vendedorId,
       p.loteId,
