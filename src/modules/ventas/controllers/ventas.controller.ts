@@ -63,8 +63,9 @@ export class VentasController {
     @Body() createDto: CreateVentaDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<VentaResponseDto> {
-    const venta = await this.commandBus.execute(new RegistrarVentaCommand(user.id, createDto));
-    return this.queryBus.execute(new ObtenerVentaQuery(venta.id));
+    const resultado = await this.commandBus.execute(new RegistrarVentaCommand(user.id, createDto));
+    // En cross-lote retornamos la venta del lote2 (la principal que sigue activa)
+    return this.queryBus.execute(new ObtenerVentaQuery(resultado.venta.id));
   }
 
   /**

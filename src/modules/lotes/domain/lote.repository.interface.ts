@@ -26,6 +26,12 @@ export interface ILoteRepository {
   findLoteActivoMasAntiguo(vendedorId: string): Promise<LoteConTandas | null>;
 
   /**
+   * Obtiene todos los lotes ACTIVO de un vendedor ordenados por fechaActivacion ASC
+   * (para lógica cross-lote)
+   */
+  findLotesActivos(vendedorId: string): Promise<LoteConTandas[]>;
+
+  /**
    * Crea un nuevo lote con sus tandas
    */
   create(data: CreateLoteData): Promise<LoteConTandas>;

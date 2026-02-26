@@ -15,6 +15,7 @@ export class DetalleVentaDto {
   @IsEnum(['PROMO', 'UNIDAD', 'SIN_LICOR', 'REGALO'], {
     message: 'El tipo debe ser PROMO, UNIDAD, SIN_LICOR o REGALO',
   })
+  // PROMO_PARCIAL está excluido: es generado internamente en ventas cross-lote
   tipo!: TipoVenta;
 
   @ApiProperty({

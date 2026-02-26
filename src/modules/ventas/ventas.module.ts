@@ -10,6 +10,7 @@ import { VENTA_REPOSITORY } from './domain/venta.repository.interface';
 import { VendedorPuedeVenderSpecification } from './domain/vendedor-puede-vender.specification';
 import { RegaloPermitidoSpecification } from './domain/regalo-permitido.specification';
 import { CalculadoraPreciosVentaService } from './domain/calculadora-precios-venta.service';
+import { CalculadoraCrossLoteService } from './domain/calculadora-cross-lote.service';
 
 // Infrastructure
 import { PrismaVentaRepository } from './infrastructure/prisma-venta.repository';
@@ -60,6 +61,7 @@ import { CuadresModule } from '../cuadres/cuadres.module';
     VendedorPuedeVenderSpecification,
     RegaloPermitidoSpecification,
     CalculadoraPreciosVentaService,
+    CalculadoraCrossLoteService,
     // Command Handlers
     ...VentaCommandHandlers,
     // Query Handlers

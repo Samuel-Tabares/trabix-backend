@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "TipoVenta" ADD VALUE 'PROMO_PARCIAL';

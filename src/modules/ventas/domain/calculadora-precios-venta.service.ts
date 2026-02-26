@@ -8,10 +8,11 @@ import { Decimal } from 'decimal.js';
  * Estos valores son FIJOS por definición del negocio
  */
 export const TRABIX_POR_TIPO: Record<TipoVenta, number> = {
-  PROMO: 2, // PROMO consume 2 TRABIX
-  UNIDAD: 1, // UNIDAD consume 1 TRABIX
-  SIN_LICOR: 1, // SIN_LICOR consume 1 TRABIX
-  REGALO: 1, // REGALO consume 1 TRABIX
+  PROMO: 2,        // PROMO consume 2 TRABIX
+  PROMO_PARCIAL: 1, // Media promo (cross-lote): consume 1 TRABIX
+  UNIDAD: 1,       // UNIDAD consume 1 TRABIX
+  SIN_LICOR: 1,    // SIN_LICOR consume 1 TRABIX
+  REGALO: 1,       // REGALO consume 1 TRABIX
 };
 
 /**
@@ -81,6 +82,9 @@ export class CalculadoraPreciosVentaService {
     switch (tipo) {
       case 'PROMO':
         return this.precioPromo;
+      case 'PROMO_PARCIAL':
+        // Media promo: precio exactamente la mitad de una PROMO completa
+        return this.precioPromo.dividedBy(2);
       case 'UNIDAD':
         return this.precioUnidad;
       case 'SIN_LICOR':

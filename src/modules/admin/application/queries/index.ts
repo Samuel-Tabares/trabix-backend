@@ -516,11 +516,10 @@ export class ResumenDashboardHandler implements IQueryHandler<
       await Promise.all([
         // Ventas de hoy aprobadas
         this.prisma.venta.aggregate({
-          _count: true,
+          _count: { _all: true },
           _sum: { montoTotal: true },
           where: {
-            fechaValidacion: { gte: hoy },
-            estado: 'APROBADA',
+            fechaRegistro: { gte: hoy },
           },
         }),
         // Cuadres pendientes
@@ -540,8 +539,8 @@ export class ResumenDashboardHandler implements IQueryHandler<
       ]);
 
     return {
-      ventasHoy: ventasHoy._count,
-      ingresosHoy: Number.parseFloat((ventasHoy._sum.montoTotal || 0).toString()),
+      ventasHoy: ventasHoy._count._all ?? 0,
+      ingresosHoy: Number.parseFloat((ventasHoy._sum?.montoTotal || 0).toString()),
       stockFisico: stockAdmin?.stockFisico || 0,
       cuadresPendientes,
       vendedoresActivos,
@@ -583,14 +582,13 @@ export class VentasPeriodoHandler implements IQueryHandler<VentasPeriodoQuery, V
       _count: { _all: true },
       _sum: { montoTotal: true, cantidadTrabix: true },
       where: {
-        fechaValidacion: { gte: fechaInicio },
-        estado: 'APROBADA',
+        fechaRegistro: { gte: fechaInicio },
       },
     });
 
     return {
       periodo: query.periodo,
-      totalVentas: resultado._count._all,
+      totalVentas: resultado._count?._all ?? 0,
       totalIngresos: Number.parseFloat((resultado._sum?.montoTotal ?? 0).toString()),
       trabixVendidos: resultado._sum?.cantidadTrabix ?? 0,
     };

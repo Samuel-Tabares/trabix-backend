@@ -1,11 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { Usuario } from '@prisma/client';
+import { Tanda, Usuario } from '@prisma/client';
 import {
   IUsuarioRepository,
   USUARIO_REPOSITORY,
 } from '../../usuarios/domain/usuario.repository.interface';
-import { ILoteRepository, LOTE_REPOSITORY } from '../../lotes/domain/lote.repository.interface';
+import { ILoteRepository, LOTE_REPOSITORY, LoteConTandas } from '../../lotes/domain/lote.repository.interface';
 import { ITandaRepository, TANDA_REPOSITORY } from '../../lotes/domain/tanda.repository.interface';
+import { ICuadreRepository, CUADRE_REPOSITORY } from '../../cuadres/domain/cuadre.repository.interface';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 
 /**
@@ -17,7 +18,7 @@ import { DomainException } from '../../../domain/exceptions/domain.exception';
  * - Vendedor ya cambió contraseña temporal
  * - Existe al menos un lote ACTIVO
  * - Existe tanda EN_CASA con stock_actual > 0
- * - stock_actual >= cantidad_venta
+ * - stock_actual >= cantidad_venta  (o hay cross-lote disponible)
  */
 @Injectable()
 export class VendedorPuedeVenderSpecification {
@@ -28,11 +29,17 @@ export class VendedorPuedeVenderSpecification {
     private readonly loteRepository: ILoteRepository,
     @Inject(TANDA_REPOSITORY)
     private readonly tandaRepository: ITandaRepository,
+    @Inject(CUADRE_REPOSITORY)
+    private readonly cuadreRepository: ICuadreRepository,
   ) {}
 
   /**
-   * Verifica si el vendedor puede realizar una venta
-   * @returns El lote activo más antiguo y la tanda EN_CASA disponible
+   * Verifica si el vendedor puede realizar una venta.
+   * Cuando hay stock insuficiente en el lote actual pero el último cuadre
+   * normal de ese lote ya es EXITOSO y existe otro lote activo con tanda
+   * EN_CASA, se habilita la venta cross-lote.
+   *
+   * @returns El lote activo, tanda, y opcionalmente datos cross-lote
    */
   async verificar(vendedorId: string, cantidadTrabix: number): Promise<VendedorPuedeVenderResult> {
     // 1. Vendedor existe
@@ -77,20 +84,93 @@ export class VendedorPuedeVenderSpecification {
       });
     }
 
-    // 7. stock_actual >= cantidad_venta
-    if (tandaEnCasa.stockActual < cantidadTrabix) {
-      throw new DomainException('VNT_001', 'Stock insuficiente en la tanda actual', {
-        stockDisponible: tandaEnCasa.stockActual,
-        cantidadSolicitada: cantidadTrabix,
+    // 7. Validar stock
+    if (tandaEnCasa.stockActual >= cantidadTrabix) {
+      // Stock suficiente en el lote actual → flujo normal
+      return { vendedor, lote: loteActivo, tanda: tandaEnCasa };
+    }
+
+    // 8. Stock insuficiente → verificar si aplica venta cross-lote
+    const crossLote = await this.verificarCrossLote(
+      vendedorId,
+      loteActivo,
+      tandaEnCasa,
+      cantidadTrabix,
+    );
+
+    if (crossLote) {
+      return { vendedor, lote: loteActivo, tanda: tandaEnCasa, crossLote };
+    }
+
+    throw new DomainException('VNT_001', 'Stock insuficiente en la tanda actual', {
+      stockDisponible: tandaEnCasa.stockActual,
+      cantidadSolicitada: cantidadTrabix,
+    });
+  }
+
+  /**
+   * Verifica si se puede hacer una venta cross-lote:
+   * - La tanda en casa DEBE ser la última tanda del lote
+   * - El cuadre de esa tanda debe estar EXITOSO
+   * - Debe existir otro lote ACTIVO con tanda EN_CASA con stock suficiente para el excedente
+   */
+  private async verificarCrossLote(
+    vendedorId: string,
+    loteActual: LoteConTandas,
+    tandaActual: Tanda,
+    cantidadTotal: number,
+  ): Promise<CrossLoteInfo | null> {
+    // La tanda en casa debe ser la última del lote
+    const ultimaTandaDelLote = loteActual.tandas[loteActual.tandas.length - 1];
+    if (tandaActual.id !== ultimaTandaDelLote.id) {
+      return null;
+    }
+
+    // El cuadre de esta última tanda debe estar EXITOSO
+    const cuadre = await this.cuadreRepository.findByTandaId(tandaActual.id);
+    if (!cuadre || cuadre.estado !== 'EXITOSO') {
+      return null;
+    }
+
+    // Buscar el siguiente lote activo
+    const lotesActivos = await this.loteRepository.findLotesActivos(vendedorId);
+    const siguienteLote = lotesActivos.find((l) => l.id !== loteActual.id);
+    if (!siguienteLote) {
+      return null;
+    }
+
+    // El siguiente lote debe tener tanda EN_CASA con stock para el excedente
+    const tandaSiguiente = await this.tandaRepository.findTandaEnCasa(siguienteLote.id);
+    if (!tandaSiguiente) {
+      return null;
+    }
+
+    const stockRestanteLote1 = tandaActual.stockActual;
+    const excedente = cantidadTotal - stockRestanteLote1;
+
+    if (tandaSiguiente.stockActual < excedente) {
+      throw new DomainException('VNT_001', 'Stock insuficiente incluso combinando ambos lotes', {
+        stockLote1: stockRestanteLote1,
+        stockLote2: tandaSiguiente.stockActual,
+        cantidadSolicitada: cantidadTotal,
       });
     }
 
     return {
-      vendedor,
-      lote: loteActivo,
-      tanda: tandaEnCasa,
+      lote: siguienteLote,
+      tanda: tandaSiguiente,
+      stockRestanteLote1,
     };
   }
+}
+
+/**
+ * Datos para una venta cross-lote
+ */
+export interface CrossLoteInfo {
+  lote: LoteConTandas;
+  tanda: Tanda;
+  stockRestanteLote1: number;
 }
 
 /**
@@ -98,6 +178,7 @@ export class VendedorPuedeVenderSpecification {
  */
 export interface VendedorPuedeVenderResult {
   vendedor: Usuario;
-  lote: any; // LoteConTandas
-  tanda: any; // Tanda
+  lote: LoteConTandas;
+  tanda: Tanda;
+  crossLote?: CrossLoteInfo;
 }

@@ -243,7 +243,6 @@ export class PrismaUsuarioRepository implements IUsuarioRepository {
       },
       where: {
         vendedorId: usuarioId,
-        estado: 'APROBADA',
       },
     });
 
@@ -275,16 +274,16 @@ export class PrismaUsuarioRepository implements IUsuarioRepository {
       },
     });
 
-    const ingresosBrutos = new Decimal(ventasAgregadas._sum.montoTotal || 0);
-    const dineroRecaudado = new Decimal(lotesConGanancias._sum.dineroRecaudado || 0);
-    const dineroTransferido = new Decimal(lotesConGanancias._sum.dineroTransferido || 0);
+    const ingresosBrutos = new Decimal(ventasAgregadas._sum?.montoTotal || 0);
+    const dineroRecaudado = new Decimal(lotesConGanancias._sum?.dineroRecaudado || 0);
+    const dineroTransferido = new Decimal(lotesConGanancias._sum?.dineroTransferido || 0);
 
     // Ganancias aproximadas = dinero recaudado - transferido al admin
     const gananciasVendedor = dineroRecaudado.minus(dineroTransferido);
 
     return {
-      totalVentas: ventasAgregadas._count._all,
-      trabixVendidos: ventasAgregadas._sum.cantidadTrabix || 0,
+      totalVentas: ventasAgregadas._count?._all ?? 0,
+      trabixVendidos: ventasAgregadas._sum?.cantidadTrabix || 0,
       ingresosBrutos: Number.parseFloat(ingresosBrutos.toFixed(2)),
       gananciasVendedor: Number.parseFloat(gananciasVendedor.toFixed(2)),
       lotesActivos,

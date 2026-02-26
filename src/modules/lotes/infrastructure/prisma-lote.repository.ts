@@ -108,6 +108,23 @@ export class PrismaLoteRepository implements ILoteRepository {
     });
   }
 
+  async findLotesActivos(vendedorId: string): Promise<LoteConTandas[]> {
+    return this.prisma.lote.findMany({
+      where: {
+        vendedorId,
+        estado: 'ACTIVO',
+      },
+      orderBy: {
+        fechaActivacion: 'asc',
+      },
+      include: {
+        tandas: {
+          orderBy: { numero: 'asc' },
+        },
+      },
+    }) as Promise<LoteConTandas[]>;
+  }
+
   async create(data: CreateLoteData): Promise<LoteConTandas> {
     return this.prisma.lote.create({
       data: {
@@ -255,7 +272,6 @@ export class PrismaLoteRepository implements ILoteRepository {
         tipo: 'REGALO',
         venta: {
           loteId,
-          estado: 'APROBADA',
         },
       },
       _sum: {
@@ -263,6 +279,6 @@ export class PrismaLoteRepository implements ILoteRepository {
       },
     });
 
-    return result._sum.cantidad || 0;
+    return result._sum?.cantidad || 0;
   }
 }

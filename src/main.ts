@@ -84,8 +84,8 @@ async function bootstrap() {
       if (!origin) return callback(null, true);
       // Allow explicitly listed origins
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      // Allow any device on the local network (192.168.x.x) in non-production
-      if (nodeEnv !== 'production' && /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin)) {
+      // Allow any device on the local network (RFC 1918: 10.x, 172.16-31.x, 192.168.x) in non-production
+      if (nodeEnv !== 'production' && /^http:\/\/(10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)(:\d+)?$/.test(origin)) {
         return callback(null, true);
       }
       callback(new Error(`CORS: origin ${origin} not allowed`));

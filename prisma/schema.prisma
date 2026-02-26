@@ -513,6 +513,7 @@ enum EstadoTanda {
 
 enum TipoVenta {
   PROMO
+  PROMO_PARCIAL
   UNIDAD
   SIN_LICOR
   REGALO
