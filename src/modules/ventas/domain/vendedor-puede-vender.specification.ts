@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { Tanda, Usuario } from '@prisma/client';
+import { EstadoTanda, Tanda, Usuario } from '@prisma/client';
 import {
   IUsuarioRepository,
   USUARIO_REPOSITORY,
@@ -77,11 +77,29 @@ export class VendedorPuedeVenderSpecification {
     }
 
     // 6. Existe tanda EN_CASA con stock_actual > 0
-    const tandaEnCasa = await this.tandaRepository.findTandaEnCasa(loteActivo.id);
-    if (!tandaEnCasa) {
+    const tandaEnCasaInicial = await this.tandaRepository.findTandaEnCasa(loteActivo.id);
+    if (!tandaEnCasaInicial) {
       throw new DomainException('VNT_002', 'No hay tanda EN_CASA disponible para ventas', {
         loteId: loteActivo.id,
       });
+    }
+
+    // 6b. Si la tanda encontrada tiene cuadre EXITOSO y existe una tanda posterior EN_CASA
+    //     en el mismo lote, las ventas deben dirigirse al cuadre de esa siguiente tanda.
+    //     Esto ocurre cuando la tanda 2 llega en casa antes de que se vendan todos los
+    //     trabix de la tanda 1: el cuadre de tanda 1 ya es exitoso y tanda 2 es la activa.
+    let tandaEnCasa = tandaEnCasaInicial;
+    const cuadreTandaInicial = await this.cuadreRepository.findByTandaId(tandaEnCasaInicial.id);
+    if (cuadreTandaInicial?.estado === 'EXITOSO') {
+      const siguienteTanda = loteActivo.tandas.find(
+        (t) =>
+          t.numero > tandaEnCasaInicial.numero &&
+          t.estado === EstadoTanda.EN_CASA &&
+          t.stockActual > 0,
+      );
+      if (siguienteTanda) {
+        tandaEnCasa = siguienteTanda;
+      }
     }
 
     // 7. Validar stock
