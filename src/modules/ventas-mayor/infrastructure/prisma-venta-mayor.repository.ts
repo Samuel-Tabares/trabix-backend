@@ -99,7 +99,7 @@ export class PrismaVentaMayorRepository implements IVentaMayorRepository {
     ventas.sort((a, b) => idOrder.get(a.id)! - idOrder.get(b.id)!);
 
     return {
-      data: ventas as VentaMayorConRelaciones[],
+      data: ventas as unknown as VentaMayorConRelaciones[],
       total,
       hasMore,
       nextCursor: undefined,

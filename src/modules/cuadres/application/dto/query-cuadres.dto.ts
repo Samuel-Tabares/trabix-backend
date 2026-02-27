@@ -53,14 +53,14 @@ export class QueryCuadresDto {
   @ApiPropertyOptional({
     description: 'Número de registros a retornar',
     minimum: 1,
-    maximum: 100,
+    maximum: 500,
     default: 20,
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(500)
   take?: number = 20;
 
   @ApiPropertyOptional({
