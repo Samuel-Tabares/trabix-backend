@@ -22,11 +22,10 @@ export class PrismaLoteRepository implements ILoteRepository {
     return this.prisma.lote.findUnique({
       where: { id },
       include: {
-        tandas: {
-          orderBy: { numero: 'asc' },
-        },
+        tandas: { orderBy: { numero: 'asc' } },
+        vendedor: { select: { id: true, nombre: true, apellidos: true } },
       },
-    });
+    }) as Promise<LoteConTandas | null>;
   }
 
   async findByVendedor(vendedorId: string, options?: FindLotesOptions): Promise<PaginatedLotes> {
@@ -40,54 +39,124 @@ export class PrismaLoteRepository implements ILoteRepository {
   }
 
   async findAll(options?: FindLotesOptions): Promise<PaginatedLotes> {
-    const { skip = 0, take = 20, cursor, where = {}, orderBy } = options || {};
+    const { skip = 0, take = 20, where = {}, orderBy, includeVendedor = false } = options || {};
 
-    const whereCondition: Prisma.LoteWhereInput = {};
+    // Custom orderBy: use Prisma native query
+    if (orderBy) {
+      const whereCondition: Prisma.LoteWhereInput = {};
+      if (where.vendedorId) whereCondition.vendedorId = where.vendedorId;
+      if (where.estado) whereCondition.estado = where.estado;
+      if (where.modeloNegocio) whereCondition.modeloNegocio = where.modeloNegocio;
+      if (where.esLoteForzado !== undefined) whereCondition.esLoteForzado = where.esLoteForzado;
+      if (where.minTrabix !== undefined || where.maxTrabix !== undefined) {
+        whereCondition.cantidadTrabix = {
+          ...(where.minTrabix !== undefined && { gte: where.minTrabix }),
+          ...(where.maxTrabix !== undefined && { lte: where.maxTrabix }),
+        };
+      }
+      if (where.searchVendedor) {
+        whereCondition.vendedor = {
+          OR: [
+            { nombre: { contains: where.searchVendedor, mode: 'insensitive' } },
+            { apellidos: { contains: where.searchVendedor, mode: 'insensitive' } },
+          ],
+        };
+      }
+      const [lotes, total] = await Promise.all([
+        this.prisma.lote.findMany({
+          where: whereCondition,
+          orderBy: { [orderBy.field]: orderBy.direction },
+          skip,
+          take: take + 1,
+          include: {
+            tandas: { orderBy: { numero: 'asc' } },
+            ...(includeVendedor && { vendedor: { select: { id: true, nombre: true, apellidos: true } } }),
+          },
+        }),
+        this.prisma.lote.count({ where: whereCondition }),
+      ]);
+      const hasMore = lotes.length > take;
+      if (hasMore) lotes.pop();
+      return {
+        data: lotes as LoteConTandas[],
+        total,
+        hasMore,
+        nextCursor: hasMore ? lotes.at(-1)?.id : undefined,
+      };
+    }
 
-    if (where.vendedorId) whereCondition.vendedorId = where.vendedorId;
-    if (where.estado) whereCondition.estado = where.estado;
-    if (where.modeloNegocio) whereCondition.modeloNegocio = where.modeloNegocio;
+    // Default: CASE WHEN status ordering (CREADO → ACTIVO → FINALIZADO, date desc within each)
+    const conditions: Prisma.Sql[] = [Prisma.sql`1=1`];
+    const needsUserJoin = !!where.searchVendedor;
+
+    if (where.vendedorId) conditions.push(Prisma.sql`l."vendedorId" = ${where.vendedorId}`);
+    if (where.estado) conditions.push(Prisma.sql`l.estado::text = ${where.estado}`);
+    if (where.modeloNegocio) conditions.push(Prisma.sql`l."modeloNegocio"::text = ${where.modeloNegocio}`);
     if (where.esLoteForzado !== undefined) {
-      whereCondition.esLoteForzado = where.esLoteForzado;
+      conditions.push(Prisma.sql`l."esLoteForzado" = ${where.esLoteForzado}`);
+    }
+    if (where.minTrabix !== undefined) {
+      conditions.push(Prisma.sql`l."cantidadTrabix" >= ${where.minTrabix}`);
+    }
+    if (where.maxTrabix !== undefined) {
+      conditions.push(Prisma.sql`l."cantidadTrabix" <= ${where.maxTrabix}`);
+    }
+    if (needsUserJoin) {
+      const search = `%${where.searchVendedor}%`;
+      conditions.push(Prisma.sql`(u.nombre ILIKE ${search} OR u.apellidos ILIKE ${search})`);
     }
 
-    const orderByCondition: Prisma.LoteOrderByWithRelationInput = orderBy
-      ? { [orderBy.field]: orderBy.direction }
-      : { fechaCreacion: 'desc' };
+    const whereClause = Prisma.join(conditions, ' AND ');
+    const fromClause = needsUserJoin
+      ? Prisma.sql`"lotes" l LEFT JOIN "usuarios" u ON l."vendedorId" = u.id`
+      : Prisma.sql`"lotes" l`;
 
-    const queryOptions: Prisma.LoteFindManyArgs = {
-      where: whereCondition,
-      orderBy: orderByCondition,
-      take: take + 1,
-      include: {
-        tandas: {
-          orderBy: { numero: 'asc' },
-        },
-      },
-    };
-
-    if (cursor) {
-      queryOptions.cursor = { id: cursor };
-      queryOptions.skip = 1;
-    } else {
-      queryOptions.skip = skip;
-    }
-
-    const [lotes, total] = await Promise.all([
-      this.prisma.lote.findMany(queryOptions),
-      this.prisma.lote.count({ where: whereCondition }),
+    const [rawIds, totalResult] = await Promise.all([
+      this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT l.id FROM ${fromClause}
+        WHERE ${whereClause}
+        ORDER BY
+          CASE l.estado::text
+            WHEN 'CREADO' THEN 0
+            WHEN 'ACTIVO' THEN 1
+            WHEN 'FINALIZADO' THEN 2
+            ELSE 3
+          END,
+          l."fechaCreacion" DESC,
+          l.id DESC
+        LIMIT ${take + 1} OFFSET ${skip}
+      `),
+      this.prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*) as count FROM ${fromClause}
+        WHERE ${whereClause}
+      `),
     ]);
 
-    const hasMore = lotes.length > take;
-    if (hasMore) {
-      lotes.pop();
+    const total = Number(totalResult[0]?.count ?? 0);
+    const ids = rawIds.map((r) => r.id);
+    const hasMore = ids.length > take;
+    if (hasMore) ids.pop();
+
+    if (ids.length === 0) {
+      return { data: [], total, hasMore: false, nextCursor: undefined };
     }
+
+    const lotes = await this.prisma.lote.findMany({
+      where: { id: { in: ids } },
+      include: {
+        tandas: { orderBy: { numero: 'asc' } },
+        ...(includeVendedor && { vendedor: { select: { id: true, nombre: true, apellidos: true } } }),
+      },
+    });
+
+    const idOrder = new Map(ids.map((id, i) => [id, i]));
+    lotes.sort((a, b) => idOrder.get(a.id)! - idOrder.get(b.id)!);
 
     return {
       data: lotes as LoteConTandas[],
       total,
       hasMore,
-      nextCursor: hasMore ? lotes.at(-1)?.id : undefined,
+      nextCursor: undefined,
     };
   }
 

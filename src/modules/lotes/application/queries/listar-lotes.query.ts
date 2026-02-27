@@ -35,11 +35,17 @@ export class ListarLotesHandler implements IQueryHandler<ListarLotesQuery, Lotes
         estado: filtros.estado,
         modeloNegocio: filtros.modeloNegocio,
         esLoteForzado: filtros.esLoteForzado,
+        searchVendedor: filtros.searchVendedor,
+        minTrabix: filtros.minTrabix,
+        maxTrabix: filtros.maxTrabix,
       },
-      orderBy: {
-        field: filtros.orderBy || 'fechaCreacion',
-        direction: filtros.orderDirection || 'desc',
-      },
+      ...(filtros.orderBy && {
+        orderBy: {
+          field: filtros.orderBy,
+          direction: filtros.orderDirection || 'desc',
+        },
+      }),
+      includeVendedor: true,
     });
 
     const data: LoteResponseDto[] = resultado.data.map((lote) => this.mapToDto(lote));
@@ -99,6 +105,9 @@ export class ListarLotesHandler implements IQueryHandler<ListarLotesQuery, Lotes
       fechaCreacion: lote.fechaCreacion,
       fechaActivacion: lote.fechaActivacion,
       fechaFinalizacion: lote.fechaFinalizacion,
+      vendedor: lote.vendedor
+        ? { id: lote.vendedor.id, nombre: lote.vendedor.nombre, apellidos: lote.vendedor.apellidos }
+        : null,
     };
   }
 }

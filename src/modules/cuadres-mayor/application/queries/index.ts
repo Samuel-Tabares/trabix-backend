@@ -60,6 +60,7 @@ export class ListarCuadresMayorHandler implements IQueryHandler<
         vendedorId: query.filtros.vendedorId,
         estado: query.filtros.estado,
         modalidad: query.filtros.modalidad,
+        searchVendedor: query.filtros.searchVendedor,
       },
     });
 

@@ -43,41 +43,66 @@ export class PrismaVentaMayorRepository implements IVentaMayorRepository {
   }
 
   async findAll(options?: FindVentasMayorOptions): Promise<PaginatedVentasMayor> {
-    const { skip = 0, take = 20, cursor, where = {} } = options || {};
+    const { skip = 0, take = 20, where = {} } = options || {};
 
-    const whereCondition: Prisma.VentaMayorWhereInput = {};
+    const conditions: Prisma.Sql[] = [Prisma.sql`1=1`];
+    const needsUserJoin = !!where.searchVendedor;
 
-    if (where.vendedorId) whereCondition.vendedorId = where.vendedorId;
-    if (where.estado) whereCondition.estado = where.estado;
-    if (where.modalidad) whereCondition.modalidad = where.modalidad;
-
-    const queryOptions: Prisma.VentaMayorFindManyArgs = {
-      where: whereCondition,
-      orderBy: { fechaRegistro: 'desc' },
-      take: take + 1,
-      include: this.includeRelations,
-    };
-
-    if (cursor) {
-      queryOptions.cursor = { id: cursor };
-      queryOptions.skip = 1;
-    } else {
-      queryOptions.skip = skip;
+    if (where.vendedorId) conditions.push(Prisma.sql`v."vendedorId" = ${where.vendedorId}`);
+    if (where.estado) conditions.push(Prisma.sql`v.estado::text = ${where.estado}`);
+    if (where.modalidad) conditions.push(Prisma.sql`v.modalidad::text = ${where.modalidad}`);
+    if (needsUserJoin) {
+      const search = `%${where.searchVendedor}%`;
+      conditions.push(Prisma.sql`(u.nombre ILIKE ${search} OR u.apellidos ILIKE ${search})`);
     }
 
-    const [ventas, total] = await Promise.all([
-      this.prisma.ventaMayor.findMany(queryOptions),
-      this.prisma.ventaMayor.count({ where: whereCondition }),
+    const whereClause = Prisma.join(conditions, ' AND ');
+    const fromClause = needsUserJoin
+      ? Prisma.sql`"ventas_mayor" v LEFT JOIN "usuarios" u ON v."vendedorId" = u.id`
+      : Prisma.sql`"ventas_mayor" v`;
+
+    const [rawIds, totalResult] = await Promise.all([
+      this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT v.id FROM ${fromClause}
+        WHERE ${whereClause}
+        ORDER BY
+          CASE v.estado::text
+            WHEN 'PENDIENTE' THEN 0
+            WHEN 'COMPLETADA' THEN 1
+            ELSE 2
+          END,
+          v."fechaRegistro" DESC,
+          v.id DESC
+        LIMIT ${take + 1} OFFSET ${skip}
+      `),
+      this.prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*) as count FROM ${fromClause}
+        WHERE ${whereClause}
+      `),
     ]);
 
-    const hasMore = ventas.length > take;
-    if (hasMore) ventas.pop();
+    const total = Number(totalResult[0]?.count ?? 0);
+    const ids = rawIds.map((r) => r.id);
+    const hasMore = ids.length > take;
+    if (hasMore) ids.pop();
+
+    if (ids.length === 0) {
+      return { data: [], total, hasMore: false, nextCursor: undefined };
+    }
+
+    const ventas = await this.prisma.ventaMayor.findMany({
+      where: { id: { in: ids } },
+      include: this.includeRelations,
+    });
+
+    const idOrder = new Map(ids.map((id, i) => [id, i]));
+    ventas.sort((a, b) => idOrder.get(a.id)! - idOrder.get(b.id)!);
 
     return {
       data: ventas as VentaMayorConRelaciones[],
       total,
       hasMore,
-      nextCursor: hasMore ? ventas.at(-1)?.id : undefined,
+      nextCursor: undefined,
     };
   }
 

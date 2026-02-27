@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsUUID, IsEnum, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsUUID, IsEnum, IsInt, Min, Max, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EstadoCuadre, ModalidadVentaMayor } from '@prisma/client';
 
@@ -20,6 +20,11 @@ export class QueryCuadresMayorDto {
   @IsOptional()
   @IsEnum(['ANTICIPADO', 'CONTRAENTREGA'])
   modalidad?: ModalidadVentaMayor;
+
+  @ApiPropertyOptional({ description: 'Buscar por nombre o apellidos del vendedor' })
+  @IsOptional()
+  @IsString()
+  searchVendedor?: string;
 
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()

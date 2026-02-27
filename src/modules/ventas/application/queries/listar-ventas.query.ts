@@ -37,6 +37,7 @@ export class ListarVentasHandler implements IQueryHandler<ListarVentasQuery, Ven
         vendedorId: filtros.vendedorId,
         loteId: filtros.loteId,
         tandaId: filtros.tandaId,
+        searchVendedor: filtros.searchVendedor,
       },
       orderBy: {
         field: filtros.orderBy || 'fechaRegistro',

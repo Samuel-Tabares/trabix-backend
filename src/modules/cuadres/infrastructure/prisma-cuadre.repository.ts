@@ -42,55 +42,101 @@ export class PrismaCuadreRepository implements ICuadreRepository {
   }
 
   async findAll(options?: FindCuadresOptions): Promise<PaginatedCuadres> {
-    const { skip = 0, take = 20, cursor, where = {}, orderBy } = options || {};
+    const { skip = 0, take = 20, where = {}, orderBy } = options || {};
 
-    const whereCondition: Prisma.CuadreWhereInput = {};
-
-    if (where.estado) whereCondition.estado = where.estado;
-    if (where.concepto) whereCondition.concepto = where.concepto;
-    if (where.loteId) {
-      whereCondition.tanda = { loteId: where.loteId };
-    }
-    if (where.vendedorId) {
-      whereCondition.tanda = {
-        ...(whereCondition.tanda as any),
-        lote: { vendedorId: where.vendedorId },
+    // Custom orderBy: use Prisma native query
+    if (orderBy) {
+      const whereCondition: Prisma.CuadreWhereInput = {};
+      if (where.estado) whereCondition.estado = where.estado;
+      if (where.concepto) whereCondition.concepto = where.concepto;
+      if (where.loteId) whereCondition.tanda = { loteId: where.loteId };
+      if (where.vendedorId) {
+        whereCondition.tanda = {
+          ...(whereCondition.tanda as any),
+          lote: { vendedorId: where.vendedorId },
+        };
+      }
+      const [cuadres, total] = await Promise.all([
+        this.prisma.cuadre.findMany({
+          where: whereCondition,
+          orderBy: { [orderBy.field]: orderBy.direction },
+          skip,
+          take: take + 1,
+          include: this.includeTanda,
+        }),
+        this.prisma.cuadre.count({ where: whereCondition }),
+      ]);
+      const hasMore = cuadres.length > take;
+      if (hasMore) cuadres.pop();
+      return {
+        data: cuadres as CuadreConTanda[],
+        total,
+        hasMore,
+        nextCursor: hasMore ? cuadres.at(-1)?.id : undefined,
       };
     }
 
-    const orderByCondition: Prisma.CuadreOrderByWithRelationInput = orderBy
-      ? { [orderBy.field]: orderBy.direction }
-      : { fechaPendiente: 'desc' };
+    // Default: CASE WHEN ordering (PENDIENTE → EXITOSO → INACTIVO, date desc within each)
+    const conditions: Prisma.Sql[] = [Prisma.sql`1=1`];
+    const needsJoin = !!(where.loteId || where.vendedorId);
 
-    const queryOptions: Prisma.CuadreFindManyArgs = {
-      where: whereCondition,
-      orderBy: orderByCondition,
-      take: take + 1,
-      include: this.includeTanda,
-    };
+    if (where.estado) conditions.push(Prisma.sql`c.estado::text = ${where.estado}`);
+    if (where.concepto) conditions.push(Prisma.sql`c.concepto::text = ${where.concepto}`);
+    if (where.loteId) conditions.push(Prisma.sql`t."loteId" = ${where.loteId}`);
+    if (where.vendedorId) conditions.push(Prisma.sql`l."vendedorId" = ${where.vendedorId}`);
 
-    if (cursor) {
-      queryOptions.cursor = { id: cursor };
-      queryOptions.skip = 1;
-    } else {
-      queryOptions.skip = skip;
-    }
+    const whereClause = Prisma.join(conditions, ' AND ');
+    const fromClause = needsJoin
+      ? Prisma.sql`"cuadres" c LEFT JOIN "tandas" t ON c."tandaId" = t.id LEFT JOIN "lotes" l ON t."loteId" = l.id`
+      : Prisma.sql`"cuadres" c`;
 
-    const [cuadres, total] = await Promise.all([
-      this.prisma.cuadre.findMany(queryOptions),
-      this.prisma.cuadre.count({ where: whereCondition }),
+    const [rawIds, totalResult] = await Promise.all([
+      this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT c.id FROM ${fromClause}
+        WHERE ${whereClause}
+        ORDER BY
+          CASE c.estado::text
+            WHEN 'PENDIENTE' THEN 0
+            WHEN 'INACTIVO' THEN 1
+            WHEN 'EXITOSO' THEN 2
+            ELSE 3
+          END,
+          CASE c.estado::text
+            WHEN 'PENDIENTE' THEN EXTRACT(EPOCH FROM c."fechaPendiente")
+            WHEN 'EXITOSO' THEN EXTRACT(EPOCH FROM c."fechaExitoso")
+            ELSE NULL
+          END DESC NULLS LAST,
+          c.id DESC
+        LIMIT ${take + 1} OFFSET ${skip}
+      `),
+      this.prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*) as count FROM ${fromClause}
+        WHERE ${whereClause}
+      `),
     ]);
 
-    const hasMore = cuadres.length > take;
-    if (hasMore) {
-      cuadres.pop();
+    const total = Number(totalResult[0]?.count ?? 0);
+    const ids = rawIds.map((r) => r.id);
+    const hasMore = ids.length > take;
+    if (hasMore) ids.pop();
+
+    if (ids.length === 0) {
+      return { data: [], total, hasMore: false, nextCursor: undefined };
     }
+
+    const cuadres = await this.prisma.cuadre.findMany({
+      where: { id: { in: ids } },
+      include: this.includeTanda,
+    });
+
+    const idOrder = new Map(ids.map((id, i) => [id, i]));
+    cuadres.sort((a, b) => idOrder.get(a.id)! - idOrder.get(b.id)!);
 
     return {
       data: cuadres as CuadreConTanda[],
       total,
       hasMore,
-      nextCursor: hasMore ? cuadres.at(-1)?.id : undefined,
+      nextCursor: undefined,
     };
   }
 

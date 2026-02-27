@@ -47,41 +47,66 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
   }
 
   async findAll(options?: FindCuadresMayorOptions): Promise<PaginatedCuadresMayor> {
-    const { skip = 0, take = 20, cursor, where = {} } = options || {};
+    const { skip = 0, take = 20, where = {} } = options || {};
 
-    const whereCondition: Prisma.CuadreMayorWhereInput = {};
+    const conditions: Prisma.Sql[] = [Prisma.sql`1=1`];
+    const needsUserJoin = !!where.searchVendedor;
 
-    if (where.vendedorId) whereCondition.vendedorId = where.vendedorId;
-    if (where.estado) whereCondition.estado = where.estado;
-    if (where.modalidad) whereCondition.modalidad = where.modalidad;
-
-    const queryOptions: Prisma.CuadreMayorFindManyArgs = {
-      where: whereCondition,
-      orderBy: { fechaRegistro: 'desc' },
-      take: take + 1,
-      include: this.includeRelations,
-    };
-
-    if (cursor) {
-      queryOptions.cursor = { id: cursor };
-      queryOptions.skip = 1;
-    } else {
-      queryOptions.skip = skip;
+    if (where.vendedorId) conditions.push(Prisma.sql`cm."vendedorId" = ${where.vendedorId}`);
+    if (where.estado) conditions.push(Prisma.sql`cm.estado::text = ${where.estado}`);
+    if (where.modalidad) conditions.push(Prisma.sql`cm.modalidad::text = ${where.modalidad}`);
+    if (needsUserJoin) {
+      const search = `%${where.searchVendedor}%`;
+      conditions.push(Prisma.sql`(u.nombre ILIKE ${search} OR u.apellidos ILIKE ${search})`);
     }
 
-    const [cuadres, total] = await Promise.all([
-      this.prisma.cuadreMayor.findMany(queryOptions),
-      this.prisma.cuadreMayor.count({ where: whereCondition }),
+    const whereClause = Prisma.join(conditions, ' AND ');
+    const fromClause = needsUserJoin
+      ? Prisma.sql`"cuadres_mayor" cm LEFT JOIN "usuarios" u ON cm."vendedorId" = u.id`
+      : Prisma.sql`"cuadres_mayor" cm`;
+
+    const [rawIds, totalResult] = await Promise.all([
+      this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT cm.id FROM ${fromClause}
+        WHERE ${whereClause}
+        ORDER BY
+          CASE cm.estado::text
+            WHEN 'PENDIENTE' THEN 0
+            WHEN 'EXITOSO' THEN 1
+            ELSE 2
+          END,
+          cm."fechaRegistro" DESC,
+          cm.id DESC
+        LIMIT ${take + 1} OFFSET ${skip}
+      `),
+      this.prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*) as count FROM ${fromClause}
+        WHERE ${whereClause}
+      `),
     ]);
 
-    const hasMore = cuadres.length > take;
-    if (hasMore) cuadres.pop();
+    const total = Number(totalResult[0]?.count ?? 0);
+    const ids = rawIds.map((r) => r.id);
+    const hasMore = ids.length > take;
+    if (hasMore) ids.pop();
+
+    if (ids.length === 0) {
+      return { data: [], total, hasMore: false, nextCursor: undefined };
+    }
+
+    const cuadres = await this.prisma.cuadreMayor.findMany({
+      where: { id: { in: ids } },
+      include: this.includeRelations,
+    });
+
+    const idOrder = new Map(ids.map((id, i) => [id, i]));
+    cuadres.sort((a, b) => idOrder.get(a.id)! - idOrder.get(b.id)!);
 
     return {
       data: cuadres as CuadreMayorConRelaciones[],
       total,
       hasMore,
-      nextCursor: hasMore ? cuadres.at(-1)?.id : undefined,
+      nextCursor: undefined,
     };
   }
 

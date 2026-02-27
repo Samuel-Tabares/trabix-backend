@@ -181,6 +181,7 @@ export class ListarEquipamientosHandler implements IQueryHandler<
       where: {
         estado: query.filtros.estado,
         vendedorId: query.filtros.vendedorId,
+        searchVendedor: query.filtros.searchVendedor,
       },
     });
 

@@ -142,6 +142,7 @@ export interface FindAllUsuariosOptions {
     search?: string;
     cedula?: number;
     modeloNegocio?: ModeloNegocio;
+    bloqueado?: boolean;
   };
   orderBy?: {
     field: 'fechaCreacion' | 'nombre' | 'apellidos' | 'email';

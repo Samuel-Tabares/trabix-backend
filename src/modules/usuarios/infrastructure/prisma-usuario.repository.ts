@@ -51,85 +51,135 @@ export class PrismaUsuarioRepository implements IUsuarioRepository {
   async findAll(options: FindAllUsuariosOptions): Promise<PaginatedUsuarios> {
     const { skip = 0, take = 20, cursor, where = {}, orderBy, includeReclutador = false } = options;
 
-    // Construir condiciones de búsqueda
-    const whereCondition: Prisma.UsuarioWhereInput = {
-      // Por defecto filtra no eliminados, pero permite override
-      eliminado: where.eliminado ?? false,
-    };
+    // Cuando se pide un campo específico de ordenamiento, usar Prisma nativo
+    if (orderBy) {
+      const whereCondition: Prisma.UsuarioWhereInput = {
+        eliminado: where.eliminado ?? false,
+      };
+      if (where.rol) whereCondition.rol = where.rol;
+      if (where.estado) whereCondition.estado = where.estado;
+      if (where.reclutadorId !== undefined) whereCondition.reclutadorId = where.reclutadorId;
+      if (where.modeloNegocio) whereCondition.modeloNegocio = where.modeloNegocio;
+      if (where.cedula !== undefined) whereCondition.cedula = where.cedula;
+      if (where.bloqueado === true) whereCondition.bloqueadoHasta = { gt: new Date() };
+      if (where.search) {
+        whereCondition.OR = [
+          { nombre: { contains: where.search, mode: 'insensitive' } },
+          { apellidos: { contains: where.search, mode: 'insensitive' } },
+          { email: { contains: where.search, mode: 'insensitive' } },
+        ];
+        const searchAsNumber = Number.parseInt(where.search, 10);
+        if (!Number.isNaN(searchAsNumber) && where.search === searchAsNumber.toString()) {
+          whereCondition.OR.push({ cedula: searchAsNumber });
+        }
+      }
 
-    if (where.rol) {
-      whereCondition.rol = where.rol;
+      const queryOptions: Prisma.UsuarioFindManyArgs = {
+        where: whereCondition,
+        orderBy: { [orderBy.field]: orderBy.direction },
+        take: take + 1,
+        include: includeReclutador ? { reclutador: true } : undefined,
+      };
+
+      if (cursor) {
+        queryOptions.cursor = { id: cursor };
+        queryOptions.skip = 1;
+      } else {
+        queryOptions.skip = skip;
+      }
+
+      const [usuarios, total] = await Promise.all([
+        this.prisma.usuario.findMany(queryOptions),
+        this.prisma.usuario.count({ where: whereCondition }),
+      ]);
+
+      const hasMore = usuarios.length > take;
+      if (hasMore) usuarios.pop();
+
+      return {
+        data: usuarios,
+        total,
+        hasMore,
+        nextCursor: hasMore ? usuarios.at(-1)?.id : undefined,
+      };
     }
 
-    if (where.estado) {
-      whereCondition.estado = where.estado;
-    }
+    // Ordenamiento inteligente por defecto: bloqueados → ACTIVO → INACTIVO, luego fechaCreacion DESC
+    const conditions: Prisma.Sql[] = [Prisma.sql`eliminado = ${where.eliminado ?? false}`];
 
+    if (where.rol) conditions.push(Prisma.sql`rol::text = ${where.rol}`);
+    if (where.estado) conditions.push(Prisma.sql`estado::text = ${where.estado}`);
     if (where.reclutadorId !== undefined) {
-      whereCondition.reclutadorId = where.reclutadorId;
+      conditions.push(Prisma.sql`"reclutadorId" = ${where.reclutadorId}`);
     }
-
     if (where.modeloNegocio) {
-      whereCondition.modeloNegocio = where.modeloNegocio;
+      conditions.push(Prisma.sql`"modeloNegocio"::text = ${where.modeloNegocio}`);
     }
-
-    // Búsqueda exacta por cédula (número)
     if (where.cedula !== undefined) {
-      whereCondition.cedula = where.cedula;
+      conditions.push(Prisma.sql`cedula = ${where.cedula}`);
     }
-
-    // Búsqueda por texto (nombre, apellidos, email)
+    if (where.bloqueado === true) {
+      conditions.push(Prisma.sql`"bloqueadoHasta" > NOW()`);
+    }
     if (where.search) {
-      whereCondition.OR = [
-        { nombre: { contains: where.search, mode: 'insensitive' } },
-        { apellidos: { contains: where.search, mode: 'insensitive' } },
-        { email: { contains: where.search, mode: 'insensitive' } },
-      ];
-
-      // Si el search es un número válido, también buscar por cédula exacta
+      const searchStr = `%${where.search}%`;
       const searchAsNumber = Number.parseInt(where.search, 10);
-      if (!Number.isNaN(searchAsNumber) && where.search === searchAsNumber.toString()) {
-        whereCondition.OR.push({ cedula: searchAsNumber });
+      const isNumeric = !Number.isNaN(searchAsNumber) && where.search === searchAsNumber.toString();
+      if (isNumeric) {
+        conditions.push(
+          Prisma.sql`(nombre ILIKE ${searchStr} OR apellidos ILIKE ${searchStr} OR email ILIKE ${searchStr} OR cedula = ${searchAsNumber})`,
+        );
+      } else {
+        conditions.push(
+          Prisma.sql`(nombre ILIKE ${searchStr} OR apellidos ILIKE ${searchStr} OR email ILIKE ${searchStr})`,
+        );
       }
     }
 
-    // Ordenamiento
-    const orderByCondition: Prisma.UsuarioOrderByWithRelationInput = orderBy
-      ? { [orderBy.field]: orderBy.direction }
-      : { fechaCreacion: 'desc' };
+    const whereClause = Prisma.join(conditions, ' AND ');
 
-    // Configuración de cursor pagination
-    const queryOptions: Prisma.UsuarioFindManyArgs = {
-      where: whereCondition,
-      orderBy: orderByCondition,
-      take: take + 1, // +1 para saber si hay más
-      include: includeReclutador ? { reclutador: true } : undefined,
-    };
-
-    if (cursor) {
-      queryOptions.cursor = { id: cursor };
-      queryOptions.skip = 1; // Skip the cursor
-    } else {
-      queryOptions.skip = skip;
-    }
-
-    // Ejecutar queries en paralelo
-    const [usuarios, total] = await Promise.all([
-      this.prisma.usuario.findMany(queryOptions),
-      this.prisma.usuario.count({ where: whereCondition }),
+    const [rawIds, totalResult] = await Promise.all([
+      this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT id FROM "usuarios"
+        WHERE ${whereClause}
+        ORDER BY
+          CASE
+            WHEN "bloqueadoHasta" > NOW() THEN 0
+            WHEN estado::text = 'ACTIVO' THEN 1
+            ELSE 2
+          END,
+          "fechaCreacion" DESC,
+          id DESC
+        LIMIT ${take + 1} OFFSET ${skip}
+      `),
+      this.prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*) as count FROM "usuarios"
+        WHERE ${whereClause}
+      `),
     ]);
 
-    // Determinar si hay más resultados
-    const hasMore = usuarios.length > take;
-    if (hasMore) {
-      usuarios.pop(); // Remover el elemento extra
+    const total = Number(totalResult[0]?.count ?? 0);
+    const ids = rawIds.map((r) => r.id);
+    const hasMore = ids.length > take;
+    if (hasMore) ids.pop();
+
+    if (ids.length === 0) {
+      return { data: [], total, hasMore: false, nextCursor: undefined };
     }
+
+    const usuarios = await this.prisma.usuario.findMany({
+      where: { id: { in: ids } },
+      include: includeReclutador ? { reclutador: true } : undefined,
+    });
+
+    const idOrder = new Map(ids.map((id, i) => [id, i]));
+    usuarios.sort((a, b) => idOrder.get(a.id)! - idOrder.get(b.id)!);
 
     return {
       data: usuarios,
       total,
       hasMore,
-      nextCursor: hasMore ? usuarios.at(-1)?.id : undefined,
+      nextCursor: undefined,
     };
   }
 

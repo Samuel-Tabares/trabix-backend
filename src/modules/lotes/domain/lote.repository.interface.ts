@@ -92,11 +92,15 @@ export interface FindLotesOptions {
     estado?: EstadoLote;
     modeloNegocio?: ModeloNegocio;
     esLoteForzado?: boolean;
+    searchVendedor?: string;
+    minTrabix?: number;
+    maxTrabix?: number;
   };
   orderBy?: {
     field: 'fechaCreacion' | 'fechaActivacion' | 'cantidadTrabix';
     direction: 'asc' | 'desc';
   };
+  includeVendedor?: boolean;
 }
 
 /**

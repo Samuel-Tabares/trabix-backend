@@ -83,6 +83,9 @@ export class ObtenerLoteHandler implements IQueryHandler<ObtenerLoteQuery, LoteR
       fechaCreacion: lote.fechaCreacion,
       fechaActivacion: lote.fechaActivacion,
       fechaFinalizacion: lote.fechaFinalizacion,
+      vendedor: lote.vendedor
+        ? { id: lote.vendedor.id, nombre: lote.vendedor.nombre, apellidos: lote.vendedor.apellidos }
+        : null,
     };
   }
 }

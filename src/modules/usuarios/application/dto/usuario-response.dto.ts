@@ -50,6 +50,9 @@ export class UsuarioResponseDto {
   @ApiPropertyOptional({ description: 'Fecha del último cambio de estado' })
   fechaCambioEstado?: Date | null;
 
+  @ApiPropertyOptional({ description: 'Fecha hasta la que el usuario está bloqueado (null = no bloqueado)' })
+  bloqueadoHasta?: Date | null;
+
   @ApiProperty({ description: 'Modelo de negocio aplicable' })
   modeloNegocio!: '60_40' | '50_50';
 }

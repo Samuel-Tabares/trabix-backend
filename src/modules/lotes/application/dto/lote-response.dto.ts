@@ -1,6 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EstadoLote, ModeloNegocio, EstadoTanda } from '@prisma/client';
 
+export class VendedorBasicoLoteDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() nombre!: string;
+  @ApiProperty() apellidos!: string;
+}
+
 /**
  * DTO de respuesta para tanda
  */
@@ -108,6 +114,9 @@ export class LoteResponseDto {
 
   @ApiPropertyOptional()
   fechaFinalizacion?: Date | null;
+
+  @ApiPropertyOptional({ type: VendedorBasicoLoteDto })
+  vendedor?: VendedorBasicoLoteDto | null;
 }
 
 /**

@@ -76,39 +76,28 @@ export class VendedorPuedeVenderSpecification {
       });
     }
 
-    // 6. Existe tanda EN_CASA con stock_actual > 0
-    const tandaEnCasaInicial = await this.tandaRepository.findTandaEnCasa(loteActivo.id);
-    if (!tandaEnCasaInicial) {
+    // 6. Existe tanda EN_CASA con stock_actual > 0 (la más antigua, orderBy numero asc)
+    const tandaEnCasa = await this.tandaRepository.findTandaEnCasa(loteActivo.id);
+    if (!tandaEnCasa) {
       throw new DomainException('VNT_002', 'No hay tanda EN_CASA disponible para ventas', {
         loteId: loteActivo.id,
       });
     }
 
-    // 6b. Si la tanda encontrada tiene cuadre EXITOSO y existe una tanda posterior EN_CASA
-    //     en el mismo lote, las ventas deben dirigirse al cuadre de esa siguiente tanda.
-    //     Esto ocurre cuando la tanda 2 llega en casa antes de que se vendan todos los
-    //     trabix de la tanda 1: el cuadre de tanda 1 ya es exitoso y tanda 2 es la activa.
-    let tandaEnCasa = tandaEnCasaInicial;
-    const cuadreTandaInicial = await this.cuadreRepository.findByTandaId(tandaEnCasaInicial.id);
-    if (cuadreTandaInicial?.estado === 'EXITOSO') {
-      const siguienteTanda = loteActivo.tandas.find(
-        (t) =>
-          t.numero > tandaEnCasaInicial.numero &&
-          t.estado === EstadoTanda.EN_CASA &&
-          t.stockActual > 0,
-      );
-      if (siguienteTanda) {
-        tandaEnCasa = siguienteTanda;
-      }
-    }
-
-    // 7. Validar stock
+    // 7. Stock suficiente en la tanda más antigua → flujo normal
     if (tandaEnCasa.stockActual >= cantidadTrabix) {
-      // Stock suficiente en el lote actual → flujo normal
       return { vendedor, lote: loteActivo, tanda: tandaEnCasa };
     }
 
-    // 8. Stock insuficiente → verificar si aplica venta cross-lote
+    // 8. Stock insuficiente → verificar cross-tanda (tanda más nueva EN_CASA en el mismo lote).
+    //    Las ventas siempre consumen primero la tanda más antigua; si el excedente cabe
+    //    en la siguiente tanda EN_CASA del mismo lote, se hace el split aquí.
+    const crossTanda = this.verificarCrossTanda(loteActivo, tandaEnCasa, cantidadTrabix);
+    if (crossTanda) {
+      return { vendedor, lote: loteActivo, tanda: tandaEnCasa, crossLote: crossTanda };
+    }
+
+    // 9. Sin tanda nueva disponible en el mismo lote → verificar cross-lote (lote diferente)
     const crossLote = await this.verificarCrossLote(
       vendedorId,
       loteActivo,
@@ -124,6 +113,48 @@ export class VendedorPuedeVenderSpecification {
       stockDisponible: tandaEnCasa.stockActual,
       cantidadSolicitada: cantidadTrabix,
     });
+  }
+
+  /**
+   * Verifica si se puede hacer un split cross-tanda dentro del mismo lote:
+   * el stock restante de la tanda actual (más antigua) más el stock de la
+   * siguiente tanda EN_CASA del mismo lote cubre la cantidad solicitada.
+   *
+   * No requiere llamadas a la BD: las tandas ya vienen cargadas en loteActual.
+   */
+  private verificarCrossTanda(
+    loteActual: LoteConTandas,
+    tandaActual: Tanda,
+    cantidadTotal: number,
+  ): CrossLoteInfo | null {
+    // Buscar la siguiente tanda EN_CASA con stock en el mismo lote (tandas vienen ordenadas por numero asc)
+    const tandaSiguiente = loteActual.tandas.find(
+      (t) =>
+        t.numero > tandaActual.numero &&
+        t.estado === EstadoTanda.EN_CASA &&
+        t.stockActual > 0,
+    );
+
+    if (!tandaSiguiente) {
+      return null;
+    }
+
+    const stockRestanteTanda1 = tandaActual.stockActual;
+    const excedente = cantidadTotal - stockRestanteTanda1;
+
+    if (tandaSiguiente.stockActual < excedente) {
+      throw new DomainException('VNT_001', 'Stock insuficiente incluso combinando ambas tandas del lote', {
+        stockTanda1: stockRestanteTanda1,
+        stockTanda2: tandaSiguiente.stockActual,
+        cantidadSolicitada: cantidadTotal,
+      });
+    }
+
+    return {
+      lote: loteActual, // mismo lote; el command handler usa el tandaId para separar las ventas
+      tanda: tandaSiguiente,
+      stockRestanteLote1: stockRestanteTanda1,
+    };
   }
 
   /**

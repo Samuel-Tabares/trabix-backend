@@ -59,6 +59,18 @@ export class QueryUsuariosDto {
   reclutadorId?: string;
 
   @ApiPropertyOptional({
+    description: 'Filtrar solo usuarios bloqueados (bloqueadoHasta en el futuro)',
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  bloqueado?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Filtrar por eliminados (true = solo eliminados, false = solo activos)',
     default: false,
   })
@@ -104,13 +116,12 @@ export class QueryUsuariosDto {
   cursor?: string;
 
   @ApiPropertyOptional({
-    description: 'Campo para ordenar',
+    description: 'Campo para ordenar (si no se especifica, usa ordenamiento inteligente por estado)',
     enum: ['fechaCreacion', 'nombre', 'apellidos', 'email'],
-    default: 'fechaCreacion',
   })
   @IsOptional()
   @IsEnum(['fechaCreacion', 'nombre', 'apellidos', 'email'])
-  orderBy?: 'fechaCreacion' | 'nombre' | 'apellidos' | 'email' = 'fechaCreacion';
+  orderBy?: 'fechaCreacion' | 'nombre' | 'apellidos' | 'email';
 
   @ApiPropertyOptional({
     description: 'Dirección del ordenamiento',
@@ -119,5 +130,5 @@ export class QueryUsuariosDto {
   })
   @IsOptional()
   @IsEnum(['asc', 'desc'])
-  orderDirection?: 'asc' | 'desc' = 'desc';
+  orderDirection?: 'asc' | 'desc';
 }

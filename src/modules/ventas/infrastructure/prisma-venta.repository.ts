@@ -35,6 +35,14 @@ export class PrismaVentaRepository implements IVentaRepository {
     if (where.vendedorId) whereCondition.vendedorId = where.vendedorId;
     if (where.loteId) whereCondition.loteId = where.loteId;
     if (where.tandaId) whereCondition.tandaId = where.tandaId;
+    if (where.searchVendedor) {
+      whereCondition.vendedor = {
+        OR: [
+          { nombre: { contains: where.searchVendedor, mode: 'insensitive' } },
+          { apellidos: { contains: where.searchVendedor, mode: 'insensitive' } },
+        ],
+      };
+    }
 
     const orderByCondition: Prisma.VentaOrderByWithRelationInput = orderBy
       ? { [orderBy.field]: orderBy.direction }

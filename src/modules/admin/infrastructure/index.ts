@@ -51,7 +51,7 @@ export class PrismaPedidoStockRepository implements IPedidoStockRepository {
         include: { detallesCosto: { orderBy: { fechaRegistro: 'asc' } } },
         skip,
         take: take + 1,
-        orderBy: { fechaCreacion: 'desc' },
+        orderBy: [{ estado: 'asc' }, { fechaCreacion: 'desc' }],
       }),
       this.prisma.pedidoStock.count({ where }),
     ]);

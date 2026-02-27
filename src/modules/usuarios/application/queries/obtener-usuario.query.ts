@@ -76,6 +76,7 @@ export class ObtenerUsuarioHandler implements IQueryHandler<
       fechaCreacion: usuario.fechaCreacion,
       ultimoLogin: usuario.ultimoLogin,
       fechaCambioEstado: usuario.fechaCambioEstado,
+      bloqueadoHasta: usuario.bloqueadoHasta,
       // Usar campo persistido en vez de calcular
       modeloNegocio: usuario.modeloNegocio === 'MODELO_60_40' ? '60_40' : '50_50',
     };

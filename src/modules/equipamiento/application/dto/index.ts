@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsEnum, IsUUID, IsNumber, Min } from 'class-validator';
+import { IsBoolean, IsOptional, IsEnum, IsUUID, IsNumber, Min, IsString } from 'class-validator';
 import { EstadoEquipamiento } from '@prisma/client';
 
 export class AbonoEquipamientoDto {
@@ -77,6 +77,11 @@ export class QueryEquipamientosDto {
   @IsOptional()
   @IsUUID()
   vendedorId?: string;
+
+  @ApiPropertyOptional({ description: 'Buscar por nombre o apellidos del vendedor' })
+  @IsOptional()
+  @IsString()
+  searchVendedor?: string;
 
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()

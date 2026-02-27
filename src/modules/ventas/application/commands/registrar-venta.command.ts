@@ -79,8 +79,53 @@ export class RegistrarVentaHandler implements ICommandHandler<
     }
 
     if (crossLote) {
-      // === VENTA CROSS-LOTE ===
-      // Dividir ítems entre lote1 y lote2
+      const esCrossTanda = crossLote.lote.id === lote.id;
+
+      if (esCrossTanda) {
+        // === VENTA CROSS-TANDA (mismo lote, dos tandas EN_CASA) ===
+        // Stock: se consume el resto de la tanda vieja y el excedente de la tanda nueva.
+        // Financiero: el monto completo va al cuadre de la tanda nueva (la activa).
+        const excedente = cantidadTrabix - crossLote.stockRestanteLote1;
+
+        await this.tandaRepository.consumirStock(tanda.id, crossLote.stockRestanteLote1);
+        // Tanda vieja llega a 0 → finalizarla directamente (el event de tanda2 no la cubre)
+        await this.tandaRepository.finalizar(tanda.id);
+
+        await this.tandaRepository.consumirStock(crossLote.tanda.id, excedente);
+
+        const calcCrossTanda = this.calculadoraPrecios.calcularVenta(data.detalles);
+
+        const venta = await this.ventaRepository.create({
+          vendedorId,
+          loteId: lote.id,
+          tandaId: crossLote.tanda.id, // cuadre de la tanda nueva
+          montoTotal: calcCrossTanda.montoTotal,
+          cantidadTrabix,
+          detalles: calcCrossTanda.detallesConPrecios,
+        });
+
+        this.logger.log(
+          `[Cross-Tanda] Venta: ${venta.id} - ${cantidadTrabix} TRABIX, ` +
+            `$${calcCrossTanda.montoTotal.toFixed(2)} - ` +
+            `${crossLote.stockRestanteLote1} de tanda antigua + ${excedente} de tanda nueva`,
+        );
+
+        this.eventBus.publish(
+          new VentaRegistradaEvent(
+            venta.id,
+            vendedorId,
+            lote.id,
+            crossLote.tanda.id,
+            calcCrossTanda.montoTotal,
+            cantidadTrabix,
+          ),
+        );
+
+        return { venta, esCrossLote: false };
+      }
+
+      // === VENTA CROSS-LOTE (lotes distintos) ===
+      // Dividir ítems entre lote1 y lote2; cada lote registra su propia venta
       const split = this.calculadoraCrossLote.calcular(data.detalles, crossLote.stockRestanteLote1);
 
       // --- Lote 1: consumir el stock restante ---

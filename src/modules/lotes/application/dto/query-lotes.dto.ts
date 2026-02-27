@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsUUID, IsEnum, IsInt, Min, Max, IsBoolean } from 'class-validator';
+import { IsOptional, IsUUID, IsEnum, IsInt, Min, Max, IsBoolean, IsString } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { EstadoLote, ModeloNegocio } from '@prisma/client';
 
@@ -30,6 +30,25 @@ export class QueryLotesDto {
   @IsOptional()
   @IsEnum(['MODELO_60_40', 'MODELO_50_50'])
   modeloNegocio?: ModeloNegocio;
+
+  @ApiPropertyOptional({ description: 'Buscar por nombre o apellidos del vendedor' })
+  @IsOptional()
+  @IsString()
+  searchVendedor?: string;
+
+  @ApiPropertyOptional({ description: 'Cantidad mínima de TRABIX', minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  minTrabix?: number;
+
+  @ApiPropertyOptional({ description: 'Cantidad máxima de TRABIX', minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  maxTrabix?: number;
 
   @ApiPropertyOptional({
     description: 'Filtrar por lotes forzados',
@@ -71,13 +90,12 @@ export class QueryLotesDto {
   cursor?: string;
 
   @ApiPropertyOptional({
-    description: 'Campo para ordenar',
+    description: 'Campo para ordenar (si no se especifica, usa ordenamiento inteligente por estado)',
     enum: ['fechaCreacion', 'fechaActivacion', 'cantidadTrabix'],
-    default: 'fechaCreacion',
   })
   @IsOptional()
   @IsEnum(['fechaCreacion', 'fechaActivacion', 'cantidadTrabix'])
-  orderBy?: 'fechaCreacion' | 'fechaActivacion' | 'cantidadTrabix' = 'fechaCreacion';
+  orderBy?: 'fechaCreacion' | 'fechaActivacion' | 'cantidadTrabix';
 
   @ApiPropertyOptional({
     description: 'Dirección del ordenamiento',
@@ -86,5 +104,5 @@ export class QueryLotesDto {
   })
   @IsOptional()
   @IsEnum(['asc', 'desc'])
-  orderDirection?: 'asc' | 'desc' = 'desc';
+  orderDirection?: 'asc' | 'desc';
 }

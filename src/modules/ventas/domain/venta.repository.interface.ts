@@ -68,6 +68,7 @@ export interface FindVentasOptions {
     vendedorId?: string;
     loteId?: string;
     tandaId?: string;
+    searchVendedor?: string;
   };
   orderBy?: {
     field: 'fechaRegistro' | 'montoTotal';

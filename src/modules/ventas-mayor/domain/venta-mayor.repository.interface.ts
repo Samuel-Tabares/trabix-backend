@@ -39,6 +39,7 @@ export interface FindVentasMayorOptions {
     vendedorId?: string;
     estado?: EstadoVentaMayor;
     modalidad?: ModalidadVentaMayor;
+    searchVendedor?: string;
   };
 }
 

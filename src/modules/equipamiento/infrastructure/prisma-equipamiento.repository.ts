@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Equipamiento } from '@prisma/client';
+import { Equipamiento, Prisma } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import { PrismaService } from '../../../infrastructure/database/prisma/prisma.service';
 import {
@@ -66,29 +66,70 @@ export class PrismaEquipamientoRepository implements IEquipamientoRepository {
   async findAll(options: FindEquipamientosOptions): Promise<PaginatedEquipamientos> {
     const { skip = 0, take = 20, where } = options;
 
-    const [data, total] = await Promise.all([
-      this.prisma.equipamiento.findMany({
-        where,
-        skip,
-        take: take + 1,
-        orderBy: { fechaSolicitud: 'desc' },
-        include: {
-          vendedor: {
-            select: {
-              id: true,
-              nombre: true,
-              apellidos: true,
-              cedula: true,
-              telefono: true,
-            },
-          },
-        },
-      }),
-      this.prisma.equipamiento.count({ where }),
+    const conditions: Prisma.Sql[] = [Prisma.sql`1=1`];
+    const needsUserJoin = !!where?.searchVendedor;
+
+    if (where?.estado) conditions.push(Prisma.sql`e.estado::text = ${where.estado}`);
+    if (where?.vendedorId) conditions.push(Prisma.sql`e."vendedorId" = ${where.vendedorId}`);
+    if (needsUserJoin) {
+      const search = `%${where.searchVendedor}%`;
+      conditions.push(Prisma.sql`(u.nombre ILIKE ${search} OR u.apellidos ILIKE ${search})`);
+    }
+
+    const whereClause = Prisma.join(conditions, ' AND ');
+    const fromClause = needsUserJoin
+      ? Prisma.sql`"equipamientos" e LEFT JOIN "usuarios" u ON e."vendedorId" = u.id`
+      : Prisma.sql`"equipamientos" e`;
+
+    const [rawIds, totalResult] = await Promise.all([
+      this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT e.id FROM ${fromClause}
+        WHERE ${whereClause}
+        ORDER BY
+          CASE e.estado::text
+            WHEN 'SOLICITADO' THEN 0
+            WHEN 'ACTIVO' THEN 1
+            WHEN 'DANADO' THEN 2
+            WHEN 'PERDIDO' THEN 3
+            WHEN 'DEVUELTO' THEN 4
+            ELSE 5
+          END,
+          e."fechaSolicitud" DESC,
+          e.id DESC
+        LIMIT ${take + 1} OFFSET ${skip}
+      `),
+      this.prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*) as count FROM ${fromClause}
+        WHERE ${whereClause}
+      `),
     ]);
 
-    const hasMore = data.length > take;
-    if (hasMore) data.pop();
+    const total = Number(totalResult[0]?.count ?? 0);
+    const ids = rawIds.map((r) => r.id);
+    const hasMore = ids.length > take;
+    if (hasMore) ids.pop();
+
+    if (ids.length === 0) {
+      return { data: [], total, hasMore: false };
+    }
+
+    const data = await this.prisma.equipamiento.findMany({
+      where: { id: { in: ids } },
+      include: {
+        vendedor: {
+          select: {
+            id: true,
+            nombre: true,
+            apellidos: true,
+            cedula: true,
+            telefono: true,
+          },
+        },
+      },
+    });
+
+    const idOrder = new Map(ids.map((id, i) => [id, i]));
+    data.sort((a, b) => idOrder.get(a.id)! - idOrder.get(b.id)!);
 
     return { data, total, hasMore };
   }

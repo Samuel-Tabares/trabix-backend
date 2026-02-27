@@ -36,6 +36,7 @@ export interface FindCuadresMayorOptions {
     vendedorId?: string;
     estado?: EstadoCuadre;
     modalidad?: ModalidadVentaMayor;
+    searchVendedor?: string;
   };
 }
 

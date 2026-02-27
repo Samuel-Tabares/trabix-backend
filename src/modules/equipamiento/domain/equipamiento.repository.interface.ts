@@ -20,6 +20,7 @@ export interface FindEquipamientosOptions {
   where?: {
     estado?: EstadoEquipamiento;
     vendedorId?: string;
+    searchVendedor?: string;
   };
 }
 

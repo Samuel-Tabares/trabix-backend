@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsUUID, IsEnum, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsUUID, IsEnum, IsInt, Min, Max, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -29,6 +29,11 @@ export class QueryVentasDto {
   @IsOptional()
   @IsUUID('4')
   tandaId?: string;
+
+  @ApiPropertyOptional({ description: 'Buscar por nombre del vendedor' })
+  @IsOptional()
+  @IsString()
+  searchVendedor?: string;
 
   @ApiPropertyOptional({
     description: 'Número de registros a saltar',
