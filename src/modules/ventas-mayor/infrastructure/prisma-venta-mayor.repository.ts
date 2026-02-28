@@ -31,6 +31,7 @@ export class PrismaVentaMayorRepository implements IVentaMayorRepository {
       select: {
         id: true,
         estado: true,
+        loteForzadoId: true,
       },
     },
   };

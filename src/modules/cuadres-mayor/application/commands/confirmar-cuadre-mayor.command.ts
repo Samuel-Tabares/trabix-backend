@@ -7,6 +7,8 @@ import {
   ConfirmarCuadreMayorTransactionData,
   TandaParaProcesar,
   CuadreParaCerrar,
+  CuadreDeudaSaldada,
+  EquipamentoPago,
   DistribucionMontoLote,
 } from '../../domain/cuadre-mayor.repository.interface';
 import {
@@ -18,6 +20,15 @@ import {
   ITandaRepository,
   TANDA_REPOSITORY,
 } from '../../../lotes/domain/tanda.repository.interface';
+import {
+  IVentaMayorRepository,
+  VENTA_MAYOR_REPOSITORY,
+} from '../../../ventas-mayor/domain/venta-mayor.repository.interface';
+import {
+  IEquipamientoRepository,
+  EQUIPAMIENTO_REPOSITORY,
+} from '../../../equipamiento/domain/equipamiento.repository.interface';
+import { EquipamientoEntity } from '../../../equipamiento/domain/equipamiento.entity';
 import { CalculadoraInversionService } from '../../../lotes/domain/calculadora-inversion.service';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
 import { CuadreMayorExitosoEvent } from '../events/cuadre-mayor-exitoso.event';
@@ -63,6 +74,10 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
     private readonly loteRepository: ILoteRepository,
     @Inject(TANDA_REPOSITORY)
     private readonly tandaRepository: ITandaRepository,
+    @Inject(VENTA_MAYOR_REPOSITORY)
+    private readonly ventaMayorRepository: IVentaMayorRepository,
+    @Inject(EQUIPAMIENTO_REPOSITORY)
+    private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly calculadoraInversion: CalculadoraInversionService,
     private readonly eventBus: EventBus,
     private readonly commandBus: CommandBus,
@@ -81,6 +96,22 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
       throw new DomainException('CMA_001', 'Solo se pueden confirmar cuadres en estado PENDIENTE', {
         estadoActual: cuadreMayor.estado,
       });
+    }
+
+    // Validar que la venta al mayor esté COMPLETADA antes de confirmar el cuadre.
+    // El admin debe confirmar la venta directamente con el vendedor antes de cerrar el cuadre.
+    const ventaMayor = await this.ventaMayorRepository.findById(cuadreMayor.ventaMayorId);
+    if (!ventaMayor) {
+      throw new DomainException('CMA_004', 'Venta al mayor asociada no encontrada', {
+        ventaMayorId: cuadreMayor.ventaMayorId,
+      });
+    }
+    if (ventaMayor.estado !== 'COMPLETADA') {
+      throw new DomainException(
+        'CMA_005',
+        'La venta al mayor debe estar COMPLETADA antes de confirmar el cuadre',
+        { ventaMayorId: cuadreMayor.ventaMayorId, estadoVenta: ventaMayor.estado },
+      );
     }
 
     // Parsear valores del cuadre mayor
@@ -102,11 +133,15 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
       }
     }
 
-    // 2.3 Preparar cuadres a cerrar — SOLO de tandas completamente consumidas
-    const cuadresParaCerrar = await this.prepararCuadresParaCerrar(
-      cuadreMayor.lotesInvolucradosIds,
-      tandasCompletamenteConsumidas,
-    );
+    // 2.3 Preparar cuadres a cerrar y distribuir deudasSaldadas
+    const deudasSaldadas = parseDecimalValue(cuadreMayor.deudasSaldadas);
+    const { cuadresParaCerrar, cuadresDeudaSaldada, equipamentoPago } =
+      await this.prepararCuadresParaCerrar(
+        cuadreMayor.lotesInvolucradosIds,
+        tandasCompletamenteConsumidas,
+        deudasSaldadas,
+        cuadreMayor.vendedorId,
+      );
 
     // 2.4 Calcular distribución prorrateada por lote
     const distribucionPorLote = this.calcularDistribucionPorLote(
@@ -135,6 +170,8 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
       ingresoBruto,
       tandasParaProcesar,
       cuadresParaCerrar,
+      cuadresDeudaSaldada,
+      equipamentoPago,
       distribucionPorLote,
       loteForzado: loteForzadoData,
     };
@@ -231,27 +268,33 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
   }
 
   /**
-   * Prepara la lista de cuadres normales que deben cerrarse
+   * Prepara cuadres a cerrar por agotamiento de stock y distribuye deudasSaldadas.
    *
-   * FIX: Solo cierra cuadres cuya tanda fue COMPLETAMENTE consumida (stock → 0)
-   * Antes: cerraba TODOS los cuadres de todos los lotes involucrados
-   * Ahora: solo cierra cuadres de tandas donde stockRestante === 0
-   *
-   * Además, guarda el montoEsperado de cada cuadre para usarlo como
-   * montoCubiertoPorMayor (antes se usaba montoTotalAdmin global para todos)
+   * Paso 1: Cierra cuadres (INACTIVO o PENDIENTE) cuya tanda fue completamente consumida.
+   * Paso 2: Calcula cuánto de deudasSaldadas fue cubierto por esos cierres de stock
+   *         (solo aplica a cuadres que eran PENDIENTE antes de este cuadre mayor).
+   * Paso 3: Distribuye el remanente de deudasSaldadas a otros cuadres PENDIENTE del vendedor.
+   * Paso 4: Aplica cualquier remanente final a la deuda de equipamiento.
    */
   private async prepararCuadresParaCerrar(
     lotesInvolucradosIds: string[],
     tandasCompletamenteConsumidas: Set<string>,
-  ): Promise<CuadreParaCerrar[]> {
+    deudasSaldadas: Decimal,
+    vendedorId: string,
+  ): Promise<{
+    cuadresParaCerrar: CuadreParaCerrar[];
+    cuadresDeudaSaldada: CuadreDeudaSaldada[];
+    equipamentoPago: EquipamentoPago | null;
+  }> {
     const cuadresParaCerrar: CuadreParaCerrar[] = [];
+    const closedByStockIds = new Set<string>();
+    let deudaFromStockClosures = new Decimal(0);
 
+    // Paso 1: cierres por agotamiento de stock
     for (const loteId of lotesInvolucradosIds) {
       const cuadresLote = await this.cuadreRepository.findByLoteId(loteId);
 
       for (const cuadre of cuadresLote) {
-        // Solo cerrar cuadres INACTIVOS o PENDIENTES
-        // Y SOLO si la tanda asociada fue completamente consumida
         if (
           (cuadre.estado === 'INACTIVO' || cuadre.estado === 'PENDIENTE') &&
           tandasCompletamenteConsumidas.has(cuadre.tandaId)
@@ -262,6 +305,16 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
             tandaId: cuadre.tandaId,
             montoEsperado: cuadre.montoEsperado.toString(),
           });
+          closedByStockIds.add(cuadre.id);
+
+          // Sólo cuadres PENDIENTE contribuyen a deudasSaldadas
+          if (cuadre.estado === 'PENDIENTE') {
+            const alreadyCovered = parseDecimalValue(cuadre.montoCubiertoPorMayor);
+            const pendiente = parseDecimalValue(cuadre.montoEsperado).minus(alreadyCovered);
+            if (pendiente.greaterThan(0)) {
+              deudaFromStockClosures = deudaFromStockClosures.plus(pendiente);
+            }
+          }
         }
       }
     }
@@ -271,7 +324,96 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
         `(de ${tandasCompletamenteConsumidas.size} tandas completamente consumidas)`,
     );
 
-    return cuadresParaCerrar;
+    // Paso 2+3: distribuir remanente de deudasSaldadas a otros cuadres PENDIENTE
+    const cuadresDeudaSaldada: CuadreDeudaSaldada[] = [];
+    let remaining = Decimal.max(new Decimal(0), deudasSaldadas.minus(deudaFromStockClosures));
+
+    if (remaining.greaterThan(0)) {
+      const pendientesResult = await this.cuadreRepository.findByVendedorId(vendedorId, {
+        where: { estado: 'PENDIENTE' },
+        take: 100,
+      });
+
+      for (const cuadre of pendientesResult.data) {
+        if (closedByStockIds.has(cuadre.id)) continue;
+        if (remaining.lessThanOrEqualTo(0)) break;
+
+        const montoEsperado = parseDecimalValue(cuadre.montoEsperado);
+        const alreadyCovered = parseDecimalValue(cuadre.montoCubiertoPorMayor);
+        const pendiente = montoEsperado.minus(alreadyCovered);
+
+        if (pendiente.lessThanOrEqualTo(0)) continue;
+
+        const montoCubrir = Decimal.min(remaining, pendiente);
+        remaining = remaining.minus(montoCubrir);
+        const nuevaCubierta = alreadyCovered.plus(montoCubrir);
+
+        cuadresDeudaSaldada.push({
+          cuadreId: cuadre.id,
+          nuevaMontoCubiertoPorMayor: nuevaCubierta.toFixed(2),
+          esFullClosure: montoCubrir.gte(pendiente),
+        });
+      }
+    }
+
+    // Paso 4: remanente final → deuda de equipamiento
+    let equipamentoPago: EquipamentoPago | null = null;
+
+    if (remaining.greaterThan(0)) {
+      const equipamiento = await this.equipamientoRepository.findVigenteByVendedorId(vendedorId);
+      if (equipamiento) {
+        const entity = new EquipamientoEntity({
+          ...equipamiento,
+          deudaDano: equipamiento.deudaDano,
+          deudaPerdida: equipamiento.deudaPerdida,
+        });
+
+        if (entity.tieneDeuda()) {
+          let rem = remaining;
+
+          // Prioridad: mensualidades → deudaDano → deudaPerdida
+          const mensualidadesPendientes = entity.mensualidadesPendientes();
+          const mensualidadActual = entity.mensualidadActual;
+          let nuevaUltimaMensualidadPagada: Date | null = null;
+
+          if (mensualidadesPendientes > 0 && rem.greaterThan(0)) {
+            const montoMensualidades = mensualidadActual.times(mensualidadesPendientes);
+            const pagoMensualidades = Decimal.min(rem, montoMensualidades);
+            const periodosPagados = Math.floor(
+              pagoMensualidades.div(mensualidadActual).toNumber(),
+            );
+            if (periodosPagados > 0) {
+              const base = equipamiento.ultimaMensualidadPagada ?? new Date();
+              nuevaUltimaMensualidadPagada = new Date(base);
+              nuevaUltimaMensualidadPagada.setDate(
+                nuevaUltimaMensualidadPagada.getDate() + periodosPagados * 30,
+              );
+              rem = rem.minus(mensualidadActual.times(periodosPagados));
+            }
+          }
+
+          const deudaDanoReducir = Decimal.min(rem, entity.deudaDano);
+          rem = rem.minus(deudaDanoReducir);
+          const deudaPerdidaReducir = Decimal.min(rem, entity.deudaPerdida);
+
+          equipamentoPago = {
+            equipamientoId: equipamiento.id,
+            deudaDanoReducir: deudaDanoReducir.toFixed(2),
+            deudaPerdidaReducir: deudaPerdidaReducir.toFixed(2),
+            nuevaUltimaMensualidadPagada,
+          };
+        }
+      }
+    }
+
+    if (cuadresDeudaSaldada.length > 0 || equipamentoPago) {
+      this.logger.log(
+        `Distribución de deudasSaldadas: ${cuadresDeudaSaldada.length} cuadres acreditados, ` +
+          `equipamiento=${equipamentoPago ? 'sí' : 'no'}`,
+      );
+    }
+
+    return { cuadresParaCerrar, cuadresDeudaSaldada, equipamentoPago };
   }
 
   /**

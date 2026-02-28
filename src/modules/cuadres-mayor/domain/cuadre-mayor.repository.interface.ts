@@ -103,13 +103,33 @@ export interface TandaParaProcesar {
 }
 
 /**
- * Cuadre a cerrar en la transacción
+ * Cuadre a cerrar en la transacción (por agotamiento de stock)
  */
 export interface CuadreParaCerrar {
   cuadreId: string;
   loteId: string;
   tandaId: string;
   montoEsperado: string;
+}
+
+/**
+ * Cuadre PENDIENTE a actualizar vía deudasSaldadas del cuadre mayor
+ * Distinto de CuadreParaCerrar: usa valor absoluto (no reemplaza stock-exhaustion logic)
+ */
+export interface CuadreDeudaSaldada {
+  cuadreId: string;
+  nuevaMontoCubiertoPorMayor: string; // absolute new value
+  esFullClosure: boolean; // if true, also mark EXITOSO
+}
+
+/**
+ * Pago a aplicar a deuda de equipamiento en la transacción
+ */
+export interface EquipamentoPago {
+  equipamientoId: string;
+  deudaDanoReducir: string;
+  deudaPerdidaReducir: string;
+  nuevaUltimaMensualidadPagada: Date | null;
 }
 
 /**
@@ -123,8 +143,14 @@ export interface ConfirmarCuadreMayorTransactionData {
   // Tandas a procesar
   tandasParaProcesar: TandaParaProcesar[];
 
-  // Cuadres normales a cerrar
+  // Cuadres a cerrar por agotamiento de stock
   cuadresParaCerrar: CuadreParaCerrar[];
+
+  // Cuadres PENDIENTE a acreditar vía deudasSaldadas (sin agotamiento de stock)
+  cuadresDeudaSaldada: CuadreDeudaSaldada[];
+
+  // Pago a aplicar a deuda de equipamiento (puede ser null)
+  equipamentoPago: EquipamentoPago | null;
 
   // Distribución prorrateada por lote
   distribucionPorLote: DistribucionMontoLote[];

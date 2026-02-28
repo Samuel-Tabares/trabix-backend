@@ -254,33 +254,56 @@ export class ObtenerDeudaEquipamientoHandler implements IQueryHandler<
 
   async execute(query: ObtenerDeudaEquipamientoQuery): Promise<ResumenDeudaEquipamientoDto | null> {
     // Incluye PERDIDO porque el vendedor sigue teniendo deuda aunque el equipo esté perdido
-    const equipamiento = await this.equipamientoRepository.findVigenteByVendedorId(query.vendedorId);
+    // Agrega TODOS los equipamientos vigentes (puede haber múltiples PERDIDO con deuda pendiente)
+    const equipamientos = await this.equipamientoRepository.findAllVigentesByVendedorId(
+      query.vendedorId,
+    );
 
-    if (!equipamiento) {
+    if (equipamientos.length === 0) {
       return null;
     }
 
-    const entity = new EquipamientoEntity({
-      ...equipamiento,
-      deudaDano: equipamiento.deudaDano,
-      deudaPerdida: equipamiento.deudaPerdida,
+    // Usar el más reciente como referencia para equipamientoId y mensualidad
+    const principal = equipamientos[0];
+    const entityPrincipal = new EquipamientoEntity({
+      ...principal,
+      deudaDano: principal.deudaDano,
+      deudaPerdida: principal.deudaPerdida,
     });
 
+    // Agregar deudas de todos los equipamientos
+    let totalDeudaDano = new Decimal(0);
+    let totalDeudaPerdida = new Decimal(0);
+
+    for (const eq of equipamientos) {
+      const entity = new EquipamientoEntity({
+        ...eq,
+        deudaDano: eq.deudaDano,
+        deudaPerdida: eq.deudaPerdida,
+      });
+      totalDeudaDano = totalDeudaDano.plus(entity.deudaDano);
+      totalDeudaPerdida = totalDeudaPerdida.plus(entity.deudaPerdida);
+    }
+
+    const mensualidadesPendientes = entityPrincipal.mensualidadesPendientes();
+    const montoMensualidadesPendientes = entityPrincipal.montoMensualidadesPendientes();
+    const deudaTotalParaCuadre = totalDeudaDano
+      .plus(totalDeudaPerdida)
+      .plus(montoMensualidadesPendientes);
+
     // Solo retornar si hay deuda
-    if (!entity.tieneDeuda()) {
+    if (deudaTotalParaCuadre.lessThanOrEqualTo(0) && mensualidadesPendientes === 0) {
       return null;
     }
 
     return {
-      equipamientoId: equipamiento.id,
-      vendedorId: equipamiento.vendedorId,
-      deudaDano: Number.parseFloat(entity.deudaDano.toFixed(2)),
-      deudaPerdida: Number.parseFloat(entity.deudaPerdida.toFixed(2)),
-      mensualidadesPendientes: entity.mensualidadesPendientes(),
-      montoMensualidadesPendientes: Number.parseFloat(
-        entity.montoMensualidadesPendientes().toFixed(2),
-      ),
-      deudaTotalParaCuadre: Number.parseFloat(entity.deudaTotalConMensualidades().toFixed(2)),
+      equipamientoId: principal.id,
+      vendedorId: principal.vendedorId,
+      deudaDano: Number.parseFloat(totalDeudaDano.toFixed(2)),
+      deudaPerdida: Number.parseFloat(totalDeudaPerdida.toFixed(2)),
+      mensualidadesPendientes,
+      montoMensualidadesPendientes: Number.parseFloat(montoMensualidadesPendientes.toFixed(2)),
+      deudaTotalParaCuadre: Number.parseFloat(deudaTotalParaCuadre.toFixed(2)),
     };
   }
 }

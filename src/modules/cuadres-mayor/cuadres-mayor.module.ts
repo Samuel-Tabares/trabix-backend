@@ -23,6 +23,8 @@ import { CuadresModule } from '../cuadres/cuadres.module';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 import { FondoRecompensasModule } from '../fondo-recompensas/fondo-recompensas.module';
+import { VentasMayorModule } from '../ventas-mayor/ventas-mayor.module';
+import { EquipamientoModule } from '../equipamiento/equipamiento.module';
 
 /**
  * Responsabilidades:
@@ -45,6 +47,8 @@ import { FondoRecompensasModule } from '../fondo-recompensas/fondo-recompensas.m
     forwardRef(() => UsuariosModule),
     forwardRef(() => NotificacionesModule),
     forwardRef(() => FondoRecompensasModule),
+    forwardRef(() => VentasMayorModule),
+    forwardRef(() => EquipamientoModule),
   ],
   controllers: [CuadresMayorController],
   providers: [

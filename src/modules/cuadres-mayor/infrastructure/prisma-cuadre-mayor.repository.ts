@@ -10,6 +10,7 @@ import {
   ConfirmarCuadreMayorTransactionData,
   ConfirmarCuadreMayorTransactionResult,
 } from '../domain/cuadre-mayor.repository.interface';
+import { parseDecimalValue } from '../domain/cuadre-mayor.entity';
 
 /**
  * Implementación del repositorio de cuadres al mayor con Prisma
@@ -288,6 +289,32 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
         );
       }
 
+      // ========== 2b. ACREDITAR CUADRES PENDIENTES VÍA DEUDAS SALDADAS ==========
+      for (const cuadreDeuda of data.cuadresDeudaSaldada) {
+        const updateData: Prisma.CuadreUncheckedUpdateInput = {
+          montoCubiertoPorMayor: cuadreDeuda.nuevaMontoCubiertoPorMayor,
+          cerradoPorCuadreMayorId: data.cuadreMayorId,
+          version: { increment: 1 },
+        };
+
+        if (cuadreDeuda.esFullClosure) {
+          updateData.estado = 'EXITOSO';
+          updateData.montoFaltante = '0';
+          updateData.fechaExitoso = new Date();
+          cuadresCerradosIds.push(cuadreDeuda.cuadreId);
+        }
+
+        await tx.cuadre.update({
+          where: { id: cuadreDeuda.cuadreId },
+          data: updateData,
+        });
+
+        this.logger.debug(
+          `Cuadre acreditado vía deudasSaldadas: ${cuadreDeuda.cuadreId} ` +
+            `nuevaCubierta=$${cuadreDeuda.nuevaMontoCubiertoPorMayor} esFullClosure=${cuadreDeuda.esFullClosure}`,
+        );
+      }
+
       // ========== 3. PROCESAR LOTE FORZADO (si existe) ==========
       if (data.loteForzado) {
         // Activar lote forzado
@@ -360,6 +387,36 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
           fechaExitoso: new Date(),
         },
       });
+
+      // ========== 6. ACTUALIZAR DEUDA DE EQUIPAMIENTO ==========
+      if (data.equipamentoPago) {
+        const pago = data.equipamentoPago;
+        const danoReducir = parseDecimalValue(pago.deudaDanoReducir);
+        const perdidaReducir = parseDecimalValue(pago.deudaPerdidaReducir);
+
+        const eqUpdate: Prisma.EquipamientoUpdateInput = {};
+
+        if (danoReducir.greaterThan(0)) {
+          eqUpdate.deudaDano = { decrement: Number.parseFloat(danoReducir.toFixed(2)) };
+        }
+        if (perdidaReducir.greaterThan(0)) {
+          eqUpdate.deudaPerdida = { decrement: Number.parseFloat(perdidaReducir.toFixed(2)) };
+        }
+        if (pago.nuevaUltimaMensualidadPagada) {
+          eqUpdate.ultimaMensualidadPagada = pago.nuevaUltimaMensualidadPagada;
+        }
+
+        if (Object.keys(eqUpdate).length > 0) {
+          await tx.equipamiento.update({
+            where: { id: pago.equipamientoId },
+            data: eqUpdate,
+          });
+          this.logger.debug(
+            `Equipamiento actualizado: ${pago.equipamientoId} ` +
+              `daño-$${danoReducir.toFixed(2)} pérdida-$${perdidaReducir.toFixed(2)}`,
+          );
+        }
+      }
 
       this.logger.log(
         `Transacción completada para cuadre al mayor ${data.cuadreMayorId}: ` +

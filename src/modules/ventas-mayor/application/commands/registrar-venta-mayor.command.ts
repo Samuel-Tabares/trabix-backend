@@ -51,7 +51,7 @@ export class RegistrarVentaMayorHandler implements ICommandHandler<RegistrarVent
   async execute(command: RegistrarVentaMayorCommand): Promise<any> {
     const { vendedorId, cantidadUnidades, conLicor, modalidad } = command;
 
-    // Validar cantidad mínima (>=20)
+    // Validar cantidad mínima (>=10)
     VentaMayorEntity.validarCantidadMinima(cantidadUnidades);
 
     // Validar vendedor activo

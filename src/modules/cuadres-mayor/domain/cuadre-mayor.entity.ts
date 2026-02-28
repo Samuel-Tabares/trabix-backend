@@ -49,6 +49,11 @@ export function parseDecimalValue(value: unknown): Decimal {
   if (typeof value === 'string' || typeof value === 'number') {
     return new Decimal(value);
   }
+  // Handle Prisma.Decimal which is a different class from decimal.js's Decimal
+  // (Prisma bundles its own copy, so instanceof check above fails)
+  if (value !== null && typeof value === 'object' && typeof (value as Record<string, unknown>).toString === 'function') {
+    return new Decimal((value as { toString(): string }).toString());
+  }
   return new Decimal(0);
 }
 

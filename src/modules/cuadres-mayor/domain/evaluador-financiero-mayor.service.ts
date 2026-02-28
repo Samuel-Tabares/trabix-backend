@@ -130,7 +130,7 @@ export class EvaluadorFinancieroMayorService {
       gananciaNeta,
       gananciaAdmin: resultadoGanancias.gananciaAdmin,
       gananciaVendedor: resultadoGanancias.gananciaVendedor,
-      deudasSaldadas: datos.deudas.total,
+      deudasSaldadas: Decimal.min(datos.deudas.total, dineroTotalDisponible),
       gananciasReclutadores,
     };
   }

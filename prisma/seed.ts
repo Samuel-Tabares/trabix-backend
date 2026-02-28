@@ -3,6 +3,7 @@ import { seedConfiguraciones } from './seeds/01-configuraciones';
 import { seedUsuarios } from './seeds/02-usuarios';
 import { seedEquipamientos } from './seeds/03-equipamientos';
 import { seedLotesTandas } from './seeds/04-lotes-tandas';
+import { seedCuadresMiniCuadres } from './seeds/05-cuadres-mini-cuadres';
 import { seedNotificaciones } from './seeds/08-notificaciones';
 
 const prisma = new PrismaClient();
@@ -57,6 +58,10 @@ async function main() {
     await seedLotesTandas(prisma);
     console.log();
 
+    console.log('📋 [5/9] Cuadres y mini-cuadres');
+    await seedCuadresMiniCuadres(prisma);
+    console.log();
+
     console.log('🔔 [8/9] Notificaciones');
     await seedNotificaciones(prisma);
     console.log();
@@ -94,6 +99,7 @@ async function cleanDatabase(prisma: PrismaClient) {
   await prisma.venta.deleteMany();
   await prisma.tanda.deleteMany();
   await prisma.lote.deleteMany();
+  await prisma.abonoEquipamiento.deleteMany();
   await prisma.equipamiento.deleteMany();
   await prisma.notificacion.deleteMany();
   await prisma.auditLog.deleteMany();

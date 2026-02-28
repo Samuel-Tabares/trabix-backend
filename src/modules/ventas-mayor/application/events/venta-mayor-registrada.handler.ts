@@ -135,6 +135,8 @@ export class VentaMayorRegistradaHandler implements IEventHandler<VentaMayorRegi
           inversionVendedor: inversionesLoteForzado.inversionVendedor,
           inversionTotal: inversionesLoteForzado.inversionTotal,
           modeloNegocio: (vendedor as any).modeloNegocio,
+          esLoteForzado: true,
+          ventaMayorOrigenId: event.ventaMayorId,
         });
 
         loteForzadoId = nuevoLoteForzado.id;

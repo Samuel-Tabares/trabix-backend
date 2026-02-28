@@ -26,6 +26,7 @@ export async function seedLotesTandas(prisma: PrismaClient) {
         inversionVendedor: inv.inversionVendedor,
         dineroRecaudado: config.dineroRecaudado ?? 0,
         dineroTransferido: config.dineroTransferido ?? 0,
+        dineroVendedorDistribuido: config.dineroVendedorDistribuido ?? 0,
         esLoteForzado: config.esLoteForzado ?? false,
         ventaMayorOrigenId: config.ventaMayorOrigenId ?? null,
         fechaCreacion: config.fechaCreacion,
@@ -99,6 +100,9 @@ export async function seedLotesTandas(prisma: PrismaClient) {
   // 3. Lote FINALIZADO - V.con_lote_finalizado (40u, todoo vendido y cuadrado)
   // ========================================
   const inv40 = calcularInversiones(40);
+  // dineroRecaudado=300000, invTotal=96000, gananciaAdmin=(300000-96000)*0.4=81600
+  // dineroTransferido = invAdmin(48000) + gananciaAdmin(81600) = 129600
+  // dineroVendedorDistribuido = invVendedor(48000) + gananciaVendedor(122400) = 170400
   await crearLoteConTandas({
     loteId: LOTE.v_finalizado,
     vendedorId: V.con_lote_finalizado,
@@ -106,7 +110,8 @@ export async function seedLotesTandas(prisma: PrismaClient) {
     modeloNegocio: 'MODELO_60_40',
     estado: 'FINALIZADO',
     dineroRecaudado: 300000,
-    dineroTransferido: inv40.inversionAdmin + 20000, // inversión admin + ganancias admin
+    dineroTransferido: inv40.inversionAdmin + 81600, // invAdmin(48000) + gananciaAdmin(81600)
+    dineroVendedorDistribuido: inv40.inversionVendedor + 122400, // invVend(48000) + gananciaVend(122400)
     fechaCreacion: daysAgo(170),
     fechaActivacion: daysAgo(165),
     fechaFinalizacion: daysAgo(30),
@@ -488,6 +493,7 @@ interface LoteConfig {
   estado: 'CREADO' | 'ACTIVO' | 'FINALIZADO';
   dineroRecaudado?: number;
   dineroTransferido?: number;
+  dineroVendedorDistribuido?: number;
   esLoteForzado?: boolean;
   ventaMayorOrigenId?: string;
   fechaCreacion: Date;
