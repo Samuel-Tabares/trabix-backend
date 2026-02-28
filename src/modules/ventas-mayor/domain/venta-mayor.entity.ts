@@ -72,13 +72,15 @@ export class VentaMayorEntity {
   }
 
   /**
-   * Valida cantidad mínima para venta al mayor (>=20)
+   * Valida cantidad mínima para venta al mayor (>=10)
+   * 10-19 unidades: excepción admin, precio del tramo 20-49
+   * >=20 unidades: precio por mayor estándar según tramos
    */
   static validarCantidadMinima(cantidad: number): void {
-    if (cantidad < 20) {
+    if (cantidad < 10) {
       throw new DomainException(
         'VMA_002',
-        'La cantidad para venta al mayor debe ser mayor o igual a 20 unidades',
+        'La cantidad para venta al mayor debe ser mayor o igual a 10 unidades',
         { cantidad },
       );
     }

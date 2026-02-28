@@ -146,6 +146,8 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
       const tandasAfectadasJson = data.tandasAfectadas.map((t) => ({
         tandaId: t.tandaId,
         cantidadStockConsumido: t.cantidadStockConsumido,
+        numeroTanda: t.numeroTanda,
+        loteId: t.loteId,
       }));
 
       // Crear el cuadre al mayor
@@ -333,6 +335,9 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
             },
             dineroTransferido: {
               increment: Number.parseFloat(distribucion.montoTransferido.toFixed(2)),
+            },
+            dineroVendedorDistribuido: {
+              increment: Number.parseFloat(distribucion.montoVendedor.toFixed(2)),
             },
             version: { increment: 1 },
           },

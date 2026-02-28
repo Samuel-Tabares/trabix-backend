@@ -16,6 +16,7 @@ export interface LoteParaEvaluacion {
   inversionVendedor: Decimal;
   dineroRecaudado: Decimal;
   dineroTransferido: Decimal;
+  dineroVendedorDistribuido: Decimal;
   modeloNegocio: ModeloNegocio;
 }
 
@@ -166,11 +167,16 @@ export class EvaluadorFinancieroMayorService {
     }
 
     // 4. Cubrir inversión vendedor de lotes existentes → Vendedor
+    // Solo cubrir la inversión que aún no fue cubierta en cuadres-mayor anteriores.
+    // dineroVendedorDistribuido rastrea exactamente cuánto se ha entregado al vendedor.
     let inversionVendedorExistentes = new Decimal(0);
     for (const lote of datos.lotesExistentes) {
-      const cubierto = Decimal.min(dineroDisponible, lote.inversionVendedor);
-      inversionVendedorExistentes = inversionVendedorExistentes.plus(cubierto);
-      dineroDisponible = dineroDisponible.minus(cubierto);
+      const inversionPendiente = lote.inversionVendedor.minus(lote.dineroVendedorDistribuido);
+      if (inversionPendiente.greaterThan(0)) {
+        const cubierto = Decimal.min(dineroDisponible, inversionPendiente);
+        inversionVendedorExistentes = inversionVendedorExistentes.plus(cubierto);
+        dineroDisponible = dineroDisponible.minus(cubierto);
+      }
     }
 
     // 5. Cubrir inversión vendedor de lote forzado → Vendedor

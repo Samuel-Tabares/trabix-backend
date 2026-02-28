@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, Min, IsBoolean, IsEnum } from 'class-validator';
+import { IsInt, Min, IsBoolean, IsEnum, IsUUID } from 'class-validator';
 import { ModalidadVentaMayor } from '@prisma/client';
 
 /**
@@ -8,12 +8,19 @@ import { ModalidadVentaMayor } from '@prisma/client';
  */
 export class RegistrarVentaMayorDto {
   @ApiProperty({
+    description: 'ID del vendedor para quien se registra la venta',
+    example: 'uuid-del-vendedor',
+  })
+  @IsUUID('4', { message: 'vendedorId debe ser un UUID válido' })
+  vendedorId!: string;
+
+  @ApiProperty({
     description: 'Cantidad de unidades (debe ser mayor a 20)',
     example: 49,
     minimum: 20,
   })
   @IsInt({ message: 'La cantidad debe ser un número entero' })
-  @Min(20, { message: 'La cantidad para venta al mayor debe ser mayor o igual a 20' })
+  @Min(10, { message: 'La cantidad para venta al mayor debe ser mayor o igual a 10' })
   cantidadUnidades!: number;
 
   @ApiProperty({

@@ -71,10 +71,9 @@ export class VentasMayorController {
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   async registrar(
     @Body() dto: RegistrarVentaMayorDto,
-    @CurrentUser() user: AuthenticatedUser,
   ): Promise<VentaMayorResponseDto> {
     const venta = await this.commandBus.execute(
-      new RegistrarVentaMayorCommand(user.id, dto.cantidadUnidades, dto.conLicor, dto.modalidad),
+      new RegistrarVentaMayorCommand(dto.vendedorId, dto.cantidadUnidades, dto.conLicor, dto.modalidad),
     );
     return this.queryBus.execute(new ObtenerVentaMayorQuery(venta.id));
   }
@@ -108,14 +107,16 @@ export class VentasMayorController {
    */
   @Get('calcular-stock')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Calcular stock disponible' })
+  @ApiOperation({ summary: 'Calcular stock disponible para un vendedor' })
   @ApiResponse({
     status: 200,
     description: 'Stock disponible calculado',
     type: StockDisponibleResponseDto,
   })
-  async calcularStock(@CurrentUser() user: AuthenticatedUser): Promise<StockDisponibleResponseDto> {
-    return this.queryBus.execute(new CalcularStockDisponibleQuery(user.id));
+  async calcularStock(
+    @Query('vendedorId') vendedorId: string,
+  ): Promise<StockDisponibleResponseDto> {
+    return this.queryBus.execute(new CalcularStockDisponibleQuery(vendedorId));
   }
 
   /**

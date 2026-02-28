@@ -87,6 +87,7 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
     const tandasAfectadas = this.parseTandasAfectadas(cuadreMayor.tandasAfectadas);
     const ingresoBruto = parseDecimalValue(cuadreMayor.ingresoBruto);
     const montoTotalAdmin = parseDecimalValue(cuadreMayor.montoTotalAdmin);
+    const montoTotalVendedor = parseDecimalValue(cuadreMayor.montoTotalVendedor);
 
     // ========== 2. PREPARAR DATOS PARA TRANSACCIÓN ==========
 
@@ -112,6 +113,7 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
       tandasAfectadas,
       ingresoBruto,
       montoTotalAdmin,
+      montoTotalVendedor,
     );
 
     // 2.5 Preparar lote forzado si existe
@@ -280,6 +282,7 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
     tandasAfectadas: TandaAfectada[],
     ingresoBruto: Decimal,
     montoTotalAdmin: Decimal,
+    montoTotalVendedor: Decimal,
   ): DistribucionMontoLote[] {
     // Agrupar stock consumido por lote
     const stockPorLote = new Map<string, number>();
@@ -308,6 +311,7 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
         stockConsumido,
         montoRecaudado: ingresoBruto.mul(proporcion),
         montoTransferido: montoTotalAdmin.mul(proporcion),
+        montoVendedor: montoTotalVendedor.mul(proporcion),
       });
 
       this.logger.debug(

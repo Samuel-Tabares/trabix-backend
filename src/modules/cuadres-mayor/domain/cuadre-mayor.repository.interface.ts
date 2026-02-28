@@ -86,6 +86,7 @@ export interface DistribucionMontoLote {
   stockConsumido: number;
   montoRecaudado: Decimal;
   montoTransferido: Decimal;
+  montoVendedor: Decimal;
 }
 
 /**

@@ -52,8 +52,9 @@ model Lote {
   inversionTotal     Decimal       @db.Decimal(12, 2)
   inversionAdmin     Decimal       @db.Decimal(12, 2)
   inversionVendedor  Decimal       @db.Decimal(12, 2)
-  dineroRecaudado    Decimal       @default(0) @db.Decimal(12, 2)
-  dineroTransferido  Decimal       @default(0) @db.Decimal(12, 2)
+  dineroRecaudado              Decimal       @default(0) @db.Decimal(12, 2)
+  dineroTransferido            Decimal       @default(0) @db.Decimal(12, 2)
+  dineroVendedorDistribuido    Decimal       @default(0) @db.Decimal(12, 2)
   esLoteForzado      Boolean       @default(false)
   ventaMayorOrigenId String?
   fechaCreacion      DateTime      @default(now())

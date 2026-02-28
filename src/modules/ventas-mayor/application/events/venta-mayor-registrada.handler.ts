@@ -98,8 +98,11 @@ export class VentaMayorRegistradaHandler implements IEventHandler<VentaMayorRegi
       for (const lote of lotesInvolucrados) {
         if (!lote) continue;
 
+        // Dinero pendiente de distribución = total recaudado − ya dado al admin − ya dado al vendedor
         dineroRecaudadoDetal = dineroRecaudadoDetal.plus(
-          new Decimal(lote.dineroRecaudado).minus(lote.dineroTransferido),
+          new Decimal(lote.dineroRecaudado)
+            .minus(lote.dineroTransferido)
+            .minus(lote.dineroVendedorDistribuido),
         );
 
         lotesParaEvaluacion.push({
@@ -108,6 +111,7 @@ export class VentaMayorRegistradaHandler implements IEventHandler<VentaMayorRegi
           inversionVendedor: new Decimal(lote.inversionVendedor),
           dineroRecaudado: new Decimal(lote.dineroRecaudado),
           dineroTransferido: new Decimal(lote.dineroTransferido),
+          dineroVendedorDistribuido: new Decimal(lote.dineroVendedorDistribuido),
           modeloNegocio: lote.modeloNegocio,
         });
       }
@@ -140,6 +144,7 @@ export class VentaMayorRegistradaHandler implements IEventHandler<VentaMayorRegi
           inversionVendedor: inversionesLoteForzado.inversionVendedor,
           dineroRecaudado: new Decimal(0),
           dineroTransferido: new Decimal(0),
+          dineroVendedorDistribuido: new Decimal(0),
           modeloNegocio: (vendedor as any).modeloNegocio,
         };
 
