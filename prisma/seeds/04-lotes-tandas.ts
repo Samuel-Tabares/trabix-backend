@@ -334,7 +334,10 @@ export async function seedLotesTandas(prisma: PrismaClient) {
 
   // ========================================
   // 11. Lote para venta mayor PENDIENTE - V.venta_mayor_pend (50u)
-  //     T1 en_casa, T2 LIBERADA
+  //     T1 en_casa (15 vendidos via detal → 10u, listo para consumo mayor de 15u),
+  //     T2 LIBERADA
+  //     dineroRecaudado=80000: 10 unidades detal × $8000
+  //     Al confirmar cuadre mayor A: T1 stockActual(15) - 15 = 0 → T1 se finaliza
   // ========================================
   await crearLoteConTandas({
     loteId: LOTE.v_vta_mayor_pend,
@@ -342,13 +345,13 @@ export async function seedLotesTandas(prisma: PrismaClient) {
     cantidadTrabix: 50,
     modeloNegocio: 'MODELO_60_40',
     estado: 'ACTIVO',
-    dineroRecaudado: 60000,
+    dineroRecaudado: 80000, // 10 unidades detal × $8000
     fechaCreacion: daysAgo(60),
     fechaActivacion: daysAgo(55),
     tandas: [
       {
         id: TANDA.vmayp_t1, numero: 1, estado: 'EN_CASA',
-        stockInicial: 25, stockActual: 10,
+        stockInicial: 25, stockActual: 15, // 10 vendidos via detal
         fechaLiberacion: daysAgo(55), fechaEnTransito: daysAgo(55), fechaEnCasa: daysAgo(54),
       },
       {
@@ -440,6 +443,9 @@ export async function seedLotesTandas(prisma: PrismaClient) {
 
   // ========================================
   // 15. Lote V50 venta mayor - V50.con_venta_mayor (50u, modelo 50/50)
+  //     CuadreMayor EXITOSO ya confirmado:
+  //     dineroTransferido=64750 (montoTotalAdmin), dineroVendedorDistribuido=69500 (montoTotalVendedor)
+  //     T1: 10 consumidos por mayor (stockConsumidoPorMayor=10), 7 por detal → stockActual=8
   // ========================================
   await crearLoteConTandas({
     loteId: LOTE.v50_vta_mayor,
@@ -448,12 +454,15 @@ export async function seedLotesTandas(prisma: PrismaClient) {
     modeloNegocio: 'MODELO_50_50',
     estado: 'ACTIVO',
     dineroRecaudado: 90000,
+    dineroTransferido: 64750,          // montoTotalAdmin del CuadreMayor EXITOSO
+    dineroVendedorDistribuido: 69500,  // montoTotalVendedor del CuadreMayor EXITOSO
     fechaCreacion: daysAgo(60),
     fechaActivacion: daysAgo(55),
     tandas: [
       {
         id: TANDA.v50vm_t1, numero: 1, estado: 'EN_CASA',
         stockInicial: 25, stockActual: 8,
+        stockConsumidoPorMayor: 10,  // consumidos en CuadreMayor EXITOSO
         fechaLiberacion: daysAgo(55), fechaEnTransito: daysAgo(55), fechaEnCasa: daysAgo(54),
       },
       {

@@ -4,6 +4,7 @@ import { seedUsuarios } from './seeds/02-usuarios';
 import { seedEquipamientos } from './seeds/03-equipamientos';
 import { seedLotesTandas } from './seeds/04-lotes-tandas';
 import { seedCuadresMiniCuadres } from './seeds/05-cuadres-mini-cuadres';
+import { seedVentasMayorCuadresMayor } from './seeds/06-ventas-mayor-cuadres-mayor';
 import { seedNotificaciones } from './seeds/08-notificaciones';
 
 const prisma = new PrismaClient();
@@ -62,6 +63,10 @@ async function main() {
     await seedCuadresMiniCuadres(prisma);
     console.log();
 
+    console.log('💰 [6/9] Ventas al mayor y cuadres al mayor (4 escenarios: A/B/C/D)');
+    await seedVentasMayorCuadresMayor(prisma);
+    console.log();
+
     console.log('🔔 [8/9] Notificaciones');
     await seedNotificaciones(prisma);
     console.log();
@@ -92,6 +97,7 @@ async function cleanDatabase(prisma: PrismaClient) {
   await prisma.cuadreMayor.deleteMany();
   await prisma.fuenteStockMayor.deleteMany();
   await prisma.loteVentaMayor.deleteMany();
+  // Note: VentaMayor must be deleted AFTER FuenteStockMayor/LoteVentaMayor/CuadreMayor
   await prisma.ventaMayor.deleteMany();
   await prisma.miniCuadre.deleteMany();
   await prisma.cuadre.deleteMany();
