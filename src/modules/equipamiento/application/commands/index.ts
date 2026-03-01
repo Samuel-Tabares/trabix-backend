@@ -207,7 +207,25 @@ export class ReportarDanoHandler implements ICommandHandler<ReportarDanoCommand>
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly equipamientoConfig: EquipamientoConfigService,
     private readonly actualizadorCuadres: ActualizadorCuadresVendedorService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  private calcularAbonoDeposito(
+    equipo: Equipamiento,
+    montoDeuda: Decimal,
+  ): { abonoDeposito: Decimal; deudaNeta: Decimal } {
+    if (!equipo.tieneDeposito || !equipo.depositoPagado) {
+      return { abonoDeposito: new Decimal(0), deudaNeta: montoDeuda };
+    }
+    const depositoAplicado = new Decimal(equipo.depositoAplicado ?? 0);
+    const depositoDisponible = new Decimal(equipo.depositoPagado).minus(depositoAplicado);
+    if (depositoDisponible.lte(0)) {
+      return { abonoDeposito: new Decimal(0), deudaNeta: montoDeuda };
+    }
+    const abonoDeposito = Decimal.min(depositoDisponible, montoDeuda);
+    const deudaNeta = montoDeuda.minus(abonoDeposito);
+    return { abonoDeposito, deudaNeta };
+  }
 
   async execute(command: ReportarDanoCommand): Promise<ResultadoConAdvertencia> {
     const equipamiento = await this.equipamientoRepository.findById(command.equipamientoId);
@@ -227,52 +245,68 @@ export class ReportarDanoHandler implements ICommandHandler<ReportarDanoCommand>
 
     const montoComponente = this.equipamientoConfig.getCostoDano(command.tipoDano);
     const ambosDanados = entity.ambosDanadosTras(command.tipoDano);
+    const costoTotal = ambosDanados ? this.equipamientoConfig.costoPerdidaTotal : montoComponente;
+    const { abonoDeposito, deudaNeta } = this.calcularAbonoDeposito(equipamiento, costoTotal);
+
+    // Si el depósito cubre parte de la deuda, registrar abono para auditoría
+    if (abonoDeposito.gt(0)) {
+      await this.prisma.abonoEquipamiento.create({
+        data: {
+          equipamientoId: command.equipamientoId,
+          tipo: 'DANO',
+          monto: abonoDeposito.toFixed(2),
+        },
+      });
+    }
 
     let resultado: Equipamiento;
 
     if (ambosDanados) {
-      // Ambos componentes quedan dañados → transición automática a PERDIDO
-      const montoPerdida = this.equipamientoConfig.costoPerdidaTotal;
+      // Ambos componentes quedan dañados → transición automática
       resultado = await this.equipamientoRepository.transicionarAPerdidoPorDanos(
         command.equipamientoId,
-        montoPerdida,
+        deudaNeta,
+        abonoDeposito,
       );
       this.logger.log(
         `Auto-perdido por daños: ${command.equipamientoId} - ` +
           `Último daño: ${command.tipoDano} - ` +
-          `Deuda total: $${montoPerdida.toFixed(0)} - ` +
+          `Deuda neta: $${deudaNeta.toFixed(0)} (abono depósito: $${abonoDeposito.toFixed(0)}) - ` +
           `Admin: ${command.adminId}`,
       );
     } else {
       resultado = await this.equipamientoRepository.reportarDano(
         command.equipamientoId,
         command.tipoDano,
-        montoComponente,
+        deudaNeta,
+        abonoDeposito,
       );
       this.logger.log(
         `Daño reportado: ${command.equipamientoId} - ` +
           `Tipo: ${command.tipoDano} - ` +
-          `Monto: $${montoComponente.toFixed(0)} - ` +
+          `Deuda neta: $${deudaNeta.toFixed(0)} (abono depósito: $${abonoDeposito.toFixed(0)}) - ` +
           `Admin: ${command.adminId}`,
       );
     }
 
-    // Intentar actualizar cuadres del vendedor
+    // Sólo actualizar cuadres si hay deuda real pendiente
     let advertenciaCuadres: string | undefined;
-    try {
-      const motivo = ambosDanados
-        ? `Auto-perdido por daños ($${this.equipamientoConfig.costoPerdidaTotal.toFixed(0)})`
-        : `Daño reportado: ${command.tipoDano} ($${montoComponente.toFixed(0)})`;
-      await this.actualizadorCuadres.actualizarPorCambioDeudaEquipamiento(
-        equipamiento.vendedorId,
-        motivo,
-      );
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error actualizando cuadres después de reportar daño: ${errorMsg}`);
-      advertenciaCuadres =
-        `El daño fue registrado correctamente, pero hubo un error al actualizar los cuadres del vendedor. ` +
-        `Es posible que los cuadres no reflejen esta deuda. Error: ${errorMsg}`;
+    if (deudaNeta.gt(0)) {
+      try {
+        const motivo = ambosDanados
+          ? `Auto-perdido por daños ($${costoTotal.toFixed(0)})`
+          : `Daño reportado: ${command.tipoDano} ($${montoComponente.toFixed(0)})`;
+        await this.actualizadorCuadres.actualizarPorCambioDeudaEquipamiento(
+          equipamiento.vendedorId,
+          motivo,
+        );
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Error actualizando cuadres después de reportar daño: ${errorMsg}`);
+        advertenciaCuadres =
+          `El daño fue registrado correctamente, pero hubo un error al actualizar los cuadres del vendedor. ` +
+          `Es posible que los cuadres no reflejen esta deuda. Error: ${errorMsg}`;
+      }
     }
 
     return {
@@ -303,7 +337,25 @@ export class ReportarPerdidaHandler implements ICommandHandler<ReportarPerdidaCo
     private readonly equipamientoRepository: IEquipamientoRepository,
     private readonly equipamientoConfig: EquipamientoConfigService,
     private readonly actualizadorCuadres: ActualizadorCuadresVendedorService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  private calcularAbonoDeposito(
+    equipo: Equipamiento,
+    montoDeuda: Decimal,
+  ): { abonoDeposito: Decimal; deudaNeta: Decimal } {
+    if (!equipo.tieneDeposito || !equipo.depositoPagado) {
+      return { abonoDeposito: new Decimal(0), deudaNeta: montoDeuda };
+    }
+    const depositoAplicado = new Decimal(equipo.depositoAplicado ?? 0);
+    const depositoDisponible = new Decimal(equipo.depositoPagado).minus(depositoAplicado);
+    if (depositoDisponible.lte(0)) {
+      return { abonoDeposito: new Decimal(0), deudaNeta: montoDeuda };
+    }
+    const abonoDeposito = Decimal.min(depositoDisponible, montoDeuda);
+    const deudaNeta = montoDeuda.minus(abonoDeposito);
+    return { abonoDeposito, deudaNeta };
+  }
 
   async execute(command: ReportarPerdidaCommand): Promise<ResultadoConAdvertencia> {
     const equipamiento = await this.equipamientoRepository.findById(command.equipamientoId);
@@ -319,33 +371,47 @@ export class ReportarPerdidaHandler implements ICommandHandler<ReportarPerdidaCo
     entity.validarReportePerdida();
 
     // Costo total de pérdida desde configuración
-    const monto = this.equipamientoConfig.costoPerdidaTotal;
+    const costoTotal = this.equipamientoConfig.costoPerdidaTotal;
+    const { abonoDeposito, deudaNeta } = this.calcularAbonoDeposito(equipamiento, costoTotal);
+
+    // Si el depósito cubre parte de la deuda, registrar abono para auditoría
+    if (abonoDeposito.gt(0)) {
+      await this.prisma.abonoEquipamiento.create({
+        data: {
+          equipamientoId: command.equipamientoId,
+          tipo: 'PERDIDA',
+          monto: abonoDeposito.toFixed(2),
+        },
+      });
+    }
 
     const perdido = await this.equipamientoRepository.reportarPerdida(
       command.equipamientoId,
-      monto,
+      deudaNeta,
+      abonoDeposito,
     );
 
     this.logger.log(
       `Pérdida reportada: ${command.equipamientoId} - ` +
-        `Monto: $${monto.toFixed(0)} - ` +
+        `Deuda neta: $${deudaNeta.toFixed(0)} (abono depósito: $${abonoDeposito.toFixed(0)}) - ` +
         `Admin: ${command.adminId}`,
     );
 
-    // Intentar actualizar cuadres del vendedor
+    // Sólo actualizar cuadres si hay deuda real pendiente
     let advertenciaCuadres: string | undefined;
-    try {
-      await this.actualizadorCuadres.actualizarPorCambioDeudaEquipamiento(
-        equipamiento.vendedorId,
-        `Pérdida total reportada ($${monto.toFixed(0)})`,
-      );
-    } catch (error) {
-      // PUNTO 8: No silenciar, registrar y advertir al admin
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error actualizando cuadres después de reportar pérdida: ${errorMsg}`);
-      advertenciaCuadres =
-        `La pérdida fue registrada correctamente, pero hubo un error al actualizar los cuadres del vendedor. ` +
-        `Es posible que los cuadres no reflejen esta deuda. Error: ${errorMsg}`;
+    if (deudaNeta.gt(0)) {
+      try {
+        await this.actualizadorCuadres.actualizarPorCambioDeudaEquipamiento(
+          equipamiento.vendedorId,
+          `Pérdida total reportada ($${costoTotal.toFixed(0)})`,
+        );
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Error actualizando cuadres después de reportar pérdida: ${errorMsg}`);
+        advertenciaCuadres =
+          `La pérdida fue registrada correctamente, pero hubo un error al actualizar los cuadres del vendedor. ` +
+          `Es posible que los cuadres no reflejen esta deuda. Error: ${errorMsg}`;
+      }
     }
 
     return {
@@ -598,9 +664,10 @@ export class PagarDeudaDanoHandler implements ICommandHandler<PagarDeudaDanoComm
         `Admin: ${command.adminId}`,
     );
 
-    // Si la deuda quedó en 0, notificar al vendedor que está al día
+    // Si la deuda quedó en 0, resetear flags de daño y notificar al vendedor
     const deudaRestante = deudaActual.minus(montoAbono);
     if (deudaRestante.equals(0)) {
+      await this.equipamientoRepository.resetearFlagsReparacion(command.equipamientoId);
       try {
         await this.commandBus.execute(
           new EnviarNotificacionCommand(equipamiento.vendedorId, 'MANUAL', {

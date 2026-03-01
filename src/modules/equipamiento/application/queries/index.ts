@@ -57,6 +57,7 @@ export class ObtenerEquipamientoHandler implements IQueryHandler<
       depositoPagado: equipamiento.depositoPagado
         ? Number.parseFloat(equipamiento.depositoPagado)
         : null,
+      depositoAplicado: Number.parseFloat(new Decimal(equipamiento.depositoAplicado ?? 0).toFixed(2)),
       mensualidadActual: Number.parseFloat(equipamiento.mensualidadActual),
       ultimaMensualidadPagada: equipamiento.ultimaMensualidadPagada,
       neveraDanada: equipamiento.neveraDanada ?? false,
@@ -133,6 +134,7 @@ export class ObtenerMiEquipamientoHandler implements IQueryHandler<
       depositoPagado: equipamiento.depositoPagado
         ? Number.parseFloat(equipamiento.depositoPagado)
         : null,
+      depositoAplicado: Number.parseFloat(new Decimal(equipamiento.depositoAplicado ?? 0).toFixed(2)),
       mensualidadActual: Number.parseFloat(equipamiento.mensualidadActual),
       ultimaMensualidadPagada: equipamiento.ultimaMensualidadPagada,
       neveraDanada: equipamiento.neveraDanada ?? false,
@@ -210,6 +212,7 @@ export class ListarEquipamientosHandler implements IQueryHandler<
       depositoPagado: equipamiento.depositoPagado
         ? Number.parseFloat(equipamiento.depositoPagado)
         : null,
+      depositoAplicado: Number.parseFloat(new Decimal(equipamiento.depositoAplicado ?? 0).toFixed(2)),
       mensualidadActual: Number.parseFloat(equipamiento.mensualidadActual),
       ultimaMensualidadPagada: equipamiento.ultimaMensualidadPagada,
       neveraDanada: equipamiento.neveraDanada ?? false,

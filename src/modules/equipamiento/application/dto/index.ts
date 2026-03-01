@@ -136,6 +136,9 @@ export class EquipamientoResponseDto {
   @ApiPropertyOptional({ description: 'Monto del depósito pagado' })
   depositoPagado?: number | null;
 
+  @ApiProperty({ description: 'Monto del depósito que ya fue aplicado a deudas' })
+  depositoAplicado!: number;
+
   @ApiProperty({ description: 'Mensualidad actual según depósito' })
   mensualidadActual!: number;
 

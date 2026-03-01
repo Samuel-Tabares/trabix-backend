@@ -173,43 +173,63 @@ export class PrismaEquipamientoRepository implements IEquipamientoRepository {
   async reportarDano(
     id: string,
     tipoDano: 'NEVERA' | 'PIJAMA',
-    monto: Decimal,
+    deudaNeta: Decimal,
+    abonoDeposito: Decimal,
   ): Promise<Equipamiento> {
-    // Aumenta la deuda y marca el componente como dañado
+    const deudaEsCero = deudaNeta.isZero();
     return this.prisma.equipamiento.update({
       where: { id },
       data: {
-        deudaDano: { increment: Number.parseFloat(monto.toFixed(2)) },
-        ...(tipoDano === 'NEVERA' ? { neveraDanada: true } : { pijamaDanada: true }),
+        // Si la deuda neta es 0 el depósito cubrió el costo → no incrementar deudaDano
+        ...(deudaEsCero ? {} : { deudaDano: { increment: Number.parseFloat(deudaNeta.toFixed(2)) } }),
+        // Sólo marcar flag si hay deuda remanente
+        ...(deudaEsCero ? {} : tipoDano === 'NEVERA' ? { neveraDanada: true } : { pijamaDanada: true }),
+        // Acumular monto de depósito aplicado
+        ...(abonoDeposito.gt(0) ? { depositoAplicado: { increment: Number.parseFloat(abonoDeposito.toFixed(2)) } } : {}),
       },
     });
   }
 
-  async transicionarAPerdidoPorDanos(id: string, montoPerdida: Decimal): Promise<Equipamiento> {
-    // Cuando ambos componentes están dañados: estado → PERDIDO,
-    // deudaDano → 0 (absorbida en deudaPerdida que cubre el total)
+  async transicionarAPerdidoPorDanos(
+    id: string,
+    deudaNeta: Decimal,
+    abonoDeposito: Decimal,
+  ): Promise<Equipamiento> {
+    // Cuando ambos componentes están dañados: si depósito cubrió → DEVUELTO, si no → PERDIDO
+    const deudaEsCero = deudaNeta.isZero();
     return this.prisma.equipamiento.update({
       where: { id },
       data: {
-        estado: 'PERDIDO',
-        neveraDanada: true,
-        pijamaDanada: true,
+        estado: deudaEsCero ? 'DEVUELTO' : 'PERDIDO',
+        neveraDanada: deudaEsCero ? false : true,
+        pijamaDanada: deudaEsCero ? false : true,
         deudaDano: '0',
-        deudaPerdida: montoPerdida.toFixed(2),
+        deudaPerdida: deudaNeta.toFixed(2),
+        ...(deudaEsCero ? { fechaDevolucion: new Date() } : {}),
+        ...(abonoDeposito.gt(0) ? { depositoAplicado: { increment: Number.parseFloat(abonoDeposito.toFixed(2)) } } : {}),
       },
     });
   }
 
-  async reportarPerdida(id: string, monto: Decimal): Promise<Equipamiento> {
-    // Cambia estado a PERDIDO y registra la deuda total
+  async reportarPerdida(id: string, deudaNeta: Decimal, abonoDeposito: Decimal): Promise<Equipamiento> {
+    const deudaEsCero = deudaNeta.isZero();
     return this.prisma.equipamiento.update({
       where: { id },
       data: {
-        estado: 'PERDIDO',
-        neveraDanada: true,
-        pijamaDanada: true,
-        deudaPerdida: monto.toFixed(2),
+        estado: deudaEsCero ? 'DEVUELTO' : 'PERDIDO',
+        neveraDanada: deudaEsCero ? false : true,
+        pijamaDanada: deudaEsCero ? false : true,
+        deudaPerdida: deudaNeta.toFixed(2),
+        ...(deudaEsCero ? { fechaDevolucion: new Date() } : {}),
+        ...(abonoDeposito.gt(0) ? { depositoAplicado: { increment: Number.parseFloat(abonoDeposito.toFixed(2)) } } : {}),
       },
+    });
+  }
+
+  async resetearFlagsReparacion(id: string): Promise<Equipamiento> {
+    return this.prisma.equipamiento.update({
+      where: { id },
+      data: { neveraDanada: false, pijamaDanada: false },
     });
   }
 

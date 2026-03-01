@@ -315,6 +315,23 @@ export class PrismaCuadreMayorRepository implements ICuadreMayorRepository {
         );
       }
 
+      // ========== 2c. APLICAR CRÉDITO PARCIAL A CUADRES CON TANDA PARCIALMENTE CONSUMIDA ==========
+      for (const creditoParcial of data.cuadresCreditoParcial) {
+        await tx.cuadre.update({
+          where: { id: creditoParcial.cuadreId },
+          data: {
+            montoCubiertoPorMayor: creditoParcial.nuevaMontoCubiertaPorMayor,
+            cerradoPorCuadreMayorId: data.cuadreMayorId,
+            version: { increment: 1 },
+          },
+        });
+
+        this.logger.debug(
+          `Crédito parcial aplicado a cuadre ${creditoParcial.cuadreId}: ` +
+            `nuevaCubierta=$${creditoParcial.nuevaMontoCubiertaPorMayor}`,
+        );
+      }
+
       // ========== 3. PROCESAR LOTE FORZADO (si existe) ==========
       if (data.loteForzado) {
         // Activar lote forzado

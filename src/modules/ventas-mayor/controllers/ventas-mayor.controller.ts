@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -24,7 +25,11 @@ import {
 } from '../application/dto/venta-mayor-response.dto';
 
 // Commands
-import { RegistrarVentaMayorCommand, CompletarVentaMayorCommand } from '../application/commands';
+import {
+  RegistrarVentaMayorCommand,
+  ConfirmarVentaMayorCommand,
+  EliminarVentaMayorCommand,
+} from '../application/commands';
 import { Idempotent } from '../../../presentation/http/decorators/idempotent.decorator';
 
 // Queries
@@ -37,14 +42,14 @@ import { RegistrarVentaMayorDto } from '../application/dto/registrar-venta-mayor
 
 /**
  * Controlador de Ventas al Mayor
- * Según sección 20.7 del documento
  *
  * Endpoints:
- * - POST /             - Registrar venta al mayor
+ * - POST /             - Registrar venta al mayor (solo informativa)
  * - GET /              - Listar ventas al mayor
  * - GET /calcular-stock - Calcular stock disponible
  * - GET /:id           - Obtener venta al mayor
- * - POST /:id/completar - Completar venta (admin)
+ * - POST /:id/confirmar - Confirma venta: crea CuadreMayor y marca COMPLETADA (admin)
+ * - DELETE /:id        - Elimina venta PENDIENTE (admin)
  */
 @ApiTags('Ventas Mayor')
 @ApiBearerAuth('access-token')
@@ -57,7 +62,7 @@ export class VentasMayorController {
 
   /**
    * POST /ventas-mayor
-   * Registra una venta al mayor
+   * Registra una venta al mayor (solo informativa — no crea CuadreMayor)
    */
   @Post()
   @Roles('ADMIN')
@@ -69,9 +74,7 @@ export class VentasMayorController {
     type: VentaMayorResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  async registrar(
-    @Body() dto: RegistrarVentaMayorDto,
-  ): Promise<VentaMayorResponseDto> {
+  async registrar(@Body() dto: RegistrarVentaMayorDto): Promise<VentaMayorResponseDto> {
     const venta = await this.commandBus.execute(
       new RegistrarVentaMayorCommand(dto.vendedorId, dto.cantidadUnidades, dto.conLicor, dto.modalidad),
     );
@@ -83,7 +86,6 @@ export class VentasMayorController {
    * Lista ventas al mayor
    */
   @Get()
-  @Roles('ADMIN')
   @ApiOperation({ summary: 'Listar ventas al mayor' })
   @ApiResponse({
     status: 200,
@@ -113,9 +115,7 @@ export class VentasMayorController {
     description: 'Stock disponible calculado',
     type: StockDisponibleResponseDto,
   })
-  async calcularStock(
-    @Query('vendedorId') vendedorId: string,
-  ): Promise<StockDisponibleResponseDto> {
+  async calcularStock(@Query('vendedorId') vendedorId: string): Promise<StockDisponibleResponseDto> {
     return this.queryBus.execute(new CalcularStockDisponibleQuery(vendedorId));
   }
 
@@ -124,7 +124,6 @@ export class VentasMayorController {
    * Obtiene una venta al mayor por ID
    */
   @Get(':id')
-  @Roles('ADMIN')
   @ApiOperation({ summary: 'Obtener venta al mayor' })
   @ApiParam({ name: 'id', description: 'ID de la venta al mayor' })
   @ApiResponse({
@@ -148,27 +147,46 @@ export class VentasMayorController {
   }
 
   /**
-   * POST /ventas-mayor/:id/completar
-   * Completa una venta al mayor (admin)
+   * POST /ventas-mayor/:id/confirmar
+   * Confirma la venta: crea CuadreMayor con datos frescos y marca VentaMayor como COMPLETADA (admin)
    */
-  @Post(':id/completar')
+  @Post(':id/confirmar')
   @Roles('ADMIN')
   @Idempotent()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Completar venta (admin)' })
+  @ApiOperation({ summary: 'Confirmar venta al mayor (admin)' })
   @ApiParam({ name: 'id', description: 'ID de la venta al mayor' })
   @ApiResponse({
     status: 200,
-    description: 'Venta completada',
+    description: 'Venta confirmada y CuadreMayor creado',
     type: VentaMayorResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Venta no encontrada' })
   @ApiResponse({ status: 409, description: 'La venta no está pendiente' })
-  async completar(
+  async confirmar(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() admin: AuthenticatedUser,
   ): Promise<VentaMayorResponseDto> {
-    await this.commandBus.execute(new CompletarVentaMayorCommand(id, admin.id));
-    return this.queryBus.execute(new ObtenerVentaMayorQuery(id));
+    const venta = await this.commandBus.execute(new ConfirmarVentaMayorCommand(id, admin.id));
+    return venta ?? this.queryBus.execute(new ObtenerVentaMayorQuery(id));
+  }
+
+  /**
+   * DELETE /ventas-mayor/:id
+   * Elimina una venta al mayor PENDIENTE (sin side effects en stock ni finanzas)
+   */
+  @Delete(':id')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminar venta al mayor PENDIENTE (admin)' })
+  @ApiParam({ name: 'id', description: 'ID de la venta al mayor' })
+  @ApiResponse({ status: 204, description: 'Venta eliminada' })
+  @ApiResponse({ status: 404, description: 'Venta no encontrada' })
+  @ApiResponse({ status: 409, description: 'La venta no está en estado PENDIENTE' })
+  async eliminar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() admin: AuthenticatedUser,
+  ): Promise<void> {
+    await this.commandBus.execute(new EliminarVentaMayorCommand(id, admin.id));
   }
 }

@@ -8,6 +8,7 @@ import {
   TandaParaProcesar,
   CuadreParaCerrar,
   CuadreDeudaSaldada,
+  CuadreCreditoParcial,
   EquipamentoPago,
   DistribucionMontoLote,
 } from '../../domain/cuadre-mayor.repository.interface';
@@ -143,6 +144,12 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
         cuadreMayor.vendedorId,
       );
 
+    // 2.4b Calcular crédito parcial a cuadres con tanda parcialmente consumida
+    const cuadresCreditoParcial = await this.prepararCuadresCreditoParcial(
+      tandasParaProcesar,
+      tandasCompletamenteConsumidas,
+    );
+
     // 2.4 Calcular distribución prorrateada por lote
     const distribucionPorLote = this.calcularDistribucionPorLote(
       tandasAfectadas,
@@ -171,6 +178,7 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
       tandasParaProcesar,
       cuadresParaCerrar,
       cuadresDeudaSaldada,
+      cuadresCreditoParcial,
       equipamentoPago,
       distribucionPorLote,
       loteForzado: loteForzadoData,
@@ -183,6 +191,7 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
       `Cuadre al mayor confirmado: ${cuadreMayorId} - ` +
         `Admin: $${montoTotalAdmin.toFixed(2)} - ` +
         `Cuadres cerrados: ${resultado.cuadresCerradosIds.length} - ` +
+        `Cuadres crédito parcial: ${cuadresCreditoParcial.length} - ` +
         `Tandas completamente consumidas: ${tandasCompletamenteConsumidas.size} - ` +
         `Lotes actualizados: ${distribucionPorLote.length}`,
     );
@@ -414,6 +423,66 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
     }
 
     return { cuadresParaCerrar, cuadresDeudaSaldada, equipamentoPago };
+  }
+
+  /**
+   * Calcula crédito proporcional para cuadres cuya tanda fue PARCIALMENTE consumida.
+   *
+   * Para cada tanda en tandasParaProcesar que NO esté en tandasCompletamenteConsumidas:
+   *  - Calcula stockOriginal = stockRestante + cantidadConsumida
+   *  - Calcula proporción = cantidadConsumida / stockOriginal
+   *  - Para cada cuadre INACTIVO o PENDIENTE de esa tanda:
+   *      creditoParcial = proporcion * cuadre.montoEsperado
+   *      nuevaCubierta  = min(montoEsperado, montoCubiertoPorMayor + creditoParcial)
+   *    Si nuevaCubierta cambia → agregar a la lista de crédito parcial
+   */
+  private async prepararCuadresCreditoParcial(
+    tandasParaProcesar: TandaParaProcesar[],
+    tandasCompletamenteConsumidas: Set<string>,
+  ): Promise<CuadreCreditoParcial[]> {
+    const resultado: CuadreCreditoParcial[] = [];
+
+    for (const tanda of tandasParaProcesar) {
+      if (tandasCompletamenteConsumidas.has(tanda.tandaId)) continue;
+      if (tanda.cantidadStockConsumido <= 0) continue;
+
+      const stockOriginal = tanda.stockRestanteDespuesConsumo + tanda.cantidadStockConsumido;
+      if (stockOriginal <= 0) continue;
+
+      const proporcion = new Decimal(tanda.cantidadStockConsumido).div(stockOriginal);
+
+      // Buscar cuadres INACTIVO o PENDIENTE de esta tanda
+      try {
+        const cuadresLote = await this.cuadreRepository.findByLoteId(tanda.loteId);
+        for (const cuadre of cuadresLote) {
+          if (cuadre.tandaId !== tanda.tandaId) continue;
+          if (cuadre.estado !== 'INACTIVO' && cuadre.estado !== 'PENDIENTE') continue;
+
+          const montoEsperado = parseDecimalValue(cuadre.montoEsperado);
+          const alreadyCovered = parseDecimalValue(cuadre.montoCubiertoPorMayor);
+          const creditoParcial = proporcion.times(montoEsperado);
+          const nuevaCubierta = Decimal.min(montoEsperado, alreadyCovered.plus(creditoParcial));
+
+          if (nuevaCubierta.greaterThan(alreadyCovered)) {
+            resultado.push({
+              cuadreId: cuadre.id,
+              nuevaMontoCubiertaPorMayor: nuevaCubierta.toFixed(2),
+            });
+            this.logger.debug(
+              `Crédito parcial calculado para cuadre ${cuadre.id}: ` +
+                `proporcion=${proporcion.toFixed(4)} creditoParcial=$${creditoParcial.toFixed(2)} ` +
+                `nuevaCubierta=$${nuevaCubierta.toFixed(2)}`,
+            );
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Error calculando crédito parcial para tanda ${tanda.tandaId}: ${error}`,
+        );
+      }
+    }
+
+    return resultado;
   }
 
   /**

@@ -158,13 +158,21 @@ export class PrismaVentaMayorRepository implements IVentaMayorRepository {
     });
   }
 
-  async completar(id: string): Promise<VentaMayor> {
+  async confirmar(id: string): Promise<VentaMayor> {
     return this.prisma.ventaMayor.update({
       where: { id },
       data: {
         estado: 'COMPLETADA',
         fechaCompletada: new Date(),
       },
+    });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.fuenteStockMayor.deleteMany({ where: { ventaMayorId: id } });
+      await tx.loteVentaMayor.deleteMany({ where: { ventaMayorId: id } });
+      await tx.ventaMayor.delete({ where: { id } });
     });
   }
 

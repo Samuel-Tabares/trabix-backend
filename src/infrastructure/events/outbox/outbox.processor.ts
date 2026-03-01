@@ -12,7 +12,6 @@ import { MiniCuadreExitosoEvent } from '../../../modules/mini-cuadres/applicatio
 import { StockUltimaTandaAgotadoEvent } from '../../../modules/mini-cuadres/application/events/stock-ultima-tanda-agotado.event';
 import { VentaRegistradaEvent } from '../../../modules/ventas/application/events/venta-aprobada.event';
 import { CuadreMayorExitosoEvent } from '../../../modules/cuadres-mayor/application/events/cuadre-mayor-exitoso.event';
-import { VentaMayorRegistradaEvent } from '../../../modules/ventas-mayor/application/events/venta-mayor-registrada.event';
 
 /**
  * Mapeo de eventType → factory function que reconstruye el evento desde el payload JSON.
@@ -59,17 +58,6 @@ const EVENT_MAPPINGS: Record<string, (payload: any) => any> = {
       p.loteForzadoId,
     ),
 
-  VentaMayorRegistrada: (p) =>
-    new VentaMayorRegistradaEvent(
-      p.ventaMayorId,
-      p.vendedorId,
-      p.cantidadUnidades,
-      new Decimal(p.ingresoBruto),
-      p.modalidad,
-      p.necesitaLoteForzado,
-      p.cantidadLoteForzado,
-      p.lotesInvolucradosIds,
-    ),
 };
 
 /**

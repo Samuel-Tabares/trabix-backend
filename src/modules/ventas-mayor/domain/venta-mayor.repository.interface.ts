@@ -96,9 +96,14 @@ export interface IVentaMayorRepository {
   create(data: CreateVentaMayorData): Promise<VentaMayor>;
 
   /**
-   * Completa una venta al mayor
+   * Confirma una venta al mayor: la marca COMPLETADA
    */
-  completar(id: string): Promise<VentaMayor>;
+  confirmar(id: string): Promise<VentaMayor>;
+
+  /**
+   * Elimina una venta al mayor PENDIENTE (FuenteStockMayor + LoteVentaMayor + VentaMayor)
+   */
+  delete(id: string): Promise<void>;
 
   /**
    * Cuenta ventas al mayor por criterio

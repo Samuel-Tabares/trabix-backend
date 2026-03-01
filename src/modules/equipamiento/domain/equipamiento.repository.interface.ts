@@ -84,21 +84,40 @@ export interface IEquipamientoRepository {
   /**
    * Reporta daño de nevera o pijama.
    * Marca el componente como dañado y aumenta deudaDano.
+   * Si abonoDeposito > 0, el depósito cubre parte/toda la deuda (deudaNeta = monto - abono).
+   * Si deudaNeta = 0, no se marcan flags de daño (depósito cubrió el costo).
    * NO cambia el estado.
    */
-  reportarDano(id: string, tipoDano: 'NEVERA' | 'PIJAMA', monto: Decimal): Promise<Equipamiento>;
+  reportarDano(
+    id: string,
+    tipoDano: 'NEVERA' | 'PIJAMA',
+    deudaNeta: Decimal,
+    abonoDeposito: Decimal,
+  ): Promise<Equipamiento>;
 
   /**
    * Transiciona a PERDIDO automáticamente cuando ambos componentes están dañados.
-   * Limpia deudaDano (ya incluida en deudaPerdida), establece deudaPerdida y estado PERDIDO.
+   * Si el depósito cubre la deuda, el equipo queda en DEVUELTO con flags en false.
+   * Si no cubre, establece estado PERDIDO con deudaPerdida.
    */
-  transicionarAPerdidoPorDanos(id: string, montoPerdida: Decimal): Promise<Equipamiento>;
+  transicionarAPerdidoPorDanos(
+    id: string,
+    deudaNeta: Decimal,
+    abonoDeposito: Decimal,
+  ): Promise<Equipamiento>;
 
   /**
-   * Reporta pérdida total del equipamiento (ACTIVO → PERDIDO)
-   * Genera deuda por el costo total (nevera + pijama)
+   * Reporta pérdida total del equipamiento (ACTIVO → PERDIDO).
+   * Si el depósito cubre la deuda, el equipo queda en DEVUELTO con flags en false.
+   * Genera deuda por el costo total (nevera + pijama) menos el abono del depósito.
    */
-  reportarPerdida(id: string, monto: Decimal): Promise<Equipamiento>;
+  reportarPerdida(id: string, deudaNeta: Decimal, abonoDeposito: Decimal): Promise<Equipamiento>;
+
+  /**
+   * Resetea los flags neveraDanada/pijamaDanada a false.
+   * Se llama cuando la deudaDano queda en 0 tras un pago.
+   */
+  resetearFlagsReparacion(id: string): Promise<Equipamiento>;
 
   /**
    * Devuelve el equipamiento (ACTIVO → DEVUELTO)

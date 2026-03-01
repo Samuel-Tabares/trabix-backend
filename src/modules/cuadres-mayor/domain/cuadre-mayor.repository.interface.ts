@@ -123,6 +123,14 @@ export interface CuadreDeudaSaldada {
 }
 
 /**
+ * Cuadre con tanda parcialmente consumida — recibe crédito proporcional sin cerrarse
+ */
+export interface CuadreCreditoParcial {
+  cuadreId: string;
+  nuevaMontoCubiertaPorMayor: string; // valor absoluto
+}
+
+/**
  * Pago a aplicar a deuda de equipamiento en la transacción
  */
 export interface EquipamentoPago {
@@ -151,6 +159,9 @@ export interface ConfirmarCuadreMayorTransactionData {
 
   // Pago a aplicar a deuda de equipamiento (puede ser null)
   equipamentoPago: EquipamentoPago | null;
+
+  // Cuadres con tanda parcialmente consumida (crédito proporcional, no cierran)
+  cuadresCreditoParcial: CuadreCreditoParcial[];
 
   // Distribución prorrateada por lote
   distribucionPorLote: DistribucionMontoLote[];

@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler, ICommand, EventBus } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, ICommand } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { ModalidadVentaMayor } from '@prisma/client';
 import {
@@ -14,7 +14,6 @@ import { VentaMayorEntity } from '../../domain/venta-mayor.entity';
 import { ConsumidorStockMayorService } from '../../domain/consumidor-stock-mayor.service';
 import { CalculadoraPreciosMayorService } from '../../domain/calculadora-precios-mayor.service';
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
-import { VentaMayorRegistradaEvent } from '../events/venta-mayor-registrada.event';
 
 /**
  * Command para registrar una venta al mayor
@@ -45,7 +44,6 @@ export class RegistrarVentaMayorHandler implements ICommandHandler<RegistrarVent
     private readonly usuarioRepository: IUsuarioRepository,
     private readonly consumidorStock: ConsumidorStockMayorService,
     private readonly calculadoraPrecios: CalculadoraPreciosMayorService,
-    private readonly eventBus: EventBus,
   ) {}
 
   async execute(command: RegistrarVentaMayorCommand): Promise<any> {
@@ -106,20 +104,6 @@ export class RegistrarVentaMayorHandler implements ICommandHandler<RegistrarVent
 
     this.logger.log(
       `Venta al mayor registrada: ${venta.id} - ${cantidadUnidades} unidades - $${resultadoCalculo.ingresoBruto.toFixed(2)}`,
-    );
-
-    // Publicar evento
-    this.eventBus.publish(
-      new VentaMayorRegistradaEvent(
-        venta.id,
-        vendedorId,
-        cantidadUnidades,
-        resultadoCalculo.ingresoBruto,
-        modalidad,
-        planConsumo.necesitaLoteForzado,
-        planConsumo.cantidadLoteForzado,
-        planConsumo.lotesInvolucrados,
-      ),
     );
 
     return venta;

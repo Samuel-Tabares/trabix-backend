@@ -119,14 +119,23 @@ export class EvaluadorFinancieroMayorService {
         monto: g.monto,
       }));
 
+    // Calcular inversiones realmente cubiertas usando calcularDistribucion (datos reales)
+    const dist = this.calcularDistribucion(datos);
+    const inversionAdminCubierta = dist.inversionAdminLotesExistentes.plus(
+      dist.inversionAdminLoteForzado,
+    );
+    const inversionVendedorCubierta = dist.inversionVendedorLotesExistentes.plus(
+      dist.inversionVendedorLoteForzado,
+    );
+
     return {
       dineroRecaudadoDetal: datos.dineroRecaudadoDetal,
       dineroVentaMayor: datos.ingresoBrutoMayor,
       dineroTotalDisponible,
       inversionAdminTotal,
       inversionVendedorTotal,
-      inversionAdminCubierta: inversionAdminTotal, // Se asume cubierto si hay dinero suficiente
-      inversionVendedorCubierta: inversionVendedorTotal,
+      inversionAdminCubierta,
+      inversionVendedorCubierta,
       gananciaNeta,
       gananciaAdmin: resultadoGanancias.gananciaAdmin,
       gananciaVendedor: resultadoGanancias.gananciaVendedor,
