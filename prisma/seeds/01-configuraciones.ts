@@ -24,13 +24,6 @@ export async function seedConfiguraciones(prisma: PrismaClient) {
     { clave: 'PRECIO_MAYOR_50_SIN_LICOR', valor: '4500', tipo: 'DECIMAL', descripcion: 'Precio por unidad (>=50) sin licor', categoria: 'PRECIOS' },
     { clave: 'PRECIO_MAYOR_100_SIN_LICOR', valor: '4200', tipo: 'DECIMAL', descripcion: 'Precio por unidad (>=100) sin licor', categoria: 'PRECIOS' },
 
-    // --- EQUIPAMIENTO ---
-    { clave: 'MENSUALIDAD_CON_DEPOSITO', valor: '9990', tipo: 'DECIMAL', descripcion: 'Mensualidad cuando existe depósito', categoria: 'EQUIPAMIENTO' },
-    { clave: 'MENSUALIDAD_SIN_DEPOSITO', valor: '19990', tipo: 'DECIMAL', descripcion: 'Mensualidad sin depósito', categoria: 'EQUIPAMIENTO' },
-    { clave: 'DEPOSITO_EQUIPAMIENTO', valor: '49990', tipo: 'DECIMAL', descripcion: 'Valor del depósito de equipamiento', categoria: 'EQUIPAMIENTO' },
-    { clave: 'COSTO_DANO_NEVERA', valor: '30000', tipo: 'DECIMAL', descripcion: 'Costo por daño de nevera', categoria: 'EQUIPAMIENTO' },
-    { clave: 'COSTO_DANO_PIJAMA', valor: '60000', tipo: 'DECIMAL', descripcion: 'Costo por daño de pijama', categoria: 'EQUIPAMIENTO' },
-
     // --- PORCENTAJES ---
     { clave: 'PORCENTAJE_GANANCIA_VENDEDOR_60_40', valor: '60', tipo: 'PERCENT', descripcion: 'Ganancia del vendedor en modelo 60/40', categoria: 'PORCENTAJES' },
     { clave: 'PORCENTAJE_GANANCIA_ADMIN_60_40', valor: '40', tipo: 'PERCENT', descripcion: 'Ganancia del admin en modelo 60/40', categoria: 'PORCENTAJES' },
@@ -157,38 +150,5 @@ export async function seedConfiguraciones(prisma: PrismaClient) {
     },
   });
 
-  // Pedido CONFIRMADO (en camino)
-  await prisma.pedidoStock.create({
-    data: {
-      cantidadTrabix: 300,
-      estado: 'CONFIRMADO',
-      costoTotal: 360000,
-      costoRealPorTrabix: 1200,
-      fechaCreacion: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      notas: 'Pedido confirmado, esperando recepción',
-      detallesCosto: {
-        create: [
-          { concepto: 'Trabix (unidad de producto)', esObligatorio: true, cantidad: 300, costoTotal: 300000 },
-          { concepto: 'Botella de licor', esObligatorio: true, cantidad: 300, costoTotal: 45000 },
-          { concepto: 'Empaque individual', esObligatorio: true, cantidad: 300, costoTotal: 15000 },
-        ],
-      },
-    },
-  });
-
-  // Pedido CANCELADO
-  await prisma.pedidoStock.create({
-    data: {
-      cantidadTrabix: 100,
-      estado: 'CANCELADO',
-      costoTotal: 120000,
-      costoRealPorTrabix: 1200,
-      fechaCreacion: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-      fechaCancelacion: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-      motivoCancelacion: 'Proveedor no disponible en la fecha requerida',
-      notas: 'Cancelado por falta de disponibilidad',
-    },
-  });
-
-  console.log('    ✓ 4 pedidos de stock creados (BORRADOR, CONFIRMADO, RECIBIDO, CANCELADO)');
+  console.log('    ✓ 2 pedidos de stock creados (BORRADOR, RECIBIDO)');
 }

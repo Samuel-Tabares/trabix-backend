@@ -3,12 +3,12 @@ import { ADMIN_ID, V, R, V50, VX, hashPassword, daysAgo, hoursAgo, cedula } from
 
 /**
  * Seed 02: Usuarios
- * 50 usuarios cubriendo TODOS los escenarios posibles:
+ * Usuarios cubriendo los escenarios principales:
  * - Admin (1)
- * - Vendedores 60/40 directos del admin (30)
+ * - Vendedores 60/40 directos del admin (23)
  * - Reclutadores (4)
- * - Vendedores 50/50 reclutados (10)
- * - Vendedores relleno (6) → total 51 (admin + 50)
+ * - Vendedores 50/50 reclutados (9)
+ * - Vendedores relleno (6) → total 43
  *
  * Escenarios cubiertos:
  * - Activo con password cambiada
@@ -155,60 +155,6 @@ export async function seedUsuarios(prisma: PrismaClient) {
       fechaCambioEstado: null, fechaCreacion: daysAgo(90),
     },
     {
-      id: V.eq_solicitado,
-      nombre: 'Santiago', apellidos: 'Restrepo Gil',
-      email: 'santiago.restrepo@mail.com', telefono: '+573001000011',
-      requiereCambioPassword: false, estado: 'ACTIVO' as const,
-      ultimoLogin: daysAgo(1), intentosFallidos: 0,
-      bloqueadoHasta: null, eliminado: false, fechaEliminacion: null,
-      fechaCambioEstado: null, fechaCreacion: daysAgo(20),
-    },
-    {
-      id: V.eq_activo_deposito,
-      nombre: 'Isabella', apellidos: 'Gutiérrez Ramos',
-      email: 'isabella.gutierrez@mail.com', telefono: '+573001000012',
-      requiereCambioPassword: false, estado: 'ACTIVO' as const,
-      ultimoLogin: daysAgo(2), intentosFallidos: 0,
-      bloqueadoHasta: null, eliminado: false, fechaEliminacion: null,
-      fechaCambioEstado: null, fechaCreacion: daysAgo(60),
-    },
-    {
-      id: V.eq_activo_sin_dep,
-      nombre: 'Sebastián', apellidos: 'Londoño Arias',
-      email: 'sebastian.londono@mail.com', telefono: '+573001000013',
-      requiereCambioPassword: false, estado: 'ACTIVO' as const,
-      ultimoLogin: daysAgo(1), intentosFallidos: 0,
-      bloqueadoHasta: null, eliminado: false, fechaEliminacion: null,
-      fechaCambioEstado: null, fechaCreacion: daysAgo(45),
-    },
-    {
-      id: V.eq_devuelto,
-      nombre: 'Daniela', apellidos: 'Ospina Salazar',
-      email: 'daniela.ospina@mail.com', telefono: '+573001000014',
-      requiereCambioPassword: false, estado: 'ACTIVO' as const,
-      ultimoLogin: daysAgo(5), intentosFallidos: 0,
-      bloqueadoHasta: null, eliminado: false, fechaEliminacion: null,
-      fechaCambioEstado: null, fechaCreacion: daysAgo(150),
-    },
-    {
-      id: V.eq_danado,
-      nombre: 'Mateo', apellidos: 'Cárdenas Vélez',
-      email: 'mateo.cardenas@mail.com', telefono: '+573001000015',
-      requiereCambioPassword: false, estado: 'ACTIVO' as const,
-      ultimoLogin: daysAgo(1), intentosFallidos: 0,
-      bloqueadoHasta: null, eliminado: false, fechaEliminacion: null,
-      fechaCambioEstado: null, fechaCreacion: daysAgo(80),
-    },
-    {
-      id: V.eq_perdido,
-      nombre: 'Luciana', apellidos: 'Ríos Quintero',
-      email: 'luciana.rios@mail.com', telefono: '+573001000016',
-      requiereCambioPassword: false, estado: 'ACTIVO' as const,
-      ultimoLogin: daysAgo(2), intentosFallidos: 0,
-      bloqueadoHasta: null, eliminado: false, fechaEliminacion: null,
-      fechaCambioEstado: null, fechaCreacion: daysAgo(70),
-    },
-    {
       id: V.sin_lotes,
       nombre: 'Alejandro', apellidos: 'Parra Montoya',
       email: 'alejandro.parra@mail.com', telefono: '+573001000017',
@@ -324,15 +270,6 @@ export async function seedUsuarios(prisma: PrismaClient) {
       ultimoLogin: daysAgo(1), intentosFallidos: 0,
       bloqueadoHasta: null, eliminado: false, fechaEliminacion: null,
       fechaCambioEstado: null, fechaCreacion: daysAgo(55),
-    },
-    {
-      id: V.eq_mensualidad_mora,
-      nombre: 'Laura', apellidos: 'Salazar Peña',
-      email: 'laura.salazar@mail.com', telefono: '+573001000030',
-      requiereCambioPassword: false, estado: 'ACTIVO' as const,
-      ultimoLogin: daysAgo(1), intentosFallidos: 0,
-      bloqueadoHasta: null, eliminado: false, fechaEliminacion: null,
-      fechaCambioEstado: null, fechaCreacion: daysAgo(90),
     },
   ];
 
@@ -490,13 +427,6 @@ export async function seedUsuarios(prisma: PrismaClient) {
       email: 'clara.pedraza@mail.com', telefono: '+573003000008',
       estado: 'ACTIVO' as const, eliminado: false, fechaEliminacion: null,
       requiereCambioPassword: false, fechaCreacion: daysAgo(55),
-    },
-    {
-      id: V50.con_equip, reclutadorId: R.con_cadena,
-      nombre: 'Ignacio', apellidos: 'Taborda Caicedo',
-      email: 'ignacio.taborda@mail.com', telefono: '+573003000009',
-      estado: 'ACTIVO' as const, eliminado: false, fechaEliminacion: null,
-      requiereCambioPassword: false, fechaCreacion: daysAgo(50),
     },
     {
       id: V50.con_venta_mayor, reclutadorId: R.con_cadena,

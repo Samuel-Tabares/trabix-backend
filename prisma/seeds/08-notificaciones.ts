@@ -37,17 +37,6 @@ export async function seedNotificaciones(prisma: PrismaClient) {
     },
     {
       usuarioId: ADMIN_ID,
-      tipo: 'EQUIPAMIENTO_SOLICITADO' as const,
-      titulo: 'Solicitud de equipamiento',
-      mensaje: 'Santiago Restrepo ha solicitado equipamiento.',
-      datos: { vendedorId: V.eq_solicitado },
-      canal: 'WEBSOCKET' as const,
-      leida: false,
-      fechaCreacion: daysAgo(3),
-      fechaLeida: null,
-    },
-    {
-      usuarioId: ADMIN_ID,
       tipo: 'MANUAL' as const,
       titulo: 'Recordatorio de revisión',
       mensaje: 'Recuerde revisar las ventas pendientes del día.',
@@ -136,17 +125,6 @@ export async function seedNotificaciones(prisma: PrismaClient) {
       fechaCreacion: daysAgo(30),
       fechaLeida: daysAgo(29),
     },
-    {
-      usuarioId: V.eq_activo_deposito,
-      tipo: 'EQUIPAMIENTO_ENTREGADO' as const,
-      titulo: 'Equipamiento entregado',
-      mensaje: 'Tu equipamiento ha sido entregado. Recuerda cuidarlo bien.',
-      datos: undefined,
-      canal: 'WEBSOCKET' as const,
-      leida: true,
-      fechaCreacion: daysAgo(45),
-      fechaLeida: daysAgo(44),
-    },
     // Notificación vía PUSH
     {
       usuarioId: V.multi_lotes,
@@ -227,7 +205,6 @@ export async function seedNotificaciones(prisma: PrismaClient) {
 
   console.log(`    ✓ ${notificaciones.length} notificaciones creadas`);
   console.log('      Tipos: STOCK_BAJO, CUADRE_PENDIENTE, INVERSION_RECUPERADA, CUADRE_EXITOSO,');
-  console.log('             TANDA_LIBERADA, MANUAL, PREMIO_RECIBIDO, LOTE_ACTIVADO, LOTE_FINALIZADO,');
-  console.log('             EQUIPAMIENTO_SOLICITADO, EQUIPAMIENTO_ENTREGADO, FONDO_EGRESO');
+  console.log('             TANDA_LIBERADA, MANUAL, PREMIO_RECIBIDO, LOTE_ACTIVADO, LOTE_FINALIZADO, FONDO_EGRESO');
   console.log('      Canales: WEBSOCKET, PUSH, WHATSAPP');
 }

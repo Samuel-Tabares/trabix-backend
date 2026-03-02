@@ -4,7 +4,7 @@ import {
   CleanupProcessedOutboxJob,
   CleanupExpiredIdempotencyKeysJob,
 } from './jobs/cleanup.jobs';
-import { MensualidadesVencidasJob } from './jobs/mensualidades-vencidas.job';
+//import { MensualidadesVencidasJob } from './jobs/mensualidades-vencidas.job';
 import { EventsModule } from '../events/events.module';
 import { EquipamientoModule } from '../../modules/equipamiento/equipamiento.module';
 import { CuadresModule } from '../../modules/cuadres/cuadres.module';
@@ -27,7 +27,7 @@ import { CuadresModule } from '../../modules/cuadres/cuadres.module';
  *    - Frecuencia: cada 1 hora
  *    - Acción: elimina idempotency keys expiradas
  *
- * 4. MensualidadesVencidasJob
+ * 4. MensualidadesVencidasJob INACTIVOOOOOOOOOOOOO
  *    - Frecuencia: cada día a medianoche
  *    - Acción: detecta mensualidades de equipamiento vencidas (>30 días)
  *             y actualiza el montoEsperado de los cuadres activos
@@ -42,8 +42,8 @@ import { CuadresModule } from '../../modules/cuadres/cuadres.module';
     CleanupExpiredTokensJob,
     CleanupProcessedOutboxJob,
     CleanupExpiredIdempotencyKeysJob,
-    MensualidadesVencidasJob,
+    //MensualidadesVencidasJob,
   ],
-  exports: [MensualidadesVencidasJob],
+  //exports: [MensualidadesVencidasJob],
 })
 export class SchedulerModule {}

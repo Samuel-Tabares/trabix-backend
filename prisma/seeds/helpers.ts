@@ -17,11 +17,6 @@ export const BIZ = {
   precioMayor20SinLicor: 4800,
   precioMayor50SinLicor: 4500,
   precioMayor100SinLicor: 4200,
-  mensualidadConDeposito: 9990,
-  mensualidadSinDeposito: 19990,
-  depositoEquipamiento: 49990,
-  costoDanoNevera: 30000,
-  costoDanoPijama: 60000,
   porcentajeVendedor6040: 0.6,
   porcentajeAdmin6040: 0.4,
   porcentajeVendedor5050: 0.5,
@@ -49,12 +44,6 @@ export const V = {
   con_lote_creado:      '00000000-0000-4000-a000-000000000107', // lote en CREADO
   con_lote_finalizado:  '00000000-0000-4000-a000-000000000108', // lote FINALIZADO
   multi_lotes:          '00000000-0000-4000-a000-000000000109', // múltiples lotes
-  eq_solicitado:        '00000000-0000-4000-a000-000000000110', // equipamiento SOLICITADO
-  eq_activo_deposito:   '00000000-0000-4000-a000-000000000111', // equipamiento ACTIVO con depósito
-  eq_activo_sin_dep:    '00000000-0000-4000-a000-000000000112', // equipamiento ACTIVO sin depósito
-  eq_devuelto:          '00000000-0000-4000-a000-000000000113', // equipamiento DEVUELTO
-  eq_danado:            '00000000-0000-4000-a000-000000000114', // equipamiento DANADO
-  eq_perdido:           '00000000-0000-4000-a000-000000000115', // equipamiento PERDIDO
   sin_lotes:            '00000000-0000-4000-a000-000000000116', // vendedor sin lotes (nuevo)
   inactivo_con_lote:    '00000000-0000-4000-a000-000000000117', // inactivo pero con lote activo
   con_ventas_pend:      '00000000-0000-4000-a000-000000000118', // tiene ventas pendientes
@@ -68,7 +57,6 @@ export const V = {
   sin_login:            '00000000-0000-4000-a000-000000000126', // nunca ha hecho login
   cambio_estado_rec:    '00000000-0000-4000-a000-000000000127', // cambió estado recientemente
   lote_forzado:         '00000000-0000-4000-a000-000000000128', // tiene lote forzado
-  eq_mensualidad_mora:  '00000000-0000-4000-a000-000000000129', // equipamiento con mensualidad en mora
 };
 
 // Reclutadores (vendedores que reclutan — se convierten en RECLUTADOR)
@@ -89,7 +77,6 @@ export const V50 = {
   pwd_temp:          '00000000-0000-4000-a000-000000000305', // reclutado, pwd temporal
   eliminado:         '00000000-0000-4000-a000-000000000306', // reclutado, eliminado
   bloqueado:         '00000000-0000-4000-a000-000000000307', // reclutado, bloqueado
-  con_equip:         '00000000-0000-4000-a000-000000000308', // reclutado con equipamiento
   con_venta_mayor:   '00000000-0000-4000-a000-000000000309', // reclutado con venta al mayor
 };
 

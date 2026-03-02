@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { seedConfiguraciones } from './seeds/01-configuraciones';
 import { seedUsuarios } from './seeds/02-usuarios';
-import { seedEquipamientos } from './seeds/03-equipamientos';
 import { seedLotesTandas } from './seeds/04-lotes-tandas';
 import { seedCuadresMiniCuadres } from './seeds/05-cuadres-mini-cuadres';
 import { seedVentasMayorCuadresMayor } from './seeds/06-ventas-mayor-cuadres-mayor';
@@ -16,13 +15,10 @@ const prisma = new PrismaClient();
  * Orden de ejecución (respeta foreign keys):
  * 1. Configuraciones del sistema, tipos de insumo, stock admin
  * 2. Usuarios (admin, vendedores, reclutadores)
- * 3. Equipamientos (depende de usuarios)
- * 4. Lotes y tandas (depende de usuarios)
- * 5. Ventas al detal (depende de usuarios, lotes, tandas)
- * 6. Cuadres y mini-cuadres (depende de tandas, lotes)
- * 7. Ventas al mayor y cuadres mayor (depende de usuarios, lotes, tandas)
- * 8. Notificaciones (depende de usuarios)
- * 9. Fondo de recompensas, movimientos y audit logs
+ * 3. Lotes y tandas (depende de usuarios)
+ * 4. Cuadres y mini-cuadres (depende de tandas, lotes)
+ * 5. Ventas al mayor y cuadres mayor (depende de usuarios, lotes, tandas)
+ * 6. Notificaciones (depende de usuarios)
  *
  * Uso:
  *   npx prisma db seed
@@ -43,31 +39,27 @@ async function main() {
     console.log('   ✓ Base de datos limpia\n');
 
     // Ejecutar seeds en orden
-    console.log('📦 [1/9] Configuraciones del sistema');
+    console.log('📦 [1/6] Configuraciones del sistema');
     await seedConfiguraciones(prisma);
     console.log();
 
-    console.log('👥 [2/9] Usuarios (50 + admin)');
+    console.log('👥 [2/6] Usuarios (43)');
     await seedUsuarios(prisma);
     console.log();
 
-    console.log('🧊 [3/9] Equipamientos');
-    await seedEquipamientos(prisma);
-    console.log();
-
-    console.log('📦 [4/9] Lotes y tandas');
+    console.log('📦 [3/6] Lotes y tandas');
     await seedLotesTandas(prisma);
     console.log();
 
-    console.log('📋 [5/9] Cuadres y mini-cuadres');
+    console.log('📋 [4/6] Cuadres y mini-cuadres');
     await seedCuadresMiniCuadres(prisma);
     console.log();
 
-    console.log('💰 [6/9] Ventas al mayor y cuadres al mayor (4 escenarios: A/B/C/D)');
+    console.log('💰 [5/6] Ventas al mayor y cuadres al mayor (4 escenarios: A/B/C/D)');
     await seedVentasMayorCuadresMayor(prisma);
     console.log();
 
-    console.log('🔔 [8/9] Notificaciones');
+    console.log('🔔 [6/6] Notificaciones');
     await seedNotificaciones(prisma);
     console.log();
 
@@ -105,8 +97,6 @@ async function cleanDatabase(prisma: PrismaClient) {
   await prisma.venta.deleteMany();
   await prisma.tanda.deleteMany();
   await prisma.lote.deleteMany();
-  await prisma.abonoEquipamiento.deleteMany();
-  await prisma.equipamiento.deleteMany();
   await prisma.notificacion.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.movimientoFondo.deleteMany();
@@ -142,7 +132,6 @@ async function printResumen(prisma: PrismaClient) {
     prisma.ventaMayor.count(),
     prisma.cuadreMayor.count(),
     prisma.gananciaReclutador.count(),
-    prisma.equipamiento.count(),
     prisma.notificacion.count(),
     prisma.transaccionFondo.count(),
     prisma.movimientoFondo.count(),
@@ -156,7 +145,7 @@ async function printResumen(prisma: PrismaClient) {
   const labels = [
     'Usuarios', 'Lotes', 'Tandas', 'Ventas', 'Detalles venta',
     'Cuadres', 'Mini-cuadres', 'Ventas mayor', 'Cuadres mayor',
-    'Ganancias reclutador', 'Equipamientos', 'Notificaciones',
+    'Ganancias reclutador', 'Notificaciones',
     'Transacciones fondo', 'Movimientos fondo', 'Audit logs',
     'Configuraciones', 'Tipos insumo', 'Stock admin', 'Pedidos stock',
   ];
@@ -200,11 +189,8 @@ async function printResumen(prisma: PrismaClient) {
   console.log('  Ventas mayor:');
   console.log('    • PENDIENTE, COMPLETADA');
   console.log('    • ANTICIPADO, CONTRAENTREGA');
-  console.log('  Equipamientos:');
-  console.log('    • SOLICITADO, ACTIVO (con/sin depósito), DEVUELTO, DANADO, PERDIDO');
-  console.log('    • Con mensualidad al día y en mora');
   console.log('  Pedidos stock:');
-  console.log('    • BORRADOR, CONFIRMADO, RECIBIDO, CANCELADO');
+  console.log('    • BORRADOR, RECIBIDO');
   console.log('  Notificaciones:');
   console.log('    • Todos los TipoNotificacion');
   console.log('    • Canales: WEBSOCKET, PUSH, WHATSAPP');
