@@ -11,7 +11,7 @@ import { DomainException } from '@domain/exceptions/domain.exception';
  * - Unidad de riesgo financiero
  * - Unidad de control de progresión del lote
  *
- * Estados: INACTIVA → LIBERADA → EN_TRÁNSITO → EN_CASA → FINALIZADA
+ * Estados: INACTIVA → EN_TRANSITO → EN_CASA → FINALIZADA
  * Las tandas nunca retroceden de estado.
  */
 export class TandaEntity {

@@ -507,7 +507,6 @@ enum ModeloNegocio {
 
 enum EstadoTanda {
   INACTIVA
-  LIBERADA
   EN_TRANSITO
   EN_CASA
   FINALIZADA

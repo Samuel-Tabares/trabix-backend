@@ -242,12 +242,12 @@ export class PrismaLoteRepository implements ILoteRepository {
         },
       });
 
-      // Liberar primera tanda
+      // Poner primera tanda en tránsito
       await tx.tanda.update({
         where: { id: lote.tandas[0].id },
         data: {
-          estado: 'LIBERADA',
-          fechaLiberacion: new Date(),
+          estado: 'EN_TRANSITO',
+          fechaEnTransito: new Date(),
           version: { increment: 1 },
         },
       });

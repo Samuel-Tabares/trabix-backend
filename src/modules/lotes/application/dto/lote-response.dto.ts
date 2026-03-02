@@ -20,7 +20,7 @@ export class TandaResponseDto {
   @ApiProperty()
   numero!: number;
 
-  @ApiProperty({ enum: ['INACTIVA', 'LIBERADA', 'EN_TRANSITO', 'EN_CASA', 'FINALIZADA'] })
+  @ApiProperty({ enum: ['INACTIVA', 'EN_TRANSITO', 'EN_CASA', 'FINALIZADA'] })
   estado!: EstadoTanda;
 
   @ApiProperty()

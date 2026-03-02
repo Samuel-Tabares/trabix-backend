@@ -58,9 +58,9 @@ export class SolicitarEquipamientoHandler implements ICommandHandler<SolicitarEq
       throw new DomainException('EQU_005', 'Vendedor no encontrado o no activo');
     }
 
-    // Verificar que el usuario sea VENDEDOR
-    if (vendedor.rol !== 'VENDEDOR') {
-      throw new DomainException('EQU_011', 'Solo los vendedores pueden solicitar equipamiento', {
+    // Verificar que el usuario sea VENDEDOR o RECLUTADOR
+    if (vendedor.rol !== 'VENDEDOR' && vendedor.rol !== 'RECLUTADOR') {
+      throw new DomainException('EQU_011', 'Solo los vendedores y reclutadores pueden solicitar equipamiento', {
         rolActual: vendedor.rol,
       });
     }

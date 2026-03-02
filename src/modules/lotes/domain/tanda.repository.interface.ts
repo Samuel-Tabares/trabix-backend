@@ -20,26 +20,9 @@ export interface ITandaRepository {
   findTandaEnCasa(loteId: string): Promise<Tanda | null>;
 
   /**
-   * Obtiene tandas liberadas que deben transicionar a EN_TRÁNSITO
-   * (liberadas hace más de 2 horas)
-   */
-  findTandasParaTransicion(): Promise<Tanda[]>;
-
-  /**
-   * Obtiene TODAS las tandas en estado LIBERADA, sin restricción de tiempo.
-   * Solo para uso en entornos de desarrollo/testing.
-   */
-  findTodasLiberadas(): Promise<Tanda[]>;
-
-  /**
-   * Libera una tanda (INACTIVA → LIBERADA)
+   * Libera una tanda (INACTIVA → EN_TRANSITO)
    */
   liberar(id: string): Promise<Tanda>;
-
-  /**
-   * Transiciona a EN_TRÁNSITO (LIBERADA → EN_TRÁNSITO)
-   */
-  transicionarAEnTransito(id: string): Promise<Tanda>;
 
   /**
    * Confirma entrega (EN_TRÁNSITO → EN_CASA)

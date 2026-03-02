@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { EstadoTanda, Tanda } from '@prisma/client';
 import { PrismaService } from '@infrastructure/database/prisma/prisma.service';
 import { ITandaRepository } from '../domain/tanda.repository.interface';
@@ -9,15 +8,7 @@ import { ITandaRepository } from '../domain/tanda.repository.interface';
  */
 @Injectable()
 export class PrismaTandaRepository implements ITandaRepository {
-  private readonly tiempoAutoTransitoHoras: number;
-
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
-  ) {
-    // Cargar tiempo de auto-tránsito desde configuración
-    this.tiempoAutoTransitoHoras = this.configService.get<number>('tiempos.autoTransitoHoras') ?? 2;
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<Tanda | null> {
     return this.prisma.tanda.findUnique({
@@ -43,39 +34,7 @@ export class PrismaTandaRepository implements ITandaRepository {
     });
   }
 
-  async findTandasParaTransicion(): Promise<Tanda[]> {
-    // Calcular el tiempo límite basado en la configuración
-    const tiempoLimiteMs = this.tiempoAutoTransitoHoras * 60 * 60 * 1000;
-    const fechaLimite = new Date(Date.now() - tiempoLimiteMs);
-
-    return this.prisma.tanda.findMany({
-      where: {
-        estado: 'LIBERADA',
-        fechaLiberacion: {
-          lte: fechaLimite,
-        },
-      },
-    });
-  }
-
-  async findTodasLiberadas(): Promise<Tanda[]> {
-    return this.prisma.tanda.findMany({
-      where: { estado: 'LIBERADA' },
-    });
-  }
-
   async liberar(id: string): Promise<Tanda> {
-    return this.prisma.tanda.update({
-      where: { id },
-      data: {
-        estado: 'LIBERADA',
-        fechaLiberacion: new Date(),
-        version: { increment: 1 },
-      },
-    });
-  }
-
-  async transicionarAEnTransito(id: string): Promise<Tanda> {
     return this.prisma.tanda.update({
       where: { id },
       data: {

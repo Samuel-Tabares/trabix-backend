@@ -237,9 +237,6 @@ export class TipoInsumoResponseDto {
   esObligatorio!: boolean;
 
   @ApiProperty()
-  activo!: boolean;
-
-  @ApiProperty()
   fechaCreacion!: Date;
 }
 
@@ -275,11 +272,8 @@ export class DeficitResponseDto {
  * Solo estados que representan stock RESERVADO (aún no entregado al vendedor)
  */
 export class StockPorEstadoDto {
-  @ApiProperty({ description: 'Stock en tandas INACTIVAS (comprometido, no liberado aún)' })
+  @ApiProperty({ description: 'Stock en tandas INACTIVAS (comprometido, pendiente de envío)' })
   inactiva!: number;
-
-  @ApiProperty({ description: 'Stock en tandas LIBERADAS (listo para enviar, sigue con admin)' })
-  liberada!: number;
 
   @ApiProperty({ description: 'Stock en tandas EN_TRANSITO (en camino al vendedor)' })
   enTransito!: number;
@@ -338,7 +332,7 @@ export class StockReservadoPorLoteDto {
  * Stock reservado = comprometido pero NO entregado al vendedor
  */
 export class StockReservadoDetalladoDto {
-  @ApiProperty({ description: 'Total de stock reservado (INACTIVA + LIBERADA + EN_TRANSITO)' })
+  @ApiProperty({ description: 'Total de stock reservado (INACTIVA + EN_TRANSITO)' })
   totalReservado!: number;
 
   @ApiProperty({ description: 'Desglose por estado de tanda', type: StockPorEstadoDto })

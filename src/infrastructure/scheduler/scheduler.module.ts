@@ -4,7 +4,6 @@ import {
   CleanupProcessedOutboxJob,
   CleanupExpiredIdempotencyKeysJob,
 } from './jobs/cleanup.jobs';
-import { TandaAutoTransitJob } from './jobs/tanda-auto-transit.job';
 import { MensualidadesVencidasJob } from './jobs/mensualidades-vencidas.job';
 import { EventsModule } from '../events/events.module';
 import { EquipamientoModule } from '../../modules/equipamiento/equipamiento.module';
@@ -16,23 +15,19 @@ import { CuadresModule } from '../../modules/cuadres/cuadres.module';
  *
  * Jobs incluidos:
  *
- * 1. TandaAutoTransitJob
- *    - Frecuencia: cada 5 minutos
- *    - Acción: transiciona tandas LIBERADA → EN_TRÁNSITO después de 2 horas
- *
- * 2. CleanupExpiredTokensJob
+ * 1. CleanupExpiredTokensJob
  *    - Frecuencia: cada 1 hora
  *    - Acción: elimina tokens expirados de TokenBlacklist
  *
- * 3. CleanupProcessedOutboxJob
+ * 2. CleanupProcessedOutboxJob
  *    - Frecuencia: cada 24 horas
  *    - Acción: elimina eventos procesados con más de 7 días
  *
- * 4. CleanupExpiredIdempotencyKeysJob
+ * 3. CleanupExpiredIdempotencyKeysJob
  *    - Frecuencia: cada 1 hora
  *    - Acción: elimina idempotency keys expiradas
  *
- * 5. MensualidadesVencidasJob (NUEVO)
+ * 4. MensualidadesVencidasJob
  *    - Frecuencia: cada día a medianoche
  *    - Acción: detecta mensualidades de equipamiento vencidas (>30 días)
  *             y actualiza el montoEsperado de los cuadres activos
@@ -44,12 +39,11 @@ import { CuadresModule } from '../../modules/cuadres/cuadres.module';
 @Module({
   imports: [EventsModule, EquipamientoModule, CuadresModule],
   providers: [
-    TandaAutoTransitJob,
     CleanupExpiredTokensJob,
     CleanupProcessedOutboxJob,
     CleanupExpiredIdempotencyKeysJob,
     MensualidadesVencidasJob,
   ],
-  exports: [TandaAutoTransitJob, MensualidadesVencidasJob],
+  exports: [MensualidadesVencidasJob],
 })
 export class SchedulerModule {}

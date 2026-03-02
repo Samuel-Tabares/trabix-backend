@@ -35,6 +35,7 @@ import { DomainException } from '../../../../domain/exceptions/domain.exception'
 import { CuadreMayorExitosoEvent } from '../events/cuadre-mayor-exitoso.event';
 import { StockUltimaTandaAgotadoEvent } from '../../../mini-cuadres/application/events';
 import { RegistrarEntradaFondoCommand } from '../../../fondo-recompensas/application/commands';
+import { EnviarNotificacionCommand } from '../../../notificaciones/application/commands';
 import { TandaAfectada, parseDecimalValue } from '../../domain/cuadre-mayor.entity';
 
 /**
@@ -228,7 +229,15 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
       );
     }
 
-    // 4.3 Emitir evento principal de cuadre exitoso
+    // 4.3 Liberar siguiente tanda para cada cuadre cerrado por el cuadre mayor
+    if (resultado.cuadresCerradosIds.length > 0) {
+      await this.liberarSiguientesTandasParaCuadresCerrados(
+        resultado.cuadresCerradosIds,
+        cuadreMayor.vendedorId,
+      );
+    }
+
+    // 4.4 Emitir evento principal de cuadre exitoso
     this.eventBus.publish(
       new CuadreMayorExitosoEvent(
         cuadreMayorId,
@@ -548,5 +557,62 @@ export class ConfirmarCuadreMayorHandler implements ICommandHandler<ConfirmarCua
       numeroTanda: Number(item.numeroTanda ?? 0),
       loteId: String(item.loteId ?? ''),
     }));
+  }
+
+  /**
+   * Para cada cuadre cerrado por el cuadre mayor, busca la siguiente tanda INACTIVA
+   * en el mismo lote y la libera (pone en EN_TRANSITO), igual que haría el flujo normal
+   * de cuadre exitoso.
+   *
+   * Usa Set para evitar liberar la misma tanda dos veces si varios cuadres pertenecen
+   * al mismo lote y apuntan a tandas correlativas.
+   */
+  private async liberarSiguientesTandasParaCuadresCerrados(
+    cuadresCerradosIds: string[],
+    vendedorId: string,
+  ): Promise<void> {
+    const tandasYaLiberadas = new Set<string>();
+
+    for (const cuadreId of cuadresCerradosIds) {
+      try {
+        const cuadre = await this.cuadreRepository.findById(cuadreId);
+        if (!cuadre) continue;
+
+        const lote = await this.loteRepository.findById(cuadre.tanda.loteId);
+        if (!lote) continue;
+
+        const siguienteNumero = cuadre.tanda.numero + 1;
+        const siguienteTanda = lote.tandas.find(
+          (t) => t.numero === siguienteNumero && t.estado === 'INACTIVA',
+        );
+
+        if (!siguienteTanda || tandasYaLiberadas.has(siguienteTanda.id)) continue;
+
+        await this.tandaRepository.liberar(siguienteTanda.id);
+        tandasYaLiberadas.add(siguienteTanda.id);
+        this.logger.log(
+          `Siguiente tanda liberada por cuadre mayor: Tanda ${siguienteNumero} (${siguienteTanda.id}) ` +
+            `del lote ${lote.id} - cerrado por cuadre ${cuadreId}`,
+        );
+
+        try {
+          await this.commandBus.execute(
+            new EnviarNotificacionCommand(vendedorId, 'TANDA_LIBERADA', {
+              loteId: lote.id,
+              numeroTanda: siguienteNumero,
+              cantidad: siguienteTanda.stockInicial,
+            }),
+          );
+        } catch (notifError) {
+          this.logger.warn(
+            `Error enviando notificación TANDA_LIBERADA para tanda ${siguienteNumero}: ${notifError}`,
+          );
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Error liberando siguiente tanda para cuadre cerrado ${cuadreId}: ${error}`,
+        );
+      }
+    }
   }
 }

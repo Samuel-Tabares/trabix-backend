@@ -103,7 +103,7 @@ export class PrismaPedidoStockRepository implements IPedidoStockRepository {
     await this.prisma.detalleCostoPedido.delete({ where: { id: costoId } });
   }
 
-  async confirmar(
+  async recibir(
     id: string,
     costoTotal: Decimal,
     costoRealPorTrabix: Decimal,
@@ -111,30 +111,10 @@ export class PrismaPedidoStockRepository implements IPedidoStockRepository {
     return this.prisma.pedidoStock.update({
       where: { id },
       data: {
-        estado: 'CONFIRMADO',
+        estado: 'RECIBIDO',
         costoTotal: costoTotal.toFixed(2),
         costoRealPorTrabix: costoRealPorTrabix.toFixed(2),
-      },
-    });
-  }
-
-  async recibir(id: string): Promise<PedidoStock> {
-    return this.prisma.pedidoStock.update({
-      where: { id },
-      data: {
-        estado: 'RECIBIDO',
         fechaRecepcion: new Date(),
-      },
-    });
-  }
-
-  async cancelar(id: string, motivo: string): Promise<PedidoStock> {
-    return this.prisma.pedidoStock.update({
-      where: { id },
-      data: {
-        estado: 'CANCELADO',
-        motivoCancelacion: motivo,
-        fechaCancelacion: new Date(),
       },
     });
   }
@@ -222,17 +202,15 @@ export class PrismaTipoInsumoRepository implements ITipoInsumoRepository {
     return this.prisma.tipoInsumo.findUnique({ where: { nombre } });
   }
 
-  async findAll(options?: { activo?: boolean }): Promise<TipoInsumo[]> {
-    const where = options?.activo === undefined ? {} : { activo: options.activo };
+  async findAll(): Promise<TipoInsumo[]> {
     return this.prisma.tipoInsumo.findMany({
-      where,
       orderBy: [{ esObligatorio: 'desc' }, { nombre: 'asc' }],
     });
   }
 
   async findObligatorios(): Promise<TipoInsumo[]> {
     return this.prisma.tipoInsumo.findMany({
-      where: { esObligatorio: true, activo: true },
+      where: { esObligatorio: true },
     });
   }
 
@@ -252,11 +230,8 @@ export class PrismaTipoInsumoRepository implements ITipoInsumoRepository {
     });
   }
 
-  async desactivar(id: string): Promise<TipoInsumo> {
-    return this.prisma.tipoInsumo.update({
-      where: { id },
-      data: { activo: false },
-    });
+  async delete(id: string): Promise<void> {
+    await this.prisma.tipoInsumo.delete({ where: { id } });
   }
 }
 
@@ -308,14 +283,14 @@ export class PrismaStockAdminRepository implements IStockAdminRepository {
 
   /**
    * Calcula el stock reservado (comprometido pero NO entregado al vendedor)
-   * Incluye tandas en estados: INACTIVA, LIBERADA, EN_TRANSITO
+   * Incluye tandas en estados: INACTIVA, EN_TRANSITO
    * Una vez EN_CASA, ya no es stock reservado (salió del "banco" del admin)
    */
   async getStockReservado(): Promise<number> {
     const result = await this.prisma.tanda.aggregate({
       _sum: { stockActual: true },
       where: {
-        estado: { in: ['INACTIVA', 'LIBERADA', 'EN_TRANSITO'] },
+        estado: { in: ['INACTIVA', 'EN_TRANSITO'] },
       },
     });
     return result._sum.stockActual || 0;

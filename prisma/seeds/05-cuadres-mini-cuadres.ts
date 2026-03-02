@@ -407,7 +407,7 @@ export async function seedCuadresMiniCuadres(prisma: PrismaClient) {
   });
 
   // =========================================================
-  // Lote 12 — v_vta_mayor_pend (50u, 2 tandas, T1 EN_CASA stock=10, T2 LIBERADA)
+  // Lote 12 — v_vta_mayor_pend (50u, 2 tandas, T1 EN_CASA stock=10, T2 EN_TRANSITO)
   // =========================================================
   await prisma.cuadre.create({
     data: {

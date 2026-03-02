@@ -4,7 +4,7 @@ import { V, V50, LOTE, TANDA, calcularInversiones, daysAgo } from './helpers';
 /**
  * Seed 04: Lotes y Tandas
  * Cubre todos los estados de lotes (CREADO, ACTIVO, FINALIZADO)
- * y tandas (INACTIVA, LIBERADA, EN_TRANSITO, EN_CASA, FINALIZADA)
+ * y tandas (INACTIVA, EN_TRANSITO, EN_CASA, FINALIZADA)
  * con escenarios de 2 y 3 tandas, lotes forzados, etc.
  */
 export async function seedLotesTandas(prisma: PrismaClient) {
@@ -335,7 +335,7 @@ export async function seedLotesTandas(prisma: PrismaClient) {
   // ========================================
   // 11. Lote para venta mayor PENDIENTE - V.venta_mayor_pend (50u)
   //     T1 en_casa (15 vendidos via detal → 10u, listo para consumo mayor de 15u),
-  //     T2 LIBERADA
+  //     T2 EN_TRANSITO
   //     dineroRecaudado=80000: 10 unidades detal × $8000
   //     Al confirmar cuadre mayor A: T1 stockActual(15) - 15 = 0 → T1 se finaliza
   // ========================================
@@ -355,9 +355,9 @@ export async function seedLotesTandas(prisma: PrismaClient) {
         fechaLiberacion: daysAgo(55), fechaEnTransito: daysAgo(55), fechaEnCasa: daysAgo(54),
       },
       {
-        id: TANDA.vmayp_t2, numero: 2, estado: 'LIBERADA',
+        id: TANDA.vmayp_t2, numero: 2, estado: 'EN_TRANSITO',
         stockInicial: 25, stockActual: 25,
-        fechaLiberacion: daysAgo(10),
+        fechaEnTransito: daysAgo(10),
       },
     ],
   });
@@ -417,7 +417,7 @@ export async function seedLotesTandas(prisma: PrismaClient) {
 
   // ========================================
   // 14. Lote FORZADO - V.lote_forzado (25u, creado por venta al mayor)
-  //     T1 LIBERADA
+  //     T1 EN_TRANSITO
   // ========================================
   await crearLoteConTandas({
     loteId: LOTE.v_lote_forzado,
@@ -430,9 +430,9 @@ export async function seedLotesTandas(prisma: PrismaClient) {
     fechaActivacion: daysAgo(10),
     tandas: [
       {
-        id: TANDA.forz_t1, numero: 1, estado: 'LIBERADA',
+        id: TANDA.forz_t1, numero: 1, estado: 'EN_TRANSITO',
         stockInicial: 12, stockActual: 12,
-        fechaLiberacion: daysAgo(10),
+        fechaEnTransito: daysAgo(10),
       },
       {
         id: TANDA.forz_t2, numero: 2, estado: 'INACTIVA',
@@ -474,7 +474,7 @@ export async function seedLotesTandas(prisma: PrismaClient) {
 
   console.log('    ✓ 15 lotes creados con sus tandas');
   console.log('      Estados lotes: 2 CREADO, 11 ACTIVO, 1 FINALIZADO, 1 FORZADO');
-  console.log('      Estados tandas: INACTIVA, LIBERADA, EN_TRANSITO, EN_CASA, FINALIZADA');
+  console.log('      Estados tandas: INACTIVA, EN_TRANSITO, EN_CASA, FINALIZADA');
 }
 
 // ============================================================
@@ -483,7 +483,7 @@ export async function seedLotesTandas(prisma: PrismaClient) {
 interface TandaConfig {
   id: string;
   numero: number;
-  estado: 'INACTIVA' | 'LIBERADA' | 'EN_TRANSITO' | 'EN_CASA' | 'FINALIZADA';
+  estado: 'INACTIVA' | 'EN_TRANSITO' | 'EN_CASA' | 'FINALIZADA';
   stockInicial: number;
   stockActual: number;
   stockConsumidoPorMayor?: number;

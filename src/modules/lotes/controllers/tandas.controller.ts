@@ -9,10 +9,8 @@ import {
   UnauthorizedException,
   ForbiddenException,
   Inject,
-  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { PrismaService } from '../../../infrastructure/database/prisma/prisma.service';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser, AuthenticatedUser } from '../../auth/decorators/current-user.decorator';
 import { ITandaRepository, TANDA_REPOSITORY } from '../domain/tanda.repository.interface';
@@ -34,14 +32,11 @@ import { TandaResponseDto } from '../application/dto';
 @ApiBearerAuth('access-token')
 @Controller('tandas')
 export class TandasController {
-  private readonly logger = new Logger(TandasController.name);
-
   constructor(
     @Inject(TANDA_REPOSITORY)
     private readonly tandaRepository: ITandaRepository,
     @Inject(LOTE_REPOSITORY)
     private readonly loteRepository: ILoteRepository,
-    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -161,51 +156,6 @@ export class TandasController {
     const tandaActualizada = await this.tandaRepository.confirmarEntrega(id);
 
     return this.mapToDto(tandaActualizada);
-  }
-
-  /**
-   * POST /tandas/dev/forzar-transito
-   * Fuerza la transición LIBERADA → EN_TRÁNSITO en todas las tandas liberadas,
-   * ignorando el límite de 2 horas. Solo disponible fuera de producción.
-   */
-  @Post('dev/forzar-transito')
-  @Roles('ADMIN')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: '[DEV] Forzar auto-tránsito inmediato',
-    description:
-      'Transiciona TODAS las tandas LIBERADA → EN_TRÁNSITO sin esperar las 2 horas. ' +
-      'Solo disponible en entornos de desarrollo/testing.',
-  })
-  @ApiResponse({ status: 200, description: 'Transiciones ejecutadas', schema: { example: { procesadas: 2, ids: ['uuid1', 'uuid2'] } } })
-  @ApiResponse({ status: 403, description: 'No disponible en producción' })
-  async forzarTransito(
-    @CurrentUser() admin: AuthenticatedUser,
-  ): Promise<{ procesadas: number; ids: string[] }> {
-    if (process.env.NODE_ENV === 'production') {
-      throw new ForbiddenException('Este endpoint no está disponible en producción');
-    }
-    if (!admin) throw new UnauthorizedException();
-
-    const liberadas = await this.tandaRepository.findTodasLiberadas();
-
-    if (liberadas.length === 0) {
-      return { procesadas: 0, ids: [] };
-    }
-
-    const procesadas: string[] = [];
-    for (const tanda of liberadas) {
-      const result = await this.prisma.tanda.updateMany({
-        where: { id: tanda.id, estado: 'LIBERADA', version: tanda.version },
-        data: { estado: 'EN_TRANSITO', fechaEnTransito: new Date(), version: { increment: 1 } },
-      });
-      if (result.count > 0) {
-        procesadas.push(tanda.id);
-        this.logger.log(`[DEV] Tanda forzada: ${tanda.id} (T${tanda.numero}) LIBERADA → EN_TRÁNSITO`);
-      }
-    }
-
-    return { procesadas: procesadas.length, ids: procesadas };
   }
 
   /**

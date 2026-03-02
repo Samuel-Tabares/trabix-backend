@@ -69,19 +69,9 @@ export interface IPedidoStockRepository {
   eliminarCosto(costoId: string): Promise<void>;
 
   /**
-   * Confirma el pedido (BORRADOR → CONFIRMADO)
+   * Marca el pedido como recibido (BORRADOR → RECIBIDO), calcula y persiste costos
    */
-  confirmar(id: string, costoTotal: Decimal, costoRealPorTrabix: Decimal): Promise<PedidoStock>;
-
-  /**
-   * Marca el pedido como recibido (CONFIRMADO → RECIBIDO)
-   */
-  recibir(id: string): Promise<PedidoStock>;
-
-  /**
-   * Cancela el pedido (BORRADOR → CANCELADO)
-   */
-  cancelar(id: string, motivo: string): Promise<PedidoStock>;
+  recibir(id: string, costoTotal: Decimal, costoRealPorTrabix: Decimal): Promise<PedidoStock>;
 }
 
 export const PEDIDO_STOCK_REPOSITORY = Symbol('PEDIDO_STOCK_REPOSITORY');
@@ -160,7 +150,7 @@ export interface ITipoInsumoRepository {
   /**
    * Lista todos los tipos de insumo
    */
-  findAll(options?: { activo?: boolean }): Promise<TipoInsumo[]>;
+  findAll(): Promise<TipoInsumo[]>;
 
   /**
    * Lista los tipos de insumo obligatorios activos
@@ -178,9 +168,9 @@ export interface ITipoInsumoRepository {
   update(id: string, data: Partial<CreateTipoInsumoData>): Promise<TipoInsumo>;
 
   /**
-   * Desactiva un tipo de insumo
+   * Elimina permanentemente un tipo de insumo
    */
-  desactivar(id: string): Promise<TipoInsumo>;
+  delete(id: string): Promise<void>;
 }
 
 export const TIPO_INSUMO_REPOSITORY = Symbol('TIPO_INSUMO_REPOSITORY');

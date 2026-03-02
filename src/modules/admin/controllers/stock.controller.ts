@@ -21,7 +21,6 @@ import {
   ModificarPedidoStockDto,
   AgregarCostoDto,
   QueryPedidosDto,
-  CancelarPedidoDto,
   PedidoStockResponseDto,
   StockAdminResponseDto,
   DeficitResponseDto,
@@ -34,9 +33,7 @@ import {
   ModificarPedidoStockCommand,
   AgregarCostoPedidoCommand,
   EliminarCostoPedidoCommand,
-  ConfirmarPedidoStockCommand,
   RecibirPedidoStockCommand,
-  CancelarPedidoStockCommand,
 } from '../application/commands';
 
 // Queries
@@ -96,7 +93,7 @@ export class StockAdminController {
    * Ver desglose detallado de stock reservado
    *
    * Stock reservado = TRABIX comprometidos pero que AÚN NO han llegado al vendedor
-   * Estados: INACTIVA (no liberada), LIBERADA (lista para enviar), EN_TRANSITO (en camino)
+   * Estados: INACTIVA (pendiente de envío), EN_TRANSITO (en camino al vendedor)
    *
    * Una vez la tanda está EN_CASA ya no es stock reservado (salió del "banco")
    */
@@ -105,7 +102,7 @@ export class StockAdminController {
     summary: 'Desglose detallado de stock reservado',
     description:
       'Muestra el stock reservado (comprometido pero NO entregado) con desglose por: ' +
-      '(1) Estado de tanda: cuánto en INACTIVA, LIBERADA, EN_TRANSITO. ' +
+      '(1) Estado de tanda: cuánto en INACTIVA, EN_TRANSITO. ' +
       '(2) Por vendedor: cuánto tiene comprometido cada vendedor. ' +
       '(3) Por lote: detalle de cada lote con sus tandas pendientes de entrega. ' +
       'Funciona como un banco: el stock reservado es lo que sigue siendo "del admin" ' +
@@ -253,56 +250,18 @@ export class PedidosStockController {
   }
 
   /**
-   * POST /admin/pedidos-stock/:id/confirmar
-   * Confirmar pedido (calcula costo real, pasa a CONFIRMADO)
-   */
-  @Post(':id/confirmar')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Confirmar pedido (calcula costo real)' })
-  @ApiParam({ name: 'id', description: 'ID del pedido' })
-  @ApiResponse({ status: 200, type: PedidoStockResponseDto })
-  @ApiResponse({ status: 404, description: 'Pedido no encontrado' })
-  @ApiResponse({
-    status: 409,
-    description: 'Pedido no está en BORRADOR o faltan insumos obligatorios',
-  })
-  async confirmar(@Param('id', ParseUUIDPipe) id: string): Promise<PedidoStockResponseDto> {
-    await this.commandBus.execute(new ConfirmarPedidoStockCommand(id));
-    return this.queryBus.execute(new ObtenerPedidoStockQuery(id));
-  }
-
-  /**
    * POST /admin/pedidos-stock/:id/recibir
-   * Marcar como recibido (incrementa stock físico)
+   * Marcar como recibido (valida insumos obligatorios, incrementa stock físico)
    */
   @Post(':id/recibir')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Marcar como recibido (incrementa stock físico)' })
+  @ApiOperation({ summary: 'Marcar como recibido (valida insumos obligatorios, incrementa stock)' })
   @ApiParam({ name: 'id', description: 'ID del pedido' })
   @ApiResponse({ status: 200, type: PedidoStockResponseDto })
   @ApiResponse({ status: 404, description: 'Pedido no encontrado' })
-  @ApiResponse({ status: 409, description: 'Pedido no está en estado CONFIRMADO' })
+  @ApiResponse({ status: 409, description: 'Pedido no está en BORRADOR o faltan insumos obligatorios' })
   async recibir(@Param('id', ParseUUIDPipe) id: string): Promise<PedidoStockResponseDto> {
     await this.commandBus.execute(new RecibirPedidoStockCommand(id));
-    return this.queryBus.execute(new ObtenerPedidoStockQuery(id));
-  }
-
-  /**
-   * POST /admin/pedidos-stock/:id/cancelar
-   * Cancelar pedido (solo en BORRADOR)
-   */
-  @Post(':id/cancelar')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cancelar pedido (solo en BORRADOR)' })
-  @ApiParam({ name: 'id', description: 'ID del pedido' })
-  @ApiResponse({ status: 200, type: PedidoStockResponseDto })
-  @ApiResponse({ status: 404, description: 'Pedido no encontrado' })
-  @ApiResponse({ status: 409, description: 'Pedido no está en estado BORRADOR' })
-  async cancelar(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: CancelarPedidoDto,
-  ): Promise<PedidoStockResponseDto> {
-    await this.commandBus.execute(new CancelarPedidoStockCommand(id, dto.motivo));
     return this.queryBus.execute(new ObtenerPedidoStockQuery(id));
   }
 }

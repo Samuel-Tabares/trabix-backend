@@ -236,9 +236,7 @@ export class ObtenerHistorialConfiguracionHandler implements IQueryHandler<Obten
 
 // ========== ListarTiposInsumoQuery ==========
 
-export class ListarTiposInsumoQuery implements IQuery {
-  constructor(public readonly activo?: boolean) {}
-}
+export class ListarTiposInsumoQuery implements IQuery {}
 
 @QueryHandler(ListarTiposInsumoQuery)
 export class ListarTiposInsumoHandler implements IQueryHandler<
@@ -250,16 +248,13 @@ export class ListarTiposInsumoHandler implements IQueryHandler<
     private readonly tipoInsumoRepository: ITipoInsumoRepository,
   ) {}
 
-  async execute(query: ListarTiposInsumoQuery): Promise<TipoInsumoResponseDto[]> {
-    const tipos = await this.tipoInsumoRepository.findAll({
-      activo: query.activo,
-    });
+  async execute(): Promise<TipoInsumoResponseDto[]> {
+    const tipos = await this.tipoInsumoRepository.findAll();
 
     return tipos.map((t) => ({
       id: t.id,
       nombre: t.nombre,
       esObligatorio: t.esObligatorio,
-      activo: t.activo,
       fechaCreacion: t.fechaCreacion,
     }));
   }
@@ -330,8 +325,7 @@ export class ObtenerStockReservadoDetalladoQuery implements IQuery {}
  * Funciona como un banco: el stock sigue siendo "del admin" hasta que llega EN_CASA
  *
  * Estados considerados como RESERVADO:
- * - INACTIVA: Tanda creada pero no liberada (comprometido)
- * - LIBERADA: Lista para enviar (sigue con admin)
+ * - INACTIVA: Tanda creada, pendiente de envío (comprometido)
  * - EN_TRANSITO: En camino al vendedor (sigue siendo del admin)
  *
  * Estados NO reservados:
@@ -352,12 +346,13 @@ export class ObtenerStockReservadoDetalladoHandler implements IQueryHandler<
 
   async execute(): Promise<StockReservadoDetalladoDto> {
     // Estados que consideramos como "stock reservado" (aún no entregado al vendedor)
-    const estadosReservados = ['INACTIVA', 'LIBERADA', 'EN_TRANSITO'];
+    const estadosReservados = ['INACTIVA', 'EN_TRANSITO'];
 
-    // 1. Obtener todas las tandas en estados reservados
+    // 1. Obtener todas las tandas en estados reservados, solo de lotes ACTIVOS
     const tandas = await this.prisma.tanda.findMany({
       where: {
         estado: { in: estadosReservados as any },
+        lote: { estado: 'ACTIVO' },
       },
       include: {
         lote: {
@@ -377,7 +372,6 @@ export class ObtenerStockReservadoDetalladoHandler implements IQueryHandler<
     // 2. Calcular desglose por estado
     const porEstado: StockPorEstadoDto = {
       inactiva: 0,
-      liberada: 0,
       enTransito: 0,
     };
 
@@ -385,9 +379,6 @@ export class ObtenerStockReservadoDetalladoHandler implements IQueryHandler<
       switch (tanda.estado) {
         case 'INACTIVA':
           porEstado.inactiva += tanda.stockActual;
-          break;
-        case 'LIBERADA':
-          porEstado.liberada += tanda.stockActual;
           break;
         case 'EN_TRANSITO':
           porEstado.enTransito += tanda.stockActual;
@@ -486,7 +477,7 @@ export class ObtenerStockReservadoDetalladoHandler implements IQueryHandler<
       .sort((a, b) => b.stockPendiente - a.stockPendiente);
 
     // 5. Calcular total
-    const totalReservado = porEstado.inactiva + porEstado.liberada + porEstado.enTransito;
+    const totalReservado = porEstado.inactiva + porEstado.enTransito;
 
     return {
       totalReservado,

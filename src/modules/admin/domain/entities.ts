@@ -76,45 +76,19 @@ export class PedidoStockEntity {
   }
 
   /**
-   * Valida que se puede confirmar el pedido
+   * Valida que se puede marcar como recibido (BORRADOR → RECIBIDO)
+   * Verifica que todos los insumos obligatorios estén presentes
    */
-  validarConfirmacion(insumosObligatorios: string[]): void {
+  validarRecepcion(insumosObligatorios: string[]): void {
     if (this.estado !== 'BORRADOR') {
-      throw new DomainException('PED_002', 'Solo se pueden confirmar pedidos en estado BORRADOR', {
+      throw new DomainException('PED_005', 'Solo se pueden recibir pedidos en estado BORRADOR', {
         estadoActual: this.estado,
       });
     }
 
     if (!this.tieneInsumosObligatorios(insumosObligatorios)) {
-      throw new DomainException('PED_003', 'Faltan insumos obligatorios', {
+      throw new DomainException('PED_003', 'Faltan insumos obligatorios en el pedido', {
         insumosObligatorios,
-      });
-    }
-
-    if (this.detallesCosto.length === 0) {
-      throw new DomainException('PED_004', 'El pedido no tiene detalles de costo');
-    }
-  }
-
-  /**
-   * Valida que se puede marcar como recibido
-   */
-  validarRecepcion(): void {
-    if (this.estado !== 'CONFIRMADO') {
-      throw new DomainException('PED_005', 'Solo se pueden recibir pedidos en estado CONFIRMADO', {
-        estadoActual: this.estado,
-      });
-    }
-  }
-
-  /**
-   * Valida que se puede cancelar el pedido
-   * Solo se pueden cancelar pedidos en estado BORRADOR
-   */
-  validarCancelacion(): void {
-    if (this.estado !== 'BORRADOR') {
-      throw new DomainException('PED_007', 'Solo se pueden cancelar pedidos en estado BORRADOR', {
-        estadoActual: this.estado,
       });
     }
   }
@@ -231,17 +205,11 @@ export class TipoInsumoEntity {
   }
 
   /**
-   * Valida que se puede desactivar
+   * Valida que se puede eliminar
    */
-  validarDesactivacion(): void {
+  validarEliminacion(): void {
     if (this.esObligatorio) {
-      throw new DomainException('INS_001', 'No se pueden desactivar tipos de insumo obligatorios', {
-        nombre: this.nombre,
-      });
-    }
-
-    if (!this.activo) {
-      throw new DomainException('INS_004', 'El tipo de insumo ya está inactivo', {
+      throw new DomainException('INS_001', 'No se pueden eliminar tipos de insumo obligatorios', {
         nombre: this.nombre,
       });
     }

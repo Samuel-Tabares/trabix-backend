@@ -188,7 +188,7 @@ async function printResumen(prisma: PrismaClient) {
   console.log('    • CREADO, ACTIVO, FINALIZADO, FORZADO');
   console.log('    • 2 tandas (≤50) y 3 tandas (>50)');
   console.log('  Tandas:');
-  console.log('    • INACTIVA, LIBERADA, EN_TRANSITO, EN_CASA, FINALIZADA');
+  console.log('    • INACTIVA, EN_TRANSITO, EN_CASA, FINALIZADA');
   console.log('  Ventas:');
   console.log('    • PENDIENTE, APROBADA, RECHAZADA');
   console.log('    • Tipos: PROMO, UNIDAD, SIN_LICOR, REGALO');

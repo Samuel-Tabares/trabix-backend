@@ -175,64 +175,6 @@ export class EliminarCostoPedidoHandler implements ICommandHandler<EliminarCosto
   }
 }
 
-// ========== ConfirmarPedidoStockCommand ==========
-
-export class ConfirmarPedidoStockCommand implements ICommand {
-  constructor(public readonly pedidoId: string) {}
-}
-
-@CommandHandler(ConfirmarPedidoStockCommand)
-export class ConfirmarPedidoStockHandler implements ICommandHandler<ConfirmarPedidoStockCommand> {
-  private readonly logger = new Logger(ConfirmarPedidoStockHandler.name);
-
-  constructor(
-    @Inject(PEDIDO_STOCK_REPOSITORY)
-    private readonly pedidoRepository: IPedidoStockRepository,
-    @Inject(TIPO_INSUMO_REPOSITORY)
-    private readonly tipoInsumoRepository: ITipoInsumoRepository,
-  ) {}
-
-  async execute(command: ConfirmarPedidoStockCommand): Promise<any> {
-    const pedido = await this.pedidoRepository.findById(command.pedidoId);
-    if (!pedido) {
-      throw new DomainException('PED_006', 'Pedido no encontrado');
-    }
-
-    // Obtener insumos obligatorios
-    const insumosObligatorios = await this.tipoInsumoRepository.findObligatorios();
-    const nombresObligatorios = insumosObligatorios.map((i) => i.nombre);
-
-    const entity = new PedidoStockEntity({
-      ...pedido,
-      costoTotal: pedido.costoTotal,
-      costoRealPorTrabix: pedido.costoRealPorTrabix,
-      detallesCosto: pedido.detallesCosto.map(
-        (d) => new DetalleCostoEntity({ ...d, costoTotal: d.costoTotal }),
-      ),
-    });
-
-    entity.validarConfirmacion(nombresObligatorios);
-
-    // Calcular costos
-    const costoTotal = entity.calcularCostoTotal();
-    const costoRealPorTrabix = entity.calcularCostoRealPorTrabix();
-
-    const confirmado = await this.pedidoRepository.confirmar(
-      command.pedidoId,
-      costoTotal,
-      costoRealPorTrabix,
-    );
-
-    this.logger.log(
-      `Pedido confirmado: ${command.pedidoId} - ` +
-        `Costo total: $${costoTotal.toFixed(2)} - ` +
-        `Costo/TRABIX: $${costoRealPorTrabix.toFixed(2)}`,
-    );
-
-    return confirmado;
-  }
-}
-
 // ========== RecibirPedidoStockCommand ==========
 
 export class RecibirPedidoStockCommand implements ICommand {
@@ -246,6 +188,8 @@ export class RecibirPedidoStockHandler implements ICommandHandler<RecibirPedidoS
   constructor(
     @Inject(PEDIDO_STOCK_REPOSITORY)
     private readonly pedidoRepository: IPedidoStockRepository,
+    @Inject(TIPO_INSUMO_REPOSITORY)
+    private readonly tipoInsumoRepository: ITipoInsumoRepository,
     @Inject(STOCK_ADMIN_REPOSITORY)
     private readonly stockAdminRepository: IStockAdminRepository,
   ) {}
@@ -256,62 +200,39 @@ export class RecibirPedidoStockHandler implements ICommandHandler<RecibirPedidoS
       throw new DomainException('PED_006', 'Pedido no encontrado');
     }
 
+    // Obtener insumos obligatorios para validar
+    const insumosObligatorios = await this.tipoInsumoRepository.findObligatorios();
+    const nombresObligatorios = insumosObligatorios.map((i) => i.nombre);
+
     const entity = new PedidoStockEntity({
       ...pedido,
       costoTotal: pedido.costoTotal,
       costoRealPorTrabix: pedido.costoRealPorTrabix,
+      detallesCosto: pedido.detallesCosto.map(
+        (d) => new DetalleCostoEntity({ ...d, costoTotal: d.costoTotal }),
+      ),
     });
-    entity.validarRecepcion();
+    entity.validarRecepcion(nombresObligatorios);
+
+    // Calcular costos al momento de recibir
+    const costoTotal = entity.calcularCostoTotal();
+    const costoRealPorTrabix = entity.calcularCostoRealPorTrabix();
 
     // Incrementar stock físico
     await this.stockAdminRepository.incrementarStock(pedido.cantidadTrabix, pedido.id);
 
-    const recibido = await this.pedidoRepository.recibir(command.pedidoId);
+    const recibido = await this.pedidoRepository.recibir(
+      command.pedidoId,
+      costoTotal,
+      costoRealPorTrabix,
+    );
 
     this.logger.log(
-      `Pedido recibido: ${command.pedidoId} - Stock incrementado: +${pedido.cantidadTrabix}`,
+      `Pedido recibido: ${command.pedidoId} - Stock incrementado: +${pedido.cantidadTrabix} - ` +
+        `Costo total: $${costoTotal.toFixed(2)} - Costo/TRABIX: $${costoRealPorTrabix.toFixed(2)}`,
     );
 
     return recibido;
-  }
-}
-
-// ========== CancelarPedidoStockCommand ==========
-
-export class CancelarPedidoStockCommand implements ICommand {
-  constructor(
-    public readonly pedidoId: string,
-    public readonly motivo: string,
-  ) {}
-}
-
-@CommandHandler(CancelarPedidoStockCommand)
-export class CancelarPedidoStockHandler implements ICommandHandler<CancelarPedidoStockCommand> {
-  private readonly logger = new Logger(CancelarPedidoStockHandler.name);
-
-  constructor(
-    @Inject(PEDIDO_STOCK_REPOSITORY)
-    private readonly pedidoRepository: IPedidoStockRepository,
-  ) {}
-
-  async execute(command: CancelarPedidoStockCommand): Promise<any> {
-    const pedido = await this.pedidoRepository.findById(command.pedidoId);
-    if (!pedido) {
-      throw new DomainException('PED_006', 'Pedido no encontrado');
-    }
-
-    const entity = new PedidoStockEntity({
-      ...pedido,
-      costoTotal: pedido.costoTotal,
-      costoRealPorTrabix: pedido.costoRealPorTrabix,
-    });
-    entity.validarCancelacion();
-
-    const cancelado = await this.pedidoRepository.cancelar(command.pedidoId, command.motivo);
-
-    this.logger.log(`Pedido cancelado: ${command.pedidoId} - Motivo: ${command.motivo}`);
-
-    return cancelado;
   }
 }
 
@@ -444,34 +365,33 @@ export class ModificarTipoInsumoHandler implements ICommandHandler<ModificarTipo
   }
 }
 
-// ========== DesactivarTipoInsumoCommand ==========
+// ========== EliminarTipoInsumoCommand ==========
 
-export class DesactivarTipoInsumoCommand implements ICommand {
+export class EliminarTipoInsumoCommand implements ICommand {
   constructor(public readonly id: string) {}
 }
 
-@CommandHandler(DesactivarTipoInsumoCommand)
-export class DesactivarTipoInsumoHandler implements ICommandHandler<DesactivarTipoInsumoCommand> {
-  private readonly logger = new Logger(DesactivarTipoInsumoHandler.name);
+@CommandHandler(EliminarTipoInsumoCommand)
+export class EliminarTipoInsumoHandler implements ICommandHandler<EliminarTipoInsumoCommand> {
+  private readonly logger = new Logger(EliminarTipoInsumoHandler.name);
 
   constructor(
     @Inject(TIPO_INSUMO_REPOSITORY)
     private readonly tipoInsumoRepository: ITipoInsumoRepository,
   ) {}
 
-  async execute(command: DesactivarTipoInsumoCommand): Promise<any> {
+  async execute(command: EliminarTipoInsumoCommand): Promise<void> {
     const tipoInsumo = await this.tipoInsumoRepository.findById(command.id);
     if (!tipoInsumo) {
       throw new DomainException('INS_003', 'Tipo de insumo no encontrado');
     }
 
     const entity = new TipoInsumoEntity(tipoInsumo);
-    entity.validarDesactivacion();
+    entity.validarEliminacion();
 
-    const desactivado = await this.tipoInsumoRepository.desactivar(command.id);
+    await this.tipoInsumoRepository.delete(command.id);
 
-    this.logger.log(`Tipo de insumo desactivado: ${command.id}`);
-    return desactivado;
+    this.logger.log(`Tipo de insumo eliminado: ${command.id}`);
   }
 }
 
@@ -481,11 +401,9 @@ export const AdminCommandHandlers = [
   ModificarPedidoStockHandler,
   AgregarCostoPedidoHandler,
   EliminarCostoPedidoHandler,
-  ConfirmarPedidoStockHandler,
   RecibirPedidoStockHandler,
-  CancelarPedidoStockHandler,
   ModificarConfiguracionHandler,
   CrearTipoInsumoHandler,
   ModificarTipoInsumoHandler,
-  DesactivarTipoInsumoHandler,
+  EliminarTipoInsumoHandler,
 ];

@@ -30,7 +30,7 @@ import {
   ModificarConfiguracionCommand,
   CrearTipoInsumoCommand,
   ModificarTipoInsumoCommand,
-  DesactivarTipoInsumoCommand,
+  EliminarTipoInsumoCommand,
 } from '../../admin/application/commands';
 
 // Queries
@@ -170,7 +170,6 @@ export class TiposInsumoController {
       id: tipoInsumo.id,
       nombre: tipoInsumo.nombre,
       esObligatorio: tipoInsumo.esObligatorio,
-      activo: tipoInsumo.activo,
       fechaCreacion: tipoInsumo.fechaCreacion,
     };
   }
@@ -182,9 +181,8 @@ export class TiposInsumoController {
   @Get()
   @ApiOperation({ summary: 'Listar tipos de insumo' })
   @ApiResponse({ status: 200, type: [TipoInsumoResponseDto] })
-  async listar(@Query('activo') activo?: string): Promise<TipoInsumoResponseDto[]> {
-    const activoBoolean = activo === 'true' ? true : activo === 'false' ? false : undefined;
-    return this.queryBus.execute(new ListarTiposInsumoQuery(activoBoolean));
+  async listar(): Promise<TipoInsumoResponseDto[]> {
+    return this.queryBus.execute(new ListarTiposInsumoQuery());
   }
 
   /**
@@ -208,29 +206,20 @@ export class TiposInsumoController {
       id: tipoInsumo.id,
       nombre: tipoInsumo.nombre,
       esObligatorio: tipoInsumo.esObligatorio,
-      activo: tipoInsumo.activo,
       fechaCreacion: tipoInsumo.fechaCreacion,
     };
   }
 
   /**
    * DELETE /admin/tipos-insumo/:id
-   * Desactivar tipo de insumo
+   * Eliminar tipo de insumo permanentemente
    */
   @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Desactivar tipo de insumo' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminar tipo de insumo permanentemente' })
   @ApiParam({ name: 'id', description: 'ID del tipo de insumo' })
-  @ApiResponse({ status: 200, type: TipoInsumoResponseDto })
-  async desactivar(@Param('id', ParseUUIDPipe) id: string): Promise<TipoInsumoResponseDto> {
-    const tipoInsumo = await this.commandBus.execute(new DesactivarTipoInsumoCommand(id));
-
-    return {
-      id: tipoInsumo.id,
-      nombre: tipoInsumo.nombre,
-      esObligatorio: tipoInsumo.esObligatorio,
-      activo: tipoInsumo.activo,
-      fechaCreacion: tipoInsumo.fechaCreacion,
-    };
+  @ApiResponse({ status: 204, description: 'Tipo de insumo eliminado' })
+  async eliminar(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.commandBus.execute(new EliminarTipoInsumoCommand(id));
   }
 }
